@@ -2,14 +2,16 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="OrbitSuite - Das integrierte Produktivitäts-Framework mit OrbitTask, OrbitNotes, OrbitFocus, OrbitHabits und OrbitTools im Dark Glassmorphism Design.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <meta name="description" content="OrbitSuite - Das integrierte Produktivitäts-Framework mit OrbitTask, OrbitNotes, OrbitFocus, OrbitHabits, OrbitTools und OrbitRätsel im Dark Glassmorphism Design.">
   <title>OrbitSuite • All-in-One Productivity Workspace</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236366f1'><path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/></svg>">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="shortcut icon" href="favicon.ico">
+  <link rel="apple-touch-icon" href="orbitsuite_icon.png">
 </head>
 <body>
   <!-- Ambient Background Glows -->
@@ -58,7 +60,7 @@
           <div class="app-selector-menu hidden" id="app-selector-menu">
             <div class="selector-menu-header">
               <span>PRODUKTIVITÄTS-APPS</span>
-              <kbd class="mini-shortcut">Alt + 0..5</kbd>
+              <kbd class="mini-shortcut">Alt + 0..6</kbd>
             </div>
             <div class="selector-menu-grid">
               <button class="app-menu-item active" data-app-target="hub">
@@ -126,6 +128,17 @@
                 </div>
                 <kbd class="key-hint">Alt+5</kbd>
               </button>
+
+              <button class="app-menu-item" data-app-target="riddle">
+                <div class="item-icon-box riddle-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a9 9 0 0 0-9 9c0 3.6 2.1 6.7 5.2 8.1.5.2.8.7.8 1.2v.7c0 .6.4 1 1 1h4c.6 0 1-.4 1-1v-.7c0-.5.3-1 .8-1.2 3.1-1.4 5.2-4.5 5.2-8.1a9 9 0 0 0-9-9z"></path><path d="M9 22h6"></path><path d="M10 12h4"></path></svg>
+                </div>
+                <div class="item-info">
+                  <span class="item-title">OrbitRätsel</span>
+                  <span class="item-desc">Denksport, Quiz & Logik</span>
+                </div>
+                <kbd class="key-hint">Alt+6</kbd>
+              </button>
             </div>
           </div>
         </div>
@@ -156,6 +169,10 @@
         <button class="suite-pill" data-app="tools" title="OrbitTools">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
           <span>OrbitTools</span>
+        </button>
+        <button class="suite-pill" data-app="riddle" title="OrbitRätsel">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a9 9 0 0 0-9 9c0 3.6 2.1 6.7 5.2 8.1.5.2.8.7.8 1.2v.7c0 .6.4 1 1 1h4c.6 0 1-.4 1-1v-.7c0-.5.3-1 .8-1.2 3.1-1.4 5.2-4.5 5.2-8.1a9 9 0 0 0-9-9z"></path><path d="M9 22h6"></path><path d="M10 12h4"></path></svg>
+          <span>OrbitRätsel</span>
         </button>
       </nav>
 
@@ -258,9 +275,18 @@
             </div>
             <span class="kpi-arrow">→</span>
           </div>
+
+          <div class="hub-kpi-card" data-app-nav="riddle">
+            <div class="kpi-icon riddle">🧩</div>
+            <div class="kpi-data">
+              <span class="kpi-value" id="hub-stat-riddles">18 Rätsel</span>
+              <span class="kpi-label">Denksport & Quiz</span>
+            </div>
+            <span class="kpi-arrow">→</span>
+          </div>
         </div>
 
-        <!-- MAIN APP SELECTOR SECTION (Primary User Request Feature) -->
+        <!-- MAIN APP SELECTOR SECTION -->
         <div class="hub-section">
           <div class="section-header">
             <div>
@@ -407,6 +433,34 @@
               </div>
             </div>
 
+            <!-- App Card 6: OrbitRätsel (NEW REQUESTED TOOL) -->
+            <div class="app-card" data-launch="riddle">
+              <div class="card-glow riddle-glow"></div>
+              <div class="app-card-top">
+                <div class="app-card-icon-box riddle-box">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <path d="M12 2a9 9 0 0 0-9 9c0 3.6 2.1 6.7 5.2 8.1.5.2.8.7.8 1.2v.7c0 .6.4 1 1 1h4c.6 0 1-.4 1-1v-.7c0-.5.3-1 .8-1.2 3.1-1.4 5.2-4.5 5.2-8.1a9 9 0 0 0-9-9z"></path>
+                    <path d="M9 22h6"></path>
+                    <path d="M10 12h4"></path>
+                  </svg>
+                </div>
+                <span class="app-category-badge">DENKSPORT & QUIZ</span>
+              </div>
+              <h3 class="app-card-title">OrbitRätsel</h3>
+              <p class="app-card-desc">Interaktive Denk- & Logikrätsel, Mathe-Knobeleien, Coder-Puzzles und Detektivfälle mit Hinweisen, Sofortprüfung & Konfetti.</p>
+              
+              <div class="app-card-meta">
+                <div class="meta-pill">
+                  <span class="dot purple"></span>
+                  <span id="hub-card-riddle-summary">18 Denk-Rätsel</span>
+                </div>
+                <button class="app-launch-btn riddle-btn" data-launch="riddle">
+                  <span>App öffnen</span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+              </div>
+            </div>
+
           </div>
         </div>
 
@@ -426,6 +480,9 @@
             <button class="quick-action-btn" id="hub-action-check-habits">
               <span>🎯 Zu den Gewohnheiten</span>
             </button>
+            <button class="quick-action-btn" id="hub-action-solve-riddle">
+              <span>🧩 Rätsel lösen</span>
+            </button>
           </div>
         </div>
 
@@ -441,9 +498,7 @@
               </div>
               <button class="widget-link-btn" data-launch="tasks">Alle Tasks →</button>
             </div>
-            <div class="hub-task-preview-list" id="hub-task-preview-list">
-              <!-- Dynamically populated -->
-            </div>
+            <div class="hub-task-preview-list" id="hub-task-preview-list"></div>
           </div>
 
           <!-- Today Habits & Streak Preview -->
@@ -455,9 +510,7 @@
               </div>
               <button class="widget-link-btn" data-launch="habits">Habits öffnen →</button>
             </div>
-            <div class="hub-habit-preview-list" id="hub-habit-preview-list">
-              <!-- Dynamically populated -->
-            </div>
+            <div class="hub-habit-preview-list" id="hub-habit-preview-list"></div>
           </div>
 
           <!-- Pinned Notes Preview -->
@@ -469,9 +522,7 @@
               </div>
               <button class="widget-link-btn" data-launch="notes">Alle Notizen →</button>
             </div>
-            <div class="hub-notes-preview-list" id="hub-notes-preview-list">
-              <!-- Dynamically populated -->
-            </div>
+            <div class="hub-notes-preview-list" id="hub-notes-preview-list"></div>
           </div>
 
         </div>
@@ -644,9 +695,7 @@
             <button class="filter-chip" data-filter-type="time" data-filter-val="overdue">⚠️ Überfällig</button>
           </div>
 
-          <div class="tag-filters-container" id="tag-filters">
-            <!-- Dynamically injected category chips -->
-          </div>
+          <div class="tag-filters-container" id="tag-filters"></div>
 
           <div class="sort-container">
             <label for="sort-select" class="sort-label">Sortieren nach:</label>
@@ -746,9 +795,7 @@
                 <span class="col-head subtasks-head">Subtasks</span>
                 <span class="col-head actions-head">Aktionen</span>
               </div>
-              <div class="list-items-body" id="list-items-body">
-                <!-- Dynamically populated rows -->
-              </div>
+              <div class="list-items-body" id="list-items-body"></div>
             </div>
           </section>
 
@@ -866,9 +913,7 @@
 
         <!-- Notes Grid -->
         <main class="main-content">
-          <div class="notes-grid" id="notes-cards-container">
-            <!-- Dynamically populated notes -->
-          </div>
+          <div class="notes-grid" id="notes-cards-container"></div>
         </main>
       </div>
     </section>
@@ -1056,9 +1101,7 @@
               <span class="col-habit-progress">Woche</span>
               <span class="col-habit-actions">Aktionen</span>
             </div>
-            <div class="habits-list-body" id="habits-list-body">
-              <!-- Dynamically populated habits -->
-            </div>
+            <div class="habits-list-body" id="habits-list-body"></div>
           </div>
         </main>
       </div>
@@ -1097,6 +1140,9 @@
               </button>
               <button class="tool-tab" data-tool="uuid">
                 <span>🔑 UUID & Timestamp</span>
+              </button>
+              <button class="tool-tab" data-tool="jump-riddle" id="btn-tools-jump-riddle">
+                <span>🧩 Zu den Rätseln →</span>
               </button>
             </div>
           </div>
@@ -1231,7 +1277,7 @@
               <div class="gen-section">
                 <div class="gen-header">
                   <h3>⏱️ Unix & ISO Timestamp</h3>
-                  <button class="btn-secondary" id="btn-refresh-time">Aktualisieren</button>
+                  <button class="btn-refresh-time" id="btn-refresh-time">Aktualisieren</button>
                 </div>
                 <div class="gen-grid">
                   <div class="gen-input-row">
@@ -1252,6 +1298,157 @@
                 </div>
               </div>
             </div>
+          </div>
+
+        </main>
+      </div>
+    </section>
+
+    <!-- ======================================================================
+         APP VIEW 6: ORBITRÄTSEL (DENKSPORT, LOGIK & QUIZ STUDIO)
+         ====================================================================== -->
+    <section class="suite-app-view" id="app-view-riddle">
+      <div class="app-layout">
+        <header class="app-header">
+          <div class="header-left">
+            <div class="brand-logo" data-app-nav="riddle">
+              <div class="logo-icon riddle-icon-gradient">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <path d="M12 2a9 9 0 0 0-9 9c0 3.6 2.1 6.7 5.2 8.1.5.2.8.7.8 1.2v.7c0 .6.4 1 1 1h4c.6 0 1-.4 1-1v-.7c0-.5.3-1 .8-1.2 3.1-1.4 5.2-4.5 5.2-8.1a9 9 0 0 0-9-9z"></path>
+                  <path d="M9 22h6"></path>
+                  <path d="M10 12h4"></path>
+                </svg>
+              </div>
+              <div class="logo-text">
+                <span class="logo-title">Orbit<span class="gradient-text-riddle">Rätsel</span></span>
+                <span class="logo-badge">DENKSPORT</span>
+              </div>
+            </div>
+
+            <div class="riddle-stats-badges">
+              <span class="riddle-badge-item" id="riddle-badge-score">🏆 0 Gelöst</span>
+              <span class="riddle-badge-item streak" id="riddle-badge-streak">🔥 0er Streak</span>
+            </div>
+          </div>
+
+          <div class="header-right">
+            <button class="btn-secondary" id="btn-riddle-random">
+              <span>🎲 Zufall</span>
+            </button>
+            <button class="btn-primary" id="btn-riddle-create">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>Neues Rätsel</span>
+            </button>
+          </div>
+        </header>
+
+        <!-- Riddle Category Filters -->
+        <section class="controls-strip">
+          <div class="filter-group">
+            <span class="filter-title">Kategorie:</span>
+            <button class="filter-chip active riddle-filter-chip" data-category="all">Alle</button>
+            <button class="filter-chip riddle-filter-chip" data-category="Logik">💡 Logik</button>
+            <button class="filter-chip riddle-filter-chip" data-category="Zahlen">🔢 Zahlen & Mathe</button>
+            <button class="filter-chip riddle-filter-chip" data-category="Tech">💻 Coder & Tech</button>
+            <button class="filter-chip riddle-filter-chip" data-category="Detektiv">🕵️ Detektiv</button>
+            <button class="filter-chip riddle-filter-chip" data-category="Querdenker">🧠 Querdenker</button>
+          </div>
+          <div class="sort-container">
+            <label for="riddle-difficulty-select" class="sort-label">Stufe:</label>
+            <select id="riddle-difficulty-select" class="select-input">
+              <option value="all">Alle Stufen</option>
+              <option value="Einfach">🌱 Einfach</option>
+              <option value="Mittel">⚡ Mittel</option>
+              <option value="Schwer">🔥 Schwer</option>
+            </select>
+          </div>
+        </section>
+
+        <!-- Main Riddle Interactive Arena -->
+        <main class="main-content">
+          <div class="riddle-arena-card">
+            
+            <div class="riddle-arena-header">
+              <div class="riddle-meta-tags">
+                <span class="riddle-cat-pill" id="riddle-active-cat">💡 Logik</span>
+                <span class="riddle-diff-pill" id="riddle-active-diff">⚡ Mittel</span>
+                <span class="riddle-count-label" id="riddle-active-counter">Rätsel #1 von 18</span>
+              </div>
+              <div class="riddle-status-indicator" id="riddle-status-indicator">
+                <span class="status-dot"></span>
+                <span id="riddle-status-text">Offen</span>
+              </div>
+            </div>
+
+            <!-- Puzzle Question Box -->
+            <div class="riddle-question-wrapper">
+              <h2 class="riddle-question-text" id="riddle-question-text">Lädt Rätsel...</h2>
+            </div>
+
+            <!-- Interactive Answer Input -->
+            <div class="riddle-interactive-form">
+              <div class="riddle-input-group">
+                <input type="text" id="riddle-answer-input" class="form-input" placeholder="Deine Lösung hier eingeben..." autocomplete="off">
+                <button class="btn-primary" id="btn-riddle-submit">
+                  <span>Prüfen</span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                </button>
+              </div>
+              <!-- Instant Answer Feedback Box -->
+              <div class="riddle-feedback-box hidden" id="riddle-feedback-box"></div>
+            </div>
+
+            <!-- Hints & Solution Reveal Row -->
+            <div class="riddle-assist-row">
+              <button class="btn-secondary" id="btn-riddle-hint">
+                <span>💡 Hinweis anzeigen</span>
+              </button>
+              <button class="btn-secondary" id="btn-riddle-reveal">
+                <span>👁️ Lösung aufdecken</span>
+              </button>
+            </div>
+
+            <!-- Hint Box (Hidden by default) -->
+            <div class="riddle-hint-box hidden" id="riddle-hint-box">
+              <div class="hint-header">
+                <strong>💡 Denkanstoß:</strong>
+              </div>
+              <p id="riddle-hint-text"></p>
+            </div>
+
+            <!-- Solution Box with Blur Transition -->
+            <div class="riddle-solution-box hidden" id="riddle-solution-box">
+              <div class="solution-header">
+                <strong>🎯 Offizielle Lösung:</strong>
+              </div>
+              <div class="solution-content blurred" id="riddle-solution-content">
+                <p class="solution-title" id="riddle-solution-title"></p>
+                <p class="solution-explanation" id="riddle-solution-explanation"></p>
+              </div>
+            </div>
+
+            <!-- Navigation Controls -->
+            <div class="riddle-nav-footer">
+              <button class="btn-secondary" id="btn-riddle-prev">
+                <span>← Vorheriges</span>
+              </button>
+              <button class="btn-secondary" id="btn-riddle-shuffle">
+                <span>🎲 Zufalls-Rätsel</span>
+              </button>
+              <button class="btn-secondary" id="btn-riddle-next">
+                <span>Nächstes →</span>
+              </button>
+            </div>
+
+          </div>
+
+          <!-- All Riddles Browser Grid -->
+          <div class="riddle-collection-section">
+            <h3 class="collection-title">📚 Alle Denksport-Aufgaben im Überblick</h3>
+            <div class="riddle-cards-grid" id="riddle-cards-grid"></div>
           </div>
 
         </main>
@@ -1441,7 +1638,68 @@
     </div>
   </div>
 
-  <!-- 4. Global Suite Backup & Sync Modal -->
+  <!-- 4. Riddle Creation Modal -->
+  <div class="modal-backdrop hidden" id="riddle-create-modal" role="dialog" aria-modal="true">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h2 class="modal-title">Eigenes Rätsel erstellen</h2>
+        <button class="modal-close-btn" id="riddle-modal-close">✕</button>
+      </div>
+
+      <form id="riddle-form">
+        <div class="form-group">
+          <label for="riddle-new-question" class="form-label">Rätselfrage / Problem <span class="required">*</span></label>
+          <textarea id="riddle-new-question" class="form-textarea" rows="4" placeholder="Formuliere dein Rätsel möglichst spannend..." required></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group col-half">
+            <label for="riddle-new-cat" class="form-label">Kategorie</label>
+            <select id="riddle-new-cat" class="form-select">
+              <option value="Logik">💡 Logik</option>
+              <option value="Zahlen">🔢 Zahlen & Mathe</option>
+              <option value="Tech">💻 Coder & Tech</option>
+              <option value="Detektiv">🕵️ Detektiv</option>
+              <option value="Querdenker">🧠 Querdenker</option>
+            </select>
+          </div>
+
+          <div class="form-group col-half">
+            <label for="riddle-new-diff" class="form-label">Schwierigkeit</label>
+            <select id="riddle-new-diff" class="form-select">
+              <option value="Einfach">🌱 Einfach</option>
+              <option value="Mittel" selected>⚡ Mittel</option>
+              <option value="Schwer">🔥 Schwer</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="riddle-new-answer" class="form-label">Lösungswort(e) <span class="required">*</span></label>
+          <input type="text" id="riddle-new-answer" class="form-input" placeholder="z.B. Spiegel, Karte, 42 (Komma für Alternativen)" required>
+        </div>
+
+        <div class="form-group">
+          <label for="riddle-new-hint" class="form-label">Hinweis / Tipp</label>
+          <input type="text" id="riddle-new-hint" class="form-input" placeholder="Ein hilfreicher Tipp vor der Auflösung...">
+        </div>
+
+        <div class="form-group">
+          <label for="riddle-new-explanation" class="form-label">Erklärung / Begründung</label>
+          <textarea id="riddle-new-explanation" class="form-textarea" rows="2" placeholder="Warum ist das die richtige Antwort?"></textarea>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" id="btn-riddle-modal-cancel">Abbrechen</button>
+          <button type="submit" class="btn-primary" id="btn-riddle-modal-save">
+            <span>Rätsel speichern</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 5. Global Suite Backup & Sync Modal -->
   <div class="modal-backdrop hidden" id="backup-modal" role="dialog" aria-modal="true">
     <div class="modal-window">
       <div class="modal-header">
@@ -1450,7 +1708,7 @@
       </div>
 
       <div class="backup-modal-content">
-        <p class="backup-info-text">Sichere alle deine Daten (Aufgaben, Notizen, Gewohnheiten, Fokus-Historie) lokal in einer einzelnen JSON-Backup-Datei oder stelle sie wieder her.</p>
+        <p class="backup-info-text">Sichere alle deine Daten (Aufgaben, Notizen, Gewohnheiten, Rätsel-Fortschritt, Fokus-Historie) lokal in einer einzelnen JSON-Backup-Datei oder stelle sie wieder her.</p>
 
         <div class="backup-actions-grid">
           <div class="backup-box">
@@ -1484,7 +1742,7 @@
     </div>
   </div>
 
-  <!-- 5. Shortcuts Modal -->
+  <!-- 6. Shortcuts Modal -->
   <div class="modal-backdrop hidden" id="shortcuts-modal" role="dialog" aria-modal="true">
     <div class="modal-window">
       <div class="modal-header">
@@ -1504,6 +1762,7 @@
             <tr><td><kbd>Alt</kbd> + <kbd>3</kbd></td><td>OrbitFocus öffnen</td></tr>
             <tr><td><kbd>Alt</kbd> + <kbd>4</kbd></td><td>OrbitHabits öffnen</td></tr>
             <tr><td><kbd>Alt</kbd> + <kbd>5</kbd></td><td>OrbitTools öffnen</td></tr>
+            <tr><td><kbd>Alt</kbd> + <kbd>6</kbd></td><td>OrbitRätsel öffnen</td></tr>
             <tr><td><kbd>Alt</kbd> + <kbd>K</kbd></td><td>App-Selector Dropdown öffnen</td></tr>
             <tr><td><kbd>Strg</kbd> + <kbd>K</kbd></td><td>Aufgaben-Suche fokussieren</td></tr>
             <tr><td><kbd>Escape</kbd></td><td>Geöffnetes Modalfenster / Menü schließen</td></tr>
