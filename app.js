@@ -2389,6 +2389,697 @@
   }
 
   // ==========================================================================
+  // 5. ORBITRÄTSEL MODULE (DENKSPORT & PUZZLE STUDIO)
+  // ==========================================================================
+  class OrbitRiddleApp {
+    constructor(suite) {
+      this.suite = suite;
+      this.defaultRiddles = [
+        {
+          id: 'riddle-1',
+          title: 'Die zwei Wächter und die Wahrheit',
+          category: 'Logik',
+          difficulty: 'Mittel',
+          question: 'Du stehst vor zwei Türen: Eine führt in die Freiheit, die andere ins Verderben. Vor jeder Tür steht ein Wächter. Einer sagt immer die Wahrheit, der andere lügt immer. Du darfst genau eine einzige Frage an einen der beiden Wächter stellen. Welche Frage stellst du, um die Tür zur Freiheit zu finden?',
+          hint: 'Überlege, was passiert, wenn du nach der Auskunft des jeweils ANDEREN Wächters fragst.',
+          solutionTitle: 'Frage nach der Antwort des anderen Wächters',
+          solutionExplanation: 'Frage einen der Wächter: "Welche Tür würde mir der andere Wächter als Weg zur Freiheit nennen?" Beide Wächter werden dir in jedem Fall die falsche Tür (ins Verderben) nennen! Wähle daraufhin einfach die jeweils andere Tür.',
+          keywords: ['andere', 'lügner', 'wahrheit', 'andere wächter', 'tür des anderen', 'gegenteil']
+        },
+        {
+          id: 'riddle-2',
+          title: 'Die drei Schalter im Keller',
+          category: 'Logik',
+          difficulty: 'Mittel',
+          question: 'Im Keller befinden sich 3 Lichtschalter (A, B, C). Nur einer davon schaltet die Glühlampe auf dem Dachboden ein. Vom Keller aus sieht man den Dachboden nicht. Du darfst die Schalter beliebig oft schalten, darfst aber nur EIN EINZIGES MAL nach oben auf den Dachboden gehen. Wie findest du heraus, welcher Schalter die Lampe bedient?',
+          hint: 'Klassische Glühbirnen erzeugen nicht nur sichtbares Licht, sondern noch etwas anderes...',
+          solutionTitle: 'Nutzung der Wärmestrahlung der Glühbirne',
+          solutionExplanation: 'Schalte Schalter A für 10 Minuten an. Schalte ihn dann wieder aus und schalte Schalter B an. Gehe sofort nach oben: Brennt das Licht, ist es Schalter B. Ist die Lampe aus, aber heiß/warm, ist es Schalter A. Ist die Lampe aus und kalt, ist es Schalter C!',
+          keywords: ['wärme', 'warm', 'heiß', 'temperatur', 'hitze', 'abkühlen']
+        },
+        {
+          id: 'riddle-3',
+          title: 'Der Schläger und der Ball',
+          category: 'Zahlen',
+          difficulty: 'Einfach',
+          question: 'Ein Baseballschläger und ein Ball kosten zusammen 1,10 Euro. Der Schläger kostet genau 1,00 Euro mehr als der Ball. Wie viel kostet der Ball?',
+          hint: 'Achtung vor der schnellen Spontanantwort! Stelle eine kurze Gleichung auf: x + (x + 1,00) = 1,10.',
+          solutionTitle: 'Der Ball kostet genau 5 Cent (0,05 €)',
+          solutionExplanation: 'Wenn der Ball 5 Cent kostet und der Schläger 1,00 Euro mehr (also 1,05 Euro), kosten beide zusammen genau 1,10 Euro. Bei 10 Cent für den Ball wäre der Schläger 1,10 Euro und die Summe 1,20 Euro.',
+          keywords: ['5', '0.05', '0,05', '5 cent', 'fünf cent', '5ct', 'fünf']
+        },
+        {
+          id: 'riddle-4',
+          title: 'Der wachsende Seerosenteich',
+          category: 'Zahlen',
+          difficulty: 'Einfach',
+          question: 'Auf einem See wächst eine Seerose, deren Fläche sich jeden Tag verdoppelt. Nach genau 48 Tagen ist der gesamte See vollständig von Seerosen bedeckt. An welchem Tag war der See genau zur Hälfte bedeckt?',
+          hint: 'Rechne vom 48. Tag aus einen Schritt rückwärts.',
+          solutionTitle: 'Am 47. Tag',
+          solutionExplanation: 'Da sich die Fläche jeden Tag verdoppelt, war der See genau einen Tag vor der vollständigen Bedeckung (also an Tag 48 - 1 = Tag 47) exakt zur Hälfte bedeckt.',
+          keywords: ['47', '47.', '47 tag', 'tag 47', 'siebenundvierzig']
+        },
+        {
+          id: 'riddle-5',
+          title: 'Warum feiern Programmierer Halloween an Weihnachten?',
+          category: 'Tech',
+          difficulty: 'Mittel',
+          question: 'Ein berühmter Tech-Witz: Warum können viele Software-Entwickler Halloween (31. Oktober) und Weihnachten (25. Dezember) nicht voneinander unterscheiden?',
+          hint: 'Denke an Zahlensysteme: Die englischen Abkürzungen OCT und DEC haben in der Informatik eine mathematische Bedeutung.',
+          solutionTitle: 'Weil OCT 31 gleich DEC 25 ist!',
+          solutionExplanation: 'Im Oktalsystem (Basis 8): 31 (Oktal) = 3 × 8 + 1 = 25 (Dezimal). Abkürzungen für Oktober (OCT) und Dezember (DEC) entsprechen Oktal- und Dezimalsystem: OCT 31 = DEC 25!',
+          keywords: ['oct 31 = dec 25', 'oktal', 'oktalsystem', 'basis 8', 'octal', 'dec', 'oct']
+        },
+        {
+          id: 'riddle-6',
+          title: 'Der Zaunpfahlfehler (Fencepost / Off-by-One)',
+          category: 'Tech',
+          difficulty: 'Einfach',
+          question: 'Du möchtest einen geraden Zaun von 100 Metern Länge bauen. Alle 10 Meter soll ein Zaunpfahl stehen, und an beiden Enden muss zwingend ebenfalls ein Pfahl stehen. Wie viele Zaunpfähle benötigst du insgesamt?',
+          hint: 'Zähle die Zaunabschnitte und denke an den allerersten Pfahl am Anfang.',
+          solutionTitle: 'Genau 11 Zaunpfähle',
+          solutionExplanation: 'Es gibt 100 / 10 = 10 Zaun-Segmente. Da an beiden Enden ein Pfahl stehen muss, benötigt man Segmente + 1 = 11 Pfähle. Dies ist der berühmte Fencepost- bzw. Off-by-one-Fehler in der Programmierung.',
+          keywords: ['11', 'elf', '11 pfähle', '11 zaunpfähle', 'fencepost']
+        },
+        {
+          id: 'riddle-7',
+          title: 'Das klassische Deadlock-Dilemma',
+          category: 'Tech',
+          difficulty: 'Schwer',
+          question: 'Fünf Philosophen sitzen an einem runden Tisch. Zwischen je zwei Tellern liegt genau eine Gabel (insgesamt 5 Gabeln). Jeder Philosoph benötigt zum Essen zwingend BEIDE Nachbargabeln. Alle greifen gleichzeitig nach ihrer linken Gabel. Welcher Systemzustand tritt ein, und wie nennt man dieses fundamentale Informatik-Problem?',
+          hint: 'Niemand kann weiteressen, weil alle zyklisch aufeinander warten.',
+          solutionTitle: 'Deadlock (Systemverklemmung)',
+          solutionExplanation: 'Es tritt ein Deadlock (zyklisches Warten / Verklemmung) ein. Jeder Prozess hält eine Ressource und wartet blockiert auf eine belegte Nachbarressource. Ohne Deadlock-Handling verhungern alle.',
+          keywords: ['deadlock', 'verklemmung', 'verkeilung', 'circular wait', 'zyklisches warten']
+        },
+        {
+          id: 'riddle-8',
+          title: 'Das nasse Zimmer und die Scherben',
+          category: 'Detektiv',
+          difficulty: 'Einfach',
+          question: 'Romeo und Julia liegen regungslos auf dem Boden in einer Wasserlache. Überall liegen Glasscherben verstreut. Das Fenster steht weit offen und die Gardinen wehen im Wind. An den Körpern gibt es keinerlei Wunden oder Spuren von Gift. Wie sind die beiden gestorben?',
+          hint: 'Wer hat behauptet, dass Romeo und Julia Menschen sind?',
+          solutionTitle: 'Romeo und Julia waren Goldfische!',
+          solutionExplanation: 'Romeo und Julia waren Goldfische in einem Aquarium. Ein kräftiger Windstoß warf das Fischglas um, es zerschellte auf dem Fußboden und die Fische erstickten ohne Wasser.',
+          keywords: ['fisch', 'goldfisch', 'aquarium', 'goldfische', 'fische', 'fischglas']
+        },
+        {
+          id: 'riddle-9',
+          title: 'Der Zeuge im Fahrstuhl',
+          category: 'Detektiv',
+          difficulty: 'Mittel',
+          question: 'Ein Mann wohnt im 17. Stock eines Hochhauses. An Regentagen oder wenn andere Personen mit im Fahrstuhl fahren, fährt er ganz nach oben in den 17. Stock. An sonnigen Tagen, wenn er allein ist, fährt er jedoch nur bis in den 10. Stock und läuft die restlichen 7 Stockwerke zu Fuß die Treppe hoch. Warum?',
+          hint: 'Was führt er an Regentagen mit sich, das er an sonnigen Tagen nicht dabei hat?',
+          solutionTitle: 'Der Mann ist kleinwüchsig (oder ein Kind)',
+          solutionExplanation: 'Der Mann kommt mit seinen Armen allein nur bis an den Knopf für den 10. Stock heran. An Regentagen hat er einen Regenschirm dabei, mit dessen Spitze er den Knopf für den 17. Stock drücken kann; oder andere Mitfahrer drücken den Knopf für ihn.',
+          keywords: ['klein', 'kleinwüchsig', 'regenschirm', 'kind', 'reicht nicht', 'zu klein', 'körpergröße', 'knopf']
+        },
+        {
+          id: 'riddle-10',
+          title: 'Was wird nasser, je mehr es trocknet?',
+          category: 'Querdenker',
+          difficulty: 'Einfach',
+          question: 'Es ist ein alltäglicher Gegenstand im Badezimmer: Was wird umso nasser, je mehr es abtrocknet?',
+          hint: 'Du benutzt es nach jedem Duschen oder Händewaschen.',
+          solutionTitle: 'Ein Handtuch',
+          solutionExplanation: 'Ein Handtuch nimmt beim Abtrocknen von Personen oder Gegenständen die Feuchtigkeit auf und wird dadurch selbst immer nasser.',
+          keywords: ['handtuch', 'tuch', 'badetuch', 'geschirrtuch']
+        },
+        {
+          id: 'riddle-11',
+          title: 'Was hat einen Hals, aber keinen Kopf?',
+          category: 'Querdenker',
+          difficulty: 'Einfach',
+          question: 'Ich besitze einen Hals, habe aber keinen Kopf. Man findet mich oft in der Küche, im Restaurant oder bei festlichen Anlässen. Was bin ich?',
+          hint: 'Oft verschließt mich ein Korken oder ein Deckel.',
+          solutionTitle: 'Eine Flasche (oder ein Hemd / Gitarre)',
+          solutionExplanation: 'Eine Flasche hat einen Flaschenhals, aber keinen Kopf. Auch ein Hemd oder eine Gitarre besitzen einen Hals ohne Kopf.',
+          keywords: ['flasche', 'weinflasche', 'hemd', 'gitarre']
+        },
+        {
+          id: 'riddle-12',
+          title: 'Was kann man fangen, aber niemals werfen?',
+          category: 'Querdenker',
+          difficulty: 'Einfach',
+          question: 'Man kann es sich ganz leicht fangen, aber man kann es unmöglich werfen. Was ist gemeint?',
+          hint: 'Besonders im nasskalten Herbst und Winter fängt man es sich schnell ein.',
+          solutionTitle: 'Eine Erkältung (oder ein Schnupfen / Blick)',
+          solutionExplanation: 'Man fängt sich eine Erkältung oder einen Schnupfen ein, kann diese(n) aber nicht physisch werfen.',
+          keywords: ['erkältung', 'schnupfen', 'grippe', 'blick', 'fieber']
+        },
+        {
+          id: 'riddle-13',
+          title: 'Je mehr man wegnimmt, desto größer wird es',
+          category: 'Querdenker',
+          difficulty: 'Einfach',
+          question: 'Je mehr Material du davon wegnimmst und herausschaufelst, desto größer wird es. Was ist es?',
+          hint: 'Kinder graben es am Strand in den Sand.',
+          solutionTitle: 'Ein Loch (oder eine Grube)',
+          solutionExplanation: 'Je mehr Erde oder Sand man aus einem Loch schaufelt, desto größer und tiefer wird das Loch.',
+          keywords: ['loch', 'grube', 'vertiefung']
+        },
+        {
+          id: 'riddle-14',
+          title: 'Acht Achten ergeben Tausend',
+          category: 'Zahlen',
+          difficulty: 'Mittel',
+          question: 'Wie kann man genau 8 Mal die Ziffer 8 ausschließlich mit dem Pluszeichen (+) so verknüpfen, dass als Ergebnis genau 1000 herauskommt?',
+          hint: 'Kombiniere mehrstellige Zahlen wie 888 und 88.',
+          solutionTitle: '888 + 88 + 8 + 8 + 8 = 1000',
+          solutionExplanation: '888 + 88 + 8 + 8 + 8 ergibt exakt 1000. Dabei wird die Ziffer 8 genau 8 Mal verwendet.',
+          keywords: ['888 + 88 + 8 + 8 + 8', '888', '88']
+        },
+        {
+          id: 'riddle-15',
+          title: 'Das 45-Minuten-Seil',
+          category: 'Logik',
+          difficulty: 'Schwer',
+          question: 'Du hast zwei identische Zündschnüre. Jede Schnur brennt von einem Ende zum anderen in genau 60 Minuten ab. Die Schnüre brennen jedoch ungleichmäßig schnell (z. B. die erste Hälfte in 10 Minuten, der Rest in 50 Minuten). Wie kannst du mit diesen zwei Schnüren und einem Feuerzeug exakt 45 Minuten stoppen?',
+          hint: 'Was passiert, wenn du eine Schnur an BEIDEN Enden gleichzeitig anzündest?',
+          solutionTitle: 'Schnur 1 an beiden Enden und Schnur 2 an einem Ende anzünden',
+          solutionExplanation: 'Zünde Schnur 1 an BEIDEN Enden und Schnur 2 an EINEM Ende gleichzeitig an. Nach genau 30 Minuten ist Schnur 1 komplett abgebrannt. In diesem Moment zündest du das zweite Ende von Schnur 2 an! Die verbleibende 30-Minuten-Strecke brennt nun in 15 Minuten ab: 30 + 15 = exakt 45 Minuten.',
+          keywords: ['beide enden', 'beide seiten', 'gleichzeitig anzünden', 'zwei enden', '30 minuten', 'beiden enden']
+        },
+        {
+          id: 'riddle-16',
+          title: 'Die Überfahrt: Wolf, Ziege und Kohlkopf',
+          category: 'Logik',
+          difficulty: 'Mittel',
+          question: 'Ein Bauer muss einen Wolf, eine Ziege und einen Kohlkopf mit einem kleinen Boot über einen Fluss bringen. Im Boot hat neben ihm nur EIN Objekt Platz. Bleiben Wolf und Ziege allein am Ufer, frisst der Wolf die Ziege. Bleiben Ziege und Kohlkopf allein, frisst die Ziege den Kohl. Welches Objekt muss der Bauer zwingend als ERSTES übersetzen?',
+          hint: 'Wolf frisst keinen Kohl. Welche Kombination kann friedlich allein am Ufer warten?',
+          solutionTitle: 'Die Ziege!',
+          solutionExplanation: 'Der Bauer muss als Erstes die Ziege übersetzen, da der Wolf keinen Kohl frisst. Danach bringt er den Wolf rüber, nimmt aber die Ziege wieder mit zurück, setzt den Kohl über und holt am Schluss die Ziege.',
+          keywords: ['ziege', 'die ziege', 'goat']
+        },
+        {
+          id: 'riddle-17',
+          title: 'Rekursion ohne Basisfall',
+          category: 'Tech',
+          difficulty: 'Mittel',
+          question: 'Eine Funktion ruft sich in einem Programm fortlaufend selbst auf, ohne dass eine Abbruchbedingung existiert. Welcher fatale Laufzeitfehler (Runtime Error) wird ausgelöst, sobald der reservierte Call-Stack-Speicher voll ist?',
+          hint: 'Eine der berühmtesten Entwickler-Plattformen der Welt ist nach diesem Phänomen benannt!',
+          solutionTitle: 'Stack Overflow (Stapelüberlauf)',
+          solutionExplanation: 'Es kommt zu einem Stack Overflow (Maximum call stack size exceeded), da mit jedem rekursiven Funktionsaufruf ein neuer Stack-Frame angelegt wird, bis der zugewiesene Speicher erschöpft ist.',
+          keywords: ['stack overflow', 'stapelüberlauf', 'call stack', 'stack overflow error', 'maximum call stack']
+        },
+        {
+          id: 'riddle-18',
+          title: 'Der Schneedetektiv',
+          category: 'Detektiv',
+          difficulty: 'Mittel',
+          question: 'Auf einem verschneiten Hof liegt eine Karotte, fünf Kohlestücke und ein alter Schal mitten im nassen Gras. Weit und breit ist keine Person zu sehen. Niemand hat diese Gegenstände dort absichtlich hingeworfen. Was ist hier passiert?',
+          hint: 'Es war vor wenigen Tagen noch frostig kalt, heute sind es 12 Grad plus.',
+          solutionTitle: 'Ein Schneemann ist geschmolzen!',
+          solutionExplanation: 'Dort stand ein Schneemann mit Nase aus Karotte, Augen/Knöpfen aus Kohle und einem Schal. Durch das Tauwetter ist der Schnee geschmolzen und die Accessoires blieben auf dem Boden zurück.',
+          keywords: ['schneemann', 'geschmolzen', 'schneemann geschmolzen', 'tauwetter', 'schnee geschmolzen']
+        }
+      ];
+
+      this.customRiddles = this.loadCustomRiddles();
+      this.solvedRiddles = new Set(this.loadSolved());
+      this.streak = parseInt(localStorage.getItem('orbitsuite_riddle_streak') || '0', 10);
+      this.currentIndex = 0;
+      this.filterCategory = 'all';
+      this.filterDifficulty = 'all';
+
+      this.dom = {
+        badgeScore: document.getElementById('riddle-badge-score'),
+        badgeStreak: document.getElementById('riddle-badge-streak'),
+        btnRandom: document.getElementById('btn-riddle-random'),
+        btnCreate: document.getElementById('btn-riddle-create'),
+        filterChips: document.querySelectorAll('.riddle-filter-chip'),
+        diffSelect: document.getElementById('riddle-difficulty-select'),
+        catPill: document.getElementById('riddle-active-cat'),
+        diffPill: document.getElementById('riddle-active-diff'),
+        countLabel: document.getElementById('riddle-active-counter'),
+        statusIndicator: document.getElementById('riddle-status-indicator'),
+        statusText: document.getElementById('riddle-status-text'),
+        questionText: document.getElementById('riddle-question-text'),
+        answerInput: document.getElementById('riddle-answer-input'),
+        btnSubmit: document.getElementById('btn-riddle-submit'),
+        feedbackBox: document.getElementById('riddle-feedback-box'),
+        btnHint: document.getElementById('btn-riddle-hint'),
+        hintBox: document.getElementById('riddle-hint-box'),
+        hintText: document.getElementById('riddle-hint-text'),
+        btnReveal: document.getElementById('btn-riddle-reveal'),
+        solutionBox: document.getElementById('riddle-solution-box'),
+        solutionContent: document.getElementById('riddle-solution-content'),
+        solutionTitle: document.getElementById('riddle-solution-title'),
+        solutionExplanation: document.getElementById('riddle-solution-explanation'),
+        btnPrev: document.getElementById('btn-riddle-prev'),
+        btnShuffle: document.getElementById('btn-riddle-shuffle'),
+        btnNext: document.getElementById('btn-riddle-next'),
+        cardsGrid: document.getElementById('riddle-cards-grid'),
+        // Modal
+        modal: document.getElementById('riddle-create-modal'),
+        modalClose: document.getElementById('riddle-modal-close'),
+        form: document.getElementById('riddle-form'),
+        newQuestion: document.getElementById('riddle-new-question'),
+        newCat: document.getElementById('riddle-new-cat'),
+        newDiff: document.getElementById('riddle-new-diff'),
+        newAnswer: document.getElementById('riddle-new-answer'),
+        newHint: document.getElementById('riddle-new-hint'),
+        newExplanation: document.getElementById('riddle-new-explanation'),
+        btnModalCancel: document.getElementById('btn-riddle-modal-cancel')
+      };
+
+      this.init();
+    }
+
+    get allRiddles() {
+      return [...this.customRiddles, ...this.defaultRiddles];
+    }
+
+    get filteredRiddles() {
+      return this.allRiddles.filter(r => {
+        const catMatch = this.filterCategory === 'all' || r.category === this.filterCategory;
+        const diffMatch = this.filterDifficulty === 'all' || r.difficulty === this.filterDifficulty;
+        return catMatch && diffMatch;
+      });
+    }
+
+    get currentRiddle() {
+      const list = this.filteredRiddles;
+      if (!list.length) return null;
+      if (this.currentIndex >= list.length) this.currentIndex = 0;
+      if (this.currentIndex < 0) this.currentIndex = list.length - 1;
+      return list[this.currentIndex];
+    }
+
+    loadCustomRiddles() {
+      try {
+        const raw = localStorage.getItem('orbitsuite_custom_riddles');
+        return raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    saveCustomRiddles() {
+      localStorage.setItem('orbitsuite_custom_riddles', JSON.stringify(this.customRiddles));
+    }
+
+    loadSolved() {
+      try {
+        const raw = localStorage.getItem('orbitsuite_riddles_solved');
+        return raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    saveSolved() {
+      localStorage.setItem('orbitsuite_riddles_solved', JSON.stringify(Array.from(this.solvedRiddles)));
+      localStorage.setItem('orbitsuite_riddle_streak', String(this.streak));
+    }
+
+    init() {
+      this.bindEvents();
+      this.render();
+    }
+
+    bindEvents() {
+      // Category filter chips
+      this.dom.filterChips.forEach(chip => {
+        chip.addEventListener('click', () => {
+          this.dom.filterChips.forEach(c => c.classList.remove('active'));
+          chip.classList.add('active');
+          this.filterCategory = chip.dataset.category;
+          this.currentIndex = 0;
+          this.render();
+        });
+      });
+
+      // Difficulty dropdown filter
+      if (this.dom.diffSelect) {
+        this.dom.diffSelect.addEventListener('change', () => {
+          this.filterDifficulty = this.dom.diffSelect.value;
+          this.currentIndex = 0;
+          this.render();
+        });
+      }
+
+      // Check Answer Submit
+      if (this.dom.btnSubmit) {
+        this.dom.btnSubmit.addEventListener('click', () => this.checkAnswer());
+      }
+      if (this.dom.answerInput) {
+        this.dom.answerInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            this.checkAnswer();
+          }
+        });
+      }
+
+      // Hint Toggle
+      if (this.dom.btnHint) {
+        this.dom.btnHint.addEventListener('click', () => this.toggleHint());
+      }
+
+      // Reveal Solution Toggle & Unblur
+      if (this.dom.btnReveal) {
+        this.dom.btnReveal.addEventListener('click', () => this.toggleSolution());
+      }
+      if (this.dom.solutionContent) {
+        this.dom.solutionContent.addEventListener('click', () => {
+          if (this.dom.solutionContent.classList.contains('blurred')) {
+            this.dom.solutionContent.classList.remove('blurred');
+            this.dom.solutionContent.classList.add('revealed');
+          }
+        });
+      }
+
+      // Navigation Buttons
+      if (this.dom.btnPrev) {
+        this.dom.btnPrev.addEventListener('click', () => this.navigate(-1));
+      }
+      if (this.dom.btnNext) {
+        this.dom.btnNext.addEventListener('click', () => this.navigate(1));
+      }
+      if (this.dom.btnShuffle) {
+        this.dom.btnShuffle.addEventListener('click', () => this.shuffleRiddle());
+      }
+      if (this.dom.btnRandom) {
+        this.dom.btnRandom.addEventListener('click', () => this.shuffleRiddle());
+      }
+
+      // Modal open / close
+      if (this.dom.btnCreate) {
+        this.dom.btnCreate.addEventListener('click', () => this.openCreateModal());
+      }
+      if (this.dom.modalClose) {
+        this.dom.modalClose.addEventListener('click', () => this.closeCreateModal());
+      }
+      if (this.dom.btnModalCancel) {
+        this.dom.btnModalCancel.addEventListener('click', () => this.closeCreateModal());
+      }
+
+      // Form submit for custom riddle
+      if (this.dom.form) {
+        this.dom.form.addEventListener('submit', (e) => {
+          e.preventDefault();
+          this.saveNewRiddle();
+        });
+      }
+    }
+
+    render() {
+      // 1. Update Header Badges
+      if (this.dom.badgeScore) {
+        this.dom.badgeScore.textContent = `🏆 ${this.solvedRiddles.size} Gelöst`;
+      }
+      if (this.dom.badgeStreak) {
+        this.dom.badgeStreak.textContent = `🔥 ${this.streak}er Streak`;
+      }
+
+      const riddle = this.currentRiddle;
+      const list = this.filteredRiddles;
+
+      if (!riddle) {
+        if (this.dom.questionText) this.dom.questionText.textContent = 'Keine Rätsel mit diesem Filter gefunden.';
+        if (this.dom.countLabel) this.dom.countLabel.textContent = '0 / 0';
+        if (this.dom.cardsGrid) this.dom.cardsGrid.innerHTML = '<p style="color:var(--text-muted); padding:20px;">Keine Einträge vorhanden.</p>';
+        return;
+      }
+
+      const isSolved = this.solvedRiddles.has(riddle.id);
+
+      // 2. Active Riddle Meta Tags
+      if (this.dom.catPill) {
+        const catIcons = { Logik: '💡 Logik', Zahlen: '🔢 Zahlen', Tech: '💻 Tech', Detektiv: '🕵️ Detektiv', Querdenker: '🧠 Querdenker' };
+        this.dom.catPill.textContent = catIcons[riddle.category] || riddle.category;
+      }
+      if (this.dom.diffPill) {
+        this.dom.diffPill.textContent = riddle.difficulty;
+        this.dom.diffPill.className = `riddle-diff-pill diff-${riddle.difficulty.toLowerCase()}`;
+      }
+      if (this.dom.countLabel) {
+        this.dom.countLabel.textContent = `Rätsel #${this.currentIndex + 1} von ${list.length}`;
+      }
+
+      // 3. Status Indicator
+      if (this.dom.statusIndicator) {
+        this.dom.statusIndicator.classList.toggle('solved', isSolved);
+        if (this.dom.statusText) {
+          this.dom.statusText.textContent = isSolved ? 'Gelöst ✓' : 'Offen';
+        }
+      }
+
+      // 4. Question Text
+      if (this.dom.questionText) {
+        this.dom.questionText.textContent = riddle.question;
+      }
+
+      // 5. Reset inputs and feedback
+      if (this.dom.answerInput) {
+        this.dom.answerInput.value = '';
+      }
+      if (this.dom.feedbackBox) {
+        this.dom.feedbackBox.className = 'riddle-feedback-box hidden';
+        this.dom.feedbackBox.innerHTML = '';
+      }
+
+      // 6. Reset hint
+      if (this.dom.hintBox) {
+        this.dom.hintBox.classList.add('hidden');
+      }
+      if (this.dom.hintText) {
+        this.dom.hintText.textContent = riddle.hint || 'Denke über ungewöhnliche Blickwinkel nach!';
+      }
+      if (this.dom.btnHint) {
+        this.dom.btnHint.innerHTML = '<span>💡 Hinweis anzeigen</span>';
+      }
+
+      // 7. Reset solution
+      if (this.dom.solutionBox) {
+        this.dom.solutionBox.classList.add('hidden');
+      }
+      if (this.dom.solutionContent) {
+        this.dom.solutionContent.className = 'solution-content blurred';
+      }
+      if (this.dom.solutionTitle) {
+        this.dom.solutionTitle.textContent = riddle.solutionTitle || 'Offizielle Lösung';
+      }
+      if (this.dom.solutionExplanation) {
+        this.dom.solutionExplanation.textContent = riddle.solutionExplanation || '';
+      }
+      if (this.dom.btnReveal) {
+        this.dom.btnReveal.innerHTML = '<span>👁️ Lösung aufdecken</span>';
+      }
+
+      // 8. Render Collection Cards Grid
+      this.renderCollectionGrid();
+
+      // 9. Synchronize Hub stats if hub is loaded
+      if (this.suite.hubApp) {
+        this.suite.hubApp.render();
+      }
+    }
+
+    renderCollectionGrid() {
+      if (!this.dom.cardsGrid) return;
+      const list = this.filteredRiddles;
+
+      this.dom.cardsGrid.innerHTML = list.map((r, idx) => {
+        const isSolved = this.solvedRiddles.has(r.id);
+        const isActive = idx === this.currentIndex;
+        return `
+          <div class="riddle-mini-card ${isActive ? 'active' : ''} ${isSolved ? 'solved-card' : ''}" data-index="${idx}">
+            <div class="riddle-mini-top">
+              <span class="riddle-cat-pill">${escapeHtml(r.category)}</span>
+              <span class="riddle-diff-pill diff-${r.difficulty.toLowerCase()}">${r.difficulty}</span>
+            </div>
+            <h4 class="riddle-mini-title">${escapeHtml(r.title || r.question.substring(0, 60) + '...')}</h4>
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; color:var(--text-muted); margin-top:auto;">
+              <span>#${idx + 1}</span>
+              <span>${isSolved ? '✅ Gelöst' : '⏳ Offen'}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      this.dom.cardsGrid.querySelectorAll('.riddle-mini-card').forEach(card => {
+        card.addEventListener('click', () => {
+          this.currentIndex = parseInt(card.dataset.index, 10);
+          this.render();
+          this.suite.sound.playPop();
+          // Scroll arena card into view smoothly
+          const arena = document.querySelector('.riddle-arena-card');
+          if (arena) arena.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+      });
+    }
+
+    checkAnswer() {
+      const riddle = this.currentRiddle;
+      if (!riddle || !this.dom.answerInput) return;
+
+      const inputRaw = this.dom.answerInput.value.trim().toLowerCase();
+      if (!inputRaw) {
+        this.showFeedback('Bitte gib zuerst eine Antwort ein!', false);
+        return;
+      }
+
+      // Keyword normalization
+      const cleanInput = inputRaw
+        .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+        .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '');
+
+      const isMatch = riddle.keywords.some(kw => {
+        const cleanKw = kw.toLowerCase()
+          .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+          .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '');
+        return cleanInput.includes(cleanKw) || (cleanInput.length >= 3 && cleanKw.includes(cleanInput));
+      });
+
+      if (isMatch) {
+        // Correct answer!
+        this.solvedRiddles.add(riddle.id);
+        this.streak += 1;
+        this.saveSolved();
+
+        this.suite.sound.playSuccess();
+        this.suite.confetti.fire();
+
+        this.showFeedback('🎉 Exzellent! Deine Lösung ist goldrichtig!', true);
+
+        // Auto reveal solution without blur
+        if (this.dom.solutionBox) this.dom.solutionBox.classList.remove('hidden');
+        if (this.dom.solutionContent) {
+          this.dom.solutionContent.classList.remove('blurred');
+          this.dom.solutionContent.classList.add('revealed');
+        }
+
+        // Update score & badges
+        if (this.dom.badgeScore) this.dom.badgeScore.textContent = `🏆 ${this.solvedRiddles.size} Gelöst`;
+        if (this.dom.badgeStreak) this.dom.badgeStreak.textContent = `🔥 ${this.streak}er Streak`;
+        if (this.dom.statusIndicator) this.dom.statusIndicator.classList.add('solved');
+        if (this.dom.statusText) this.dom.statusText.textContent = 'Gelöst ✓';
+
+        this.renderCollectionGrid();
+      } else {
+        // Wrong answer
+        this.streak = 0;
+        this.saveSolved();
+        this.suite.sound.playPop();
+
+        this.showFeedback('🤔 Noch nicht ganz... Nutze den Tipp oder versuche eine andere Formulierung!', false);
+        if (this.dom.badgeStreak) this.dom.badgeStreak.textContent = `🔥 0er Streak`;
+      }
+    }
+
+    showFeedback(message, isCorrect) {
+      if (!this.dom.feedbackBox) return;
+      this.dom.feedbackBox.className = `riddle-feedback-box ${isCorrect ? 'correct' : 'wrong'}`;
+      this.dom.feedbackBox.innerHTML = `<span>${escapeHtml(message)}</span>`;
+      this.dom.feedbackBox.classList.remove('hidden');
+    }
+
+    toggleHint() {
+      if (!this.dom.hintBox) return;
+      const isHidden = this.dom.hintBox.classList.contains('hidden');
+      this.dom.hintBox.classList.toggle('hidden', !isHidden);
+      if (this.dom.btnHint) {
+        this.dom.btnHint.innerHTML = isHidden ? '<span>🙈 Hinweis verbergen</span>' : '<span>💡 Hinweis anzeigen</span>';
+      }
+      this.suite.sound.playPop();
+    }
+
+    toggleSolution() {
+      if (!this.dom.solutionBox) return;
+      const isHidden = this.dom.solutionBox.classList.contains('hidden');
+      this.dom.solutionBox.classList.toggle('hidden', !isHidden);
+      if (isHidden && this.dom.solutionContent) {
+        this.dom.solutionContent.classList.remove('blurred');
+        this.dom.solutionContent.classList.add('revealed');
+      }
+      if (this.dom.btnReveal) {
+        this.dom.btnReveal.innerHTML = isHidden ? '<span>🙈 Lösung schließen</span>' : '<span>👁️ Lösung aufdecken</span>';
+      }
+      this.suite.sound.playPop();
+    }
+
+    navigate(dir) {
+      const list = this.filteredRiddles;
+      if (!list.length) return;
+      this.currentIndex = (this.currentIndex + dir + list.length) % list.length;
+      this.suite.sound.playPop();
+      this.render();
+    }
+
+    shuffleRiddle() {
+      const list = this.filteredRiddles;
+      if (list.length <= 1) return;
+      let nextIdx;
+      do {
+        nextIdx = Math.floor(Math.random() * list.length);
+      } while (nextIdx === this.currentIndex);
+      this.currentIndex = nextIdx;
+      this.suite.sound.playPop();
+      this.render();
+    }
+
+    openCreateModal() {
+      if (this.dom.modal) {
+        this.dom.modal.classList.remove('hidden');
+        if (this.dom.form) this.dom.form.reset();
+        this.suite.sound.playPop();
+      }
+    }
+
+    closeCreateModal() {
+      if (this.dom.modal) {
+        this.dom.modal.classList.add('hidden');
+      }
+    }
+
+    saveNewRiddle() {
+      const question = this.dom.newQuestion ? this.dom.newQuestion.value.trim() : '';
+      const category = this.dom.newCat ? this.dom.newCat.value : 'Logik';
+      const difficulty = this.dom.newDiff ? this.dom.newDiff.value : 'Mittel';
+      const answersRaw = this.dom.newAnswer ? this.dom.newAnswer.value.trim() : '';
+      const hint = this.dom.newHint ? this.dom.newHint.value.trim() : '';
+      const explanation = this.dom.newExplanation ? this.dom.newExplanation.value.trim() : '';
+
+      if (!question || !answersRaw) {
+        alert('Bitte gib mindestens eine Rätselfrage und eine Lösung an.');
+        return;
+      }
+
+      const keywords = answersRaw.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+
+      const newRiddle = {
+        id: `riddle-custom-${Date.now()}`,
+        title: question.length > 50 ? question.substring(0, 50) + '...' : question,
+        category,
+        difficulty,
+        question,
+        hint: hint || 'Überlege gründlich!',
+        solutionTitle: answersRaw,
+        solutionExplanation: explanation || `Offizielle Lösung: ${answersRaw}`,
+        keywords: keywords.length ? keywords : [answersRaw.toLowerCase()],
+        isCustom: true
+      };
+
+      this.customRiddles.unshift(newRiddle);
+      this.saveCustomRiddles();
+
+      this.closeCreateModal();
+      this.suite.sound.playSuccess();
+      this.suite.showToast('Neues Rätsel erfolgreich hinzugefügt! 🧩');
+
+      // Reset filters and display the newly created riddle
+      this.filterCategory = 'all';
+      this.filterDifficulty = 'all';
+      this.dom.filterChips.forEach(c => c.classList.toggle('active', c.dataset.category === 'all'));
+      if (this.dom.diffSelect) this.dom.diffSelect.value = 'all';
+      this.currentIndex = 0;
+      this.render();
+    }
+  }
+
+  // ==========================================================================
   // 0. ORBITHUB MODULE (STARTSEITE / APP SELECTOR & DASHBOARD)
   // ==========================================================================
   class OrbitHubApp {
@@ -2401,10 +3092,12 @@
         statNotes: document.getElementById('hub-stat-notes'),
         statFocus: document.getElementById('hub-stat-focus'),
         statHabits: document.getElementById('hub-stat-habits'),
+        statRiddles: document.getElementById('hub-stat-riddles'),
         cardTaskSummary: document.getElementById('hub-card-task-summary'),
         cardNotesSummary: document.getElementById('hub-card-notes-summary'),
         cardFocusSummary: document.getElementById('hub-card-focus-summary'),
         cardHabitsSummary: document.getElementById('hub-card-habits-summary'),
+        cardRiddleSummary: document.getElementById('hub-card-riddle-summary'),
         taskPreviewList: document.getElementById('hub-task-preview-list'),
         habitPreviewList: document.getElementById('hub-habit-preview-list'),
         notesPreviewList: document.getElementById('hub-notes-preview-list'),
@@ -2412,7 +3105,8 @@
         btnAddTask: document.getElementById('hub-action-add-task'),
         btnAddNote: document.getElementById('hub-action-add-note'),
         btnStartFocus: document.getElementById('hub-action-start-focus'),
-        btnCheckHabits: document.getElementById('hub-action-check-habits')
+        btnCheckHabits: document.getElementById('hub-action-check-habits'),
+        btnSolveRiddle: document.getElementById('hub-action-solve-riddle')
       };
 
       this.init();
@@ -2459,6 +3153,12 @@
           this.suite.switchApp('habits');
         });
       }
+
+      if (this.dom.btnSolveRiddle) {
+        this.dom.btnSolveRiddle.addEventListener('click', () => {
+          this.suite.switchApp('riddle');
+        });
+      }
     }
 
     updateGreeting() {
@@ -2480,6 +3180,7 @@
       const notes = this.suite.notesApp ? this.suite.notesApp.notes : [];
       const habits = this.suite.habitsApp ? this.suite.habitsApp.habits : [];
       const focus = this.suite.focusApp;
+      const riddle = this.suite.riddleApp;
 
       const openTasks = tasks.filter(t => t.status !== 'done').length;
       const completedTasks = tasks.filter(t => t.status === 'done').length;
@@ -2496,6 +3197,11 @@
         const todayDone = habits.filter(h => h.checks[(new Date().getDay() + 6) % 7]).length;
         this.dom.statHabits.textContent = `${todayDone}/${habits.length} heute erledigt`;
       }
+      if (this.dom.statRiddles) {
+        const solved = riddle ? riddle.solvedRiddles.size : 0;
+        const total = riddle ? riddle.allRiddles.length : 18;
+        this.dom.statRiddles.textContent = `${solved}/${total} Gelöst`;
+      }
 
       // App Card summaries
       if (this.dom.cardTaskSummary) {
@@ -2509,6 +3215,11 @@
       }
       if (this.dom.cardHabitsSummary) {
         this.dom.cardHabitsSummary.textContent = `${habits.length} Gewohnheiten aktiv`;
+      }
+      if (this.dom.cardRiddleSummary) {
+        const solved = riddle ? riddle.solvedRiddles.size : 0;
+        const streak = riddle ? riddle.streak : 0;
+        this.dom.cardRiddleSummary.textContent = `${solved} gelöst • ${streak}er Streak 🔥`;
       }
 
       // Live Activity Lists
@@ -2649,7 +3360,8 @@
           notes: document.getElementById('app-view-notes'),
           focus: document.getElementById('app-view-focus'),
           habits: document.getElementById('app-view-habits'),
-          tools: document.getElementById('app-view-tools')
+          tools: document.getElementById('app-view-tools'),
+          riddle: document.getElementById('app-view-riddle')
         },
         clockDisplay: document.getElementById('suite-clock-display'),
         soundToggleBtn: document.getElementById('btn-sound-toggle'),
@@ -2672,7 +3384,8 @@
         notes: { name: 'OrbitNotes', color: '#10b981' },
         focus: { name: 'OrbitFocus', color: '#f59e0b' },
         habits: { name: 'OrbitHabits', color: '#f43f5e' },
-        tools: { name: 'OrbitTools', color: '#0284c7' }
+        tools: { name: 'OrbitTools', color: '#0284c7' },
+        riddle: { name: 'OrbitRätsel', color: '#a855f7' }
       };
 
       this.init();
@@ -2685,6 +3398,7 @@
       this.focusApp = new OrbitFocusApp(this);
       this.habitsApp = new OrbitHabitsApp(this);
       this.toolsApp = new OrbitToolsApp(this);
+      this.riddleApp = new OrbitRiddleApp(this);
       this.hubApp = new OrbitHubApp(this);
 
       // 2. Bind Framework Navigation & Controls
@@ -2815,6 +3529,9 @@
           } else if (e.key === '5') {
             e.preventDefault();
             this.switchApp('tools');
+          } else if (e.key === '6') {
+            e.preventDefault();
+            this.switchApp('riddle');
           } else if (e.key.toLowerCase() === 'k') {
             e.preventDefault();
             this.toggleAppSelector();
@@ -2898,6 +3615,8 @@
         this.notesApp.render();
       } else if (appId === 'habits' && this.habitsApp) {
         this.habitsApp.render();
+      } else if (appId === 'riddle' && this.riddleApp) {
+        this.riddleApp.render();
       }
 
       // Scroll to top
@@ -2953,6 +3672,11 @@
         focus: {
           sessions: parseInt(localStorage.getItem('orbitsuite_focus_sessions') || '0', 10),
           minutes: parseInt(localStorage.getItem('orbitsuite_focus_minutes') || '0', 10)
+        },
+        riddles: {
+          solved: Array.from(this.riddleApp ? this.riddleApp.solvedRiddles : []),
+          streak: this.riddleApp ? this.riddleApp.streak : 0,
+          custom: this.riddleApp ? this.riddleApp.customRiddles : []
         }
       };
 
@@ -2995,6 +3719,22 @@
             if (data.focus) {
               localStorage.setItem('orbitsuite_focus_sessions', data.focus.sessions || 0);
               localStorage.setItem('orbitsuite_focus_minutes', data.focus.minutes || 0);
+            }
+
+            if (data.riddles && this.riddleApp) {
+              if (Array.isArray(data.riddles.solved)) {
+                this.riddleApp.solvedRiddles = new Set(data.riddles.solved);
+                this.riddleApp.saveSolved();
+              }
+              if (typeof data.riddles.streak === 'number') {
+                this.riddleApp.streak = data.riddles.streak;
+                localStorage.setItem('orbitsuite_riddle_streak', String(this.riddleApp.streak));
+              }
+              if (Array.isArray(data.riddles.custom)) {
+                this.riddleApp.customRiddles = data.riddles.custom;
+                this.riddleApp.saveCustomRiddles();
+              }
+              this.riddleApp.render();
             }
 
             this.showToast('OrbitSuite Backup erfolgreich eingespielt! 🎉');
