@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="OrbitTask - Moderne, hochmoderne Task-Tracking & Produktivitäts-App im edlen Dark Glassmorphism Design mit Kanban, Listenansicht und Analytics.">
-  <title>OrbitTask • Pro Task Tracking Suite</title>
+  <meta name="description" content="OrbitSuite - Das integrierte Produktivitäts-Framework mit OrbitTask, OrbitNotes, OrbitFocus, OrbitHabits und OrbitTools im Dark Glassmorphism Design.">
+  <title>OrbitSuite • All-in-One Productivity Workspace</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236366f1'><path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/></svg>">
 </head>
@@ -17,347 +17,1254 @@
   <div class="ambient-glow glow-2" aria-hidden="true"></div>
   <div class="ambient-glow glow-3" aria-hidden="true"></div>
 
-  <!-- App Wrapper -->
-  <div class="app-layout">
-    <!-- Top Navigation Header -->
-    <header class="app-header" id="app-header">
-      <div class="header-left">
-        <div class="brand-logo" id="brand-logo">
-          <div class="logo-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+  <!-- Suite Main Shell -->
+  <div class="suite-layout">
+    
+    <!-- ======================================================================
+         GLOBAL SUITE HEADER / APP SELECTOR
+         ====================================================================== -->
+    <header class="suite-header" id="suite-header">
+      <div class="suite-header-left">
+        <!-- Suite Brand Logo (Click leads to Startseite Hub) -->
+        <div class="suite-brand" id="suite-brand" title="Zur Startseite">
+          <div class="suite-brand-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <circle cx="19" cy="5" r="2"></circle>
+              <circle cx="5" cy="19" r="2"></circle>
+              <path d="M10.4 10.4A5 5 0 0 1 17 6"></path>
+              <path d="M13.6 13.6A5 5 0 0 1 7 18"></path>
             </svg>
           </div>
-          <div class="logo-text">
-            <span class="logo-title">Orbit<span class="gradient-text">Task</span></span>
-            <span class="logo-badge">PRO v2.5</span>
+          <div class="suite-brand-text">
+            <span class="suite-title">Orbit<span class="gradient-text">Suite</span></span>
+            <span class="suite-badge">WORKSPACE HUB</span>
           </div>
         </div>
 
-        <!-- Global Search Bar -->
-        <div class="search-container" id="search-container">
-          <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
-          <input type="text" id="global-search-input" placeholder="Aufgaben durchsuchen... (Strg + K)" autocomplete="off">
-          <kbd class="search-shortcut">Ctrl K</kbd>
-          <button class="clear-search-btn" id="clear-search-btn" title="Suche zurücksetzen" aria-label="Suche zurücksetzen">✕</button>
+        <!-- Global App Selector Dropdown -->
+        <div class="app-selector-dropdown-wrapper">
+          <button class="app-selector-btn" id="app-selector-toggle" aria-haspopup="true" aria-expanded="false" title="App wechseln (Alt + K)">
+            <div class="current-app-indicator" id="current-app-indicator">
+              <span class="app-dot" id="current-app-dot"></span>
+              <span class="app-name" id="current-app-name">Startseite</span>
+            </div>
+            <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+
+          <!-- Dropdown Popover Menu -->
+          <div class="app-selector-menu hidden" id="app-selector-menu">
+            <div class="selector-menu-header">
+              <span>PRODUKTIVITÄTS-APPS</span>
+              <kbd class="mini-shortcut">Alt + 0..5</kbd>
+            </div>
+            <div class="selector-menu-grid">
+              <button class="app-menu-item active" data-app-target="hub">
+                <div class="item-icon-box hub-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                </div>
+                <div class="item-info">
+                  <span class="item-title">Startseite Hub</span>
+                  <span class="item-desc">Übersicht & Schnellstarter</span>
+                </div>
+                <kbd class="key-hint">Alt+0</kbd>
+              </button>
+
+              <button class="app-menu-item" data-app-target="tasks">
+                <div class="item-icon-box tasks-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="5" height="18" rx="1"></rect><rect x="11" y="3" width="5" height="12" rx="1"></rect><rect x="19" y="3" width="5" height="16" rx="1"></rect></svg>
+                </div>
+                <div class="item-info">
+                  <span class="item-title">OrbitTask</span>
+                  <span class="item-desc">Kanban, Listen & Analytics</span>
+                </div>
+                <kbd class="key-hint">Alt+1</kbd>
+              </button>
+
+              <button class="app-menu-item" data-app-target="notes">
+                <div class="item-icon-box notes-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                </div>
+                <div class="item-info">
+                  <span class="item-title">OrbitNotes</span>
+                  <span class="item-desc">Markdown & Quick-Notes</span>
+                </div>
+                <kbd class="key-hint">Alt+2</kbd>
+              </button>
+
+              <button class="app-menu-item" data-app-target="focus">
+                <div class="item-icon-box focus-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                </div>
+                <div class="item-info">
+                  <span class="item-title">OrbitFocus</span>
+                  <span class="item-desc">Pomodoro & Soundscape</span>
+                </div>
+                <kbd class="key-hint">Alt+3</kbd>
+              </button>
+
+              <button class="app-menu-item" data-app-target="habits">
+                <div class="item-icon-box habits-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>
+                </div>
+                <div class="item-info">
+                  <span class="item-title">OrbitHabits</span>
+                  <span class="item-desc">Routinen & Streaks</span>
+                </div>
+                <kbd class="key-hint">Alt+4</kbd>
+              </button>
+
+              <button class="app-menu-item" data-app-target="tools">
+                <div class="item-icon-box tools-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+                </div>
+                <div class="item-info">
+                  <span class="item-title">OrbitTools</span>
+                  <span class="item-desc">JSON, Text & UUID Utilities</span>
+                </div>
+                <kbd class="key-hint">Alt+5</kbd>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div class="header-center">
-        <!-- View Switcher Tabs -->
-        <nav class="view-nav" id="view-nav" aria-label="Ansichten">
-          <button class="nav-tab active" id="tab-kanban" data-view="kanban">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="3" width="5" height="18" rx="1"></rect>
-              <rect x="11" y="3" width="5" height="12" rx="1"></rect>
-              <rect x="19" y="3" width="5" height="16" rx="1"></rect>
-            </svg>
-            <span>Kanban</span>
-          </button>
-          <button class="nav-tab" id="tab-list" data-view="list">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="8" y1="6" x2="21" y2="6"></line>
-              <line x1="8" y1="12" x2="21" y2="12"></line>
-              <line x1="8" y1="18" x2="21" y2="18"></line>
-              <line x1="3" y1="6" x2="3.01" y2="6"></line>
-              <line x1="3" y1="12" x2="3.01" y2="12"></line>
-              <line x1="3" y1="18" x2="3.01" y2="18"></line>
-            </svg>
-            <span>Liste</span>
-          </button>
-          <button class="nav-tab" id="tab-analytics" data-view="analytics">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="18" y1="20" x2="18" y2="10"></line>
-              <line x1="12" y1="20" x2="12" y2="4"></line>
-              <line x1="6" y1="20" x2="6" y2="14"></line>
-            </svg>
-            <span>Analytics</span>
-          </button>
-        </nav>
-      </div>
+      <!-- Quick Nav Tabs in Suite Header -->
+      <nav class="suite-nav-pills" id="suite-nav-pills" aria-label="App Navigation">
+        <button class="suite-pill active" data-app="hub" title="Startseite Hub">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+          <span>Startseite</span>
+        </button>
+        <button class="suite-pill" data-app="tasks" title="OrbitTask">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="5" height="18" rx="1"></rect><rect x="11" y="3" width="5" height="12" rx="1"></rect><rect x="19" y="3" width="5" height="16" rx="1"></rect></svg>
+          <span>OrbitTask</span>
+        </button>
+        <button class="suite-pill" data-app="notes" title="OrbitNotes">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path></svg>
+          <span>OrbitNotes</span>
+        </button>
+        <button class="suite-pill" data-app="focus" title="OrbitFocus">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          <span>OrbitFocus</span>
+        </button>
+        <button class="suite-pill" data-app="habits" title="OrbitHabits">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>
+          <span>OrbitHabits</span>
+        </button>
+        <button class="suite-pill" data-app="tools" title="OrbitTools">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+          <span>OrbitTools</span>
+        </button>
+      </nav>
 
-      <div class="header-right">
-        <!-- Quick Action Buttons -->
-        <button class="btn-icon" id="btn-sound-toggle" title="Sound-Effekte umschalten" aria-label="Sound umschalten">
-          <svg id="sound-icon-on" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <!-- Suite Header Controls (Right) -->
+      <div class="suite-header-right">
+        <!-- Live Clock Pill -->
+        <div class="suite-clock-pill" id="suite-clock-display" title="Lokale Zeit">
+          <span class="clock-time">--:--</span>
+        </div>
+
+        <!-- Global Sound Synthesizer Toggle -->
+        <button class="btn-icon suite-control-btn" id="btn-sound-toggle" title="Sound-Synthesizer umschalten" aria-label="Sound umschalten">
+          <svg id="sound-icon-on" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
             <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
           </svg>
         </button>
 
-        <div class="dropdown-wrapper">
-          <button class="btn-secondary" id="btn-more-options" aria-label="Optionen">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="1"></circle>
-              <circle cx="12" cy="5" r="1"></circle>
-              <circle cx="12" cy="19" r="1"></circle>
-            </svg>
-            <span>Optionen</span>
-          </button>
-          <div class="dropdown-menu hidden" id="more-options-menu">
-            <button class="dropdown-item" id="opt-load-demo">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
-              Demo-Daten laden
-            </button>
-            <button class="dropdown-item" id="opt-export-json">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-              Als JSON exportieren
-            </button>
-            <label class="dropdown-item file-upload-item" for="input-import-json">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-              JSON importieren
-              <input type="file" id="input-import-json" accept=".json" style="display:none">
-            </label>
-            <div class="dropdown-divider"></div>
-            <button class="dropdown-item danger" id="opt-clear-all">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-              Alle Aufgaben löschen
-            </button>
-          </div>
-        </div>
-
-        <button class="btn-primary" id="btn-create-task">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
+        <!-- Global Backup & Sync Modal Trigger -->
+        <button class="btn-icon suite-control-btn" id="btn-suite-backup" title="Suite Backup & Wiederherstellung" aria-label="Suite Backup">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
           </svg>
-          <span>Neue Aufgabe</span>
+        </button>
+
+        <!-- Shortcuts Help Modal Trigger -->
+        <button class="btn-icon suite-control-btn" id="btn-suite-shortcuts" title="Tastaturkürzel (Shortcuts)" aria-label="Shortcuts">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+            <line x1="6" y1="8" x2="6.01" y2="8"></line>
+            <line x1="10" y1="8" x2="10.01" y2="8"></line>
+            <line x1="14" y1="8" x2="14.01" y2="8"></line>
+            <line x1="18" y1="8" x2="18.01" y2="8"></line>
+            <line x1="7" y1="16" x2="17" y2="16"></line>
+          </svg>
         </button>
       </div>
     </header>
 
-    <!-- Metrics Bar / KPIs -->
-    <section class="metrics-bar" id="metrics-bar">
-      <div class="metric-card" id="card-total-tasks">
-        <div class="metric-icon total">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+    <!-- ======================================================================
+         APP VIEW 0: STARTSEITE / APP SELECTOR HUB
+         ====================================================================== -->
+    <section class="suite-app-view active" id="app-view-hub">
+      <div class="hub-container">
+        
+        <!-- Hero Welcome Header -->
+        <div class="hub-hero">
+          <div class="hero-content">
+            <div class="hero-chip">
+              <span class="hero-chip-dot"></span>
+              <span>ORBIT WORKSPACE FRAMEWORK</span>
+            </div>
+            <h1 class="hero-title" id="hub-greeting">Willkommen im <span class="gradient-text">Orbit Workspace</span></h1>
+            <p class="hero-subtitle">Deine All-in-One Produktivitäts-Zentrale. Wähle unten eine App oder starte sofort mit einer Schnellaktion.</p>
+          </div>
+          <div class="hero-stats-badge">
+            <div class="stat-badge-inner">
+              <span class="badge-number" id="hub-total-score">100%</span>
+              <span class="badge-label">System bereit</span>
+            </div>
+          </div>
         </div>
-        <div class="metric-info">
-          <span class="metric-label">Aufgaben gesamt</span>
-          <span class="metric-value" id="val-total-tasks">0</span>
-        </div>
-        <div class="metric-trend" id="sub-total-tasks">Alle Projekte</div>
-      </div>
 
-      <div class="metric-card" id="card-in-progress">
-        <div class="metric-icon in-progress">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-        </div>
-        <div class="metric-info">
-          <span class="metric-label">In Bearbeitung</span>
-          <span class="metric-value" id="val-in-progress">0</span>
-        </div>
-        <div class="metric-trend" id="sub-in-progress">Aktiv im Fokus</div>
-      </div>
+        <!-- Global Summary KPI Strip -->
+        <div class="hub-kpi-strip">
+          <div class="hub-kpi-card" data-app-nav="tasks">
+            <div class="kpi-icon tasks">📋</div>
+            <div class="kpi-data">
+              <span class="kpi-value" id="hub-stat-tasks">6 Tasks</span>
+              <span class="kpi-label">Aufgaben gesamt</span>
+            </div>
+            <span class="kpi-arrow">→</span>
+          </div>
 
-      <div class="metric-card" id="card-completed">
-        <div class="metric-icon completed">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-        </div>
-        <div class="metric-info">
-          <span class="metric-label">Abgeschlossen</span>
-          <span class="metric-value" id="val-completed">0</span>
-        </div>
-        <div class="metric-trend positive" id="val-completion-rate">0% Quote</div>
-      </div>
+          <div class="hub-kpi-card" data-app-nav="notes">
+            <div class="kpi-icon notes">📝</div>
+            <div class="kpi-data">
+              <span class="kpi-value" id="hub-stat-notes">4 Notizen</span>
+              <span class="kpi-label">Gedanken & Code</span>
+            </div>
+            <span class="kpi-arrow">→</span>
+          </div>
 
-      <div class="metric-card" id="card-overdue">
-        <div class="metric-icon overdue">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          <div class="hub-kpi-card" data-app-nav="focus">
+            <div class="kpi-icon focus">⏱️</div>
+            <div class="kpi-data">
+              <span class="kpi-value" id="hub-stat-focus">25:00 min</span>
+              <span class="kpi-label">Pomodoro Fokus</span>
+            </div>
+            <span class="kpi-arrow">→</span>
+          </div>
+
+          <div class="hub-kpi-card" data-app-nav="habits">
+            <div class="kpi-icon habits">🎯</div>
+            <div class="kpi-data">
+              <span class="kpi-value" id="hub-stat-habits">4 Habits</span>
+              <span class="kpi-label">Tägliche Routinen</span>
+            </div>
+            <span class="kpi-arrow">→</span>
+          </div>
         </div>
-        <div class="metric-info">
-          <span class="metric-label">Überfällig</span>
-          <span class="metric-value" id="val-overdue">0</span>
+
+        <!-- MAIN APP SELECTOR SECTION (Primary User Request Feature) -->
+        <div class="hub-section">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">App-Selector & Suite Module</h2>
+              <p class="section-subtitle">Wähle die passende Anwendung für deinen aktuellen Workflow</p>
+            </div>
+          </div>
+
+          <div class="app-selector-grid">
+            
+            <!-- App Card 1: OrbitTask -->
+            <div class="app-card" data-launch="tasks">
+              <div class="card-glow tasks-glow"></div>
+              <div class="app-card-top">
+                <div class="app-card-icon-box tasks-box">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <rect x="3" y="3" width="5" height="18" rx="1"></rect>
+                    <rect x="11" y="3" width="5" height="12" rx="1"></rect>
+                    <rect x="19" y="3" width="5" height="16" rx="1"></rect>
+                  </svg>
+                </div>
+                <span class="app-category-badge">PROJEKTE & KANBAN</span>
+              </div>
+              <h3 class="app-card-title">OrbitTask</h3>
+              <p class="app-card-desc">Kanban-Board mit 5 Workflow-Spalten, tabellarische Listenansicht, Fälligkeitsampel, Subtasks und interaktive Analytics.</p>
+              
+              <div class="app-card-meta">
+                <div class="meta-pill" id="card-task-count-pill">
+                  <span class="dot green"></span>
+                  <span id="hub-card-task-summary">Aktiv geladen</span>
+                </div>
+                <button class="app-launch-btn tasks-btn" data-launch="tasks">
+                  <span>App öffnen</span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- App Card 2: OrbitNotes -->
+            <div class="app-card" data-launch="notes">
+              <div class="card-glow notes-glow"></div>
+              <div class="app-card-top">
+                <div class="app-card-icon-box notes-box">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                  </svg>
+                </div>
+                <span class="app-category-badge">NOTIZEN & MARKDOWN</span>
+              </div>
+              <h3 class="app-card-title">OrbitNotes</h3>
+              <p class="app-card-desc">Gedanken blitzschnell erfassen, Markdown-Unterstützung mit Live-Preview, Farb-Kategorien, Pin-Funktion und Sofortsuche.</p>
+              
+              <div class="app-card-meta">
+                <div class="meta-pill">
+                  <span class="dot teal"></span>
+                  <span id="hub-card-notes-summary">Quick-Notes bereit</span>
+                </div>
+                <button class="app-launch-btn notes-btn" data-launch="notes">
+                  <span>App öffnen</span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- App Card 3: OrbitFocus -->
+            <div class="app-card" data-launch="focus">
+              <div class="card-glow focus-glow"></div>
+              <div class="app-card-top">
+                <div class="app-card-icon-box focus-box">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                </div>
+                <span class="app-category-badge">DEEP WORK & TIMER</span>
+              </div>
+              <h3 class="app-card-title">OrbitFocus</h3>
+              <p class="app-card-desc">Pomodoro-Intervalltimer (25/5/15 min) mit integriertem Web Audio Ambient-Generator (Regen, Zen-Sound, Weißes Rauschen).</p>
+              
+              <div class="app-card-meta">
+                <div class="meta-pill">
+                  <span class="dot amber"></span>
+                  <span id="hub-card-focus-summary">25:00 min Timer</span>
+                </div>
+                <button class="app-launch-btn focus-btn" data-launch="focus">
+                  <span>App öffnen</span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- App Card 4: OrbitHabits -->
+            <div class="app-card" data-launch="habits">
+              <div class="card-glow habits-glow"></div>
+              <div class="app-card-top">
+                <div class="app-card-icon-box habits-box">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>
+                  </svg>
+                </div>
+                <span class="app-category-badge">ROUTINEN & STREAKS</span>
+              </div>
+              <h3 class="app-card-title">OrbitHabits</h3>
+              <p class="app-card-desc">Tägliche Gewohnheiten aufbauen, 7-Tage-Wochenmatrix, visuelle Flammen-Streaks, Fortschrittsquoten und Erfolgsfeuerwerk.</p>
+              
+              <div class="app-card-meta">
+                <div class="meta-pill">
+                  <span class="dot rose"></span>
+                  <span id="hub-card-habits-summary">Daily Streaks</span>
+                </div>
+                <button class="app-launch-btn habits-btn" data-launch="habits">
+                  <span>App öffnen</span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- App Card 5: OrbitTools -->
+            <div class="app-card" data-launch="tools">
+              <div class="card-glow tools-glow"></div>
+              <div class="app-card-top">
+                <div class="app-card-icon-box tools-box">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+                  </svg>
+                </div>
+                <span class="app-category-badge">SMART UTILITIES</span>
+              </div>
+              <h3 class="app-card-title">OrbitTools</h3>
+              <p class="app-card-desc">Produktivitäts-Helfer: JSON Formatter & Minifier, Text Case Converter, Live-Wortinspektor und UUID/Timestamp Generator.</p>
+              
+              <div class="app-card-meta">
+                <div class="meta-pill">
+                  <span class="dot sky"></span>
+                  <span>4 Sofort-Tools</span>
+                </div>
+                <button class="app-launch-btn tools-btn" data-launch="tools">
+                  <span>App öffnen</span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+              </div>
+            </div>
+
+          </div>
         </div>
-        <div class="metric-trend warning" id="sub-overdue">Dringend prüfen</div>
+
+        <!-- Startseite Quick Actions Bar -->
+        <div class="hub-quick-bar">
+          <span class="quick-bar-label">⚡ Schnellaktionen:</span>
+          <div class="quick-bar-buttons">
+            <button class="quick-action-btn" id="hub-action-add-task">
+              <span>+ Neue Aufgabe anlegen</span>
+            </button>
+            <button class="quick-action-btn" id="hub-action-add-note">
+              <span>+ Neue Notiz erfassen</span>
+            </button>
+            <button class="quick-action-btn" id="hub-action-start-focus">
+              <span>▶ 25 Min. Timer starten</span>
+            </button>
+            <button class="quick-action-btn" id="hub-action-check-habits">
+              <span>🎯 Zu den Gewohnheiten</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Startseite Live Activity Overview -->
+        <div class="hub-activity-grid">
+          
+          <!-- Urgent / Today Tasks Preview -->
+          <div class="hub-widget-card">
+            <div class="widget-header">
+              <div class="widget-title-group">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+                <h3>Fällige Aufgaben im Fokus</h3>
+              </div>
+              <button class="widget-link-btn" data-launch="tasks">Alle Tasks →</button>
+            </div>
+            <div class="hub-task-preview-list" id="hub-task-preview-list">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Today Habits & Streak Preview -->
+          <div class="hub-widget-card">
+            <div class="widget-header">
+              <div class="widget-title-group">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>
+                <h3>Heutige Gewohnheiten</h3>
+              </div>
+              <button class="widget-link-btn" data-launch="habits">Habits öffnen →</button>
+            </div>
+            <div class="hub-habit-preview-list" id="hub-habit-preview-list">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Pinned Notes Preview -->
+          <div class="hub-widget-card">
+            <div class="widget-header">
+              <div class="widget-title-group">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                <h3>Angeheftete Notizen</h3>
+              </div>
+              <button class="widget-link-btn" data-launch="notes">Alle Notizen →</button>
+            </div>
+            <div class="hub-notes-preview-list" id="hub-notes-preview-list">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+        </div>
+
       </div>
     </section>
 
-    <!-- Filters & Quick Controls Strip -->
-    <section class="controls-strip" id="controls-strip">
-      <div class="filter-group">
-        <span class="filter-title">Filter:</span>
-        <button class="filter-chip active" data-filter-type="all" data-filter-val="all">Alle</button>
-        <button class="filter-chip" data-filter-type="priority" data-filter-val="urgent">🚨 Dringend</button>
-        <button class="filter-chip" data-filter-type="priority" data-filter-val="high">⚡ Hoch</button>
-        <button class="filter-chip" data-filter-type="time" data-filter-val="today">📅 Heute fällig</button>
-        <button class="filter-chip" data-filter-type="time" data-filter-val="overdue">⚠️ Überfällig</button>
-      </div>
-
-      <div class="tag-filters-container" id="tag-filters">
-        <!-- Dynamically injected category/tag chips -->
-      </div>
-
-      <div class="sort-container">
-        <label for="sort-select" class="sort-label">Sortieren nach:</label>
-        <select id="sort-select" class="select-input">
-          <option value="createdAt-desc">Neueste zuerst</option>
-          <option value="dueDate-asc">Fälligkeit (bald zuerst)</option>
-          <option value="priority-desc">Höchste Priorität</option>
-          <option value="title-asc">Titel (A-Z)</option>
-        </select>
-      </div>
-    </section>
-
-    <!-- Main Content Area -->
-    <main class="main-content" id="main-content">
-      
-      <!-- 1. Kanban View -->
-      <section class="view-panel active" id="view-kanban-panel">
-        <div class="kanban-board" id="kanban-board">
-          
-          <!-- Column: Backlog -->
-          <div class="kanban-column" data-status="backlog" id="col-backlog">
-            <div class="column-header">
-              <div class="column-title-group">
-                <span class="status-indicator status-backlog"></span>
-                <h3 class="column-title">Backlog</h3>
-                <span class="column-count" id="count-backlog">0</span>
+    <!-- ======================================================================
+         APP VIEW 1: ORBITTASK (FULL PRO TASK TRACKING & KANBAN SUITE)
+         ====================================================================== -->
+    <section class="suite-app-view" id="app-view-tasks">
+      <div class="app-layout">
+        <!-- OrbitTask Header -->
+        <header class="app-header" id="app-header">
+          <div class="header-left">
+            <div class="brand-logo" id="brand-logo">
+              <div class="logo-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                </svg>
               </div>
-              <button class="btn-quick-add" data-status="backlog" title="Aufgabe zum Backlog hinzufügen">+</button>
-            </div>
-            <div class="kanban-cards-container" data-status="backlog" id="container-backlog"></div>
-          </div>
-
-          <!-- Column: To Do -->
-          <div class="kanban-column" data-status="todo" id="col-todo">
-            <div class="column-header">
-              <div class="column-title-group">
-                <span class="status-indicator status-todo"></span>
-                <h3 class="column-title">Zu erledigen</h3>
-                <span class="column-count" id="count-todo">0</span>
+              <div class="logo-text">
+                <span class="logo-title">Orbit<span class="gradient-text">Task</span></span>
+                <span class="logo-badge">PRO v2.5</span>
               </div>
-              <button class="btn-quick-add" data-status="todo" title="Aufgabe zu 'Zu erledigen' hinzufügen">+</button>
             </div>
-            <div class="kanban-cards-container" data-status="todo" id="container-todo"></div>
-          </div>
 
-          <!-- Column: In Progress -->
-          <div class="kanban-column" data-status="inprogress" id="col-inprogress">
-            <div class="column-header">
-              <div class="column-title-group">
-                <span class="status-indicator status-inprogress"></span>
-                <h3 class="column-title">In Bearbeitung</h3>
-                <span class="column-count" id="count-inprogress">0</span>
-              </div>
-              <button class="btn-quick-add" data-status="inprogress" title="Aufgabe zu 'In Bearbeitung' hinzufügen">+</button>
-            </div>
-            <div class="kanban-cards-container" data-status="inprogress" id="container-inprogress"></div>
-          </div>
-
-          <!-- Column: Review -->
-          <div class="kanban-column" data-status="review" id="col-review">
-            <div class="column-header">
-              <div class="column-title-group">
-                <span class="status-indicator status-review"></span>
-                <h3 class="column-title">Prüfung</h3>
-                <span class="column-count" id="count-review">0</span>
-              </div>
-              <button class="btn-quick-add" data-status="review" title="Aufgabe zu 'Prüfung' hinzufügen">+</button>
-            </div>
-            <div class="kanban-cards-container" data-status="review" id="container-review"></div>
-          </div>
-
-          <!-- Column: Done -->
-          <div class="kanban-column" data-status="done" id="col-done">
-            <div class="column-header">
-              <div class="column-title-group">
-                <span class="status-indicator status-done"></span>
-                <h3 class="column-title">Erledigt</h3>
-                <span class="column-count" id="count-done">0</span>
-              </div>
-              <button class="btn-quick-add" data-status="done" title="Aufgabe zu 'Erledigt' hinzufügen">+</button>
-            </div>
-            <div class="kanban-cards-container" data-status="done" id="container-done"></div>
-          </div>
-
-        </div>
-      </section>
-
-      <!-- 2. List View -->
-      <section class="view-panel" id="view-list-panel">
-        <div class="list-container">
-          <div class="list-header-row">
-            <span class="col-head check-head">Status</span>
-            <span class="col-head title-head">Aufgabe & Beschreibung</span>
-            <span class="col-head category-head">Kategorie</span>
-            <span class="col-head priority-head">Priorität</span>
-            <span class="col-head due-head">Fälligkeit</span>
-            <span class="col-head subtasks-head">Subtasks</span>
-            <span class="col-head actions-head">Aktionen</span>
-          </div>
-          <div class="list-items-body" id="list-items-body">
-            <!-- Dynamically populated rows -->
-          </div>
-        </div>
-      </section>
-
-      <!-- 3. Analytics View -->
-      <section class="view-panel" id="view-analytics-panel">
-        <div class="analytics-dashboard">
-          
-          <!-- Top Row Charts -->
-          <div class="analytics-card progress-overview-card">
-            <h3 class="card-title">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
-              Gesamterledigungsgrad
-            </h3>
-            <div class="progress-radial-wrapper">
-              <svg class="radial-chart" viewBox="0 0 160 160">
-                <circle class="radial-bg" cx="80" cy="80" r="65"></circle>
-                <circle class="radial-progress" id="analytics-radial-circle" cx="80" cy="80" r="65" stroke-dasharray="408.4" stroke-dashoffset="408.4"></circle>
+            <!-- Global Search Bar -->
+            <div class="search-container" id="search-container">
+              <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
               </svg>
-              <div class="radial-inner-content">
-                <span class="radial-percentage" id="analytics-radial-percent">0%</span>
-                <span class="radial-label">Erledigt</span>
+              <input type="text" id="global-search-input" placeholder="Aufgaben durchsuchen... (Strg + K)" autocomplete="off">
+              <kbd class="search-shortcut">Ctrl K</kbd>
+              <button class="clear-search-btn" id="clear-search-btn" title="Suche zurücksetzen" aria-label="Suche zurücksetzen">✕</button>
+            </div>
+          </div>
+
+          <div class="header-center">
+            <!-- View Switcher Tabs -->
+            <nav class="view-nav" id="view-nav" aria-label="Ansichten">
+              <button class="nav-tab active" id="tab-kanban" data-view="kanban">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="5" height="18" rx="1"></rect>
+                  <rect x="11" y="3" width="5" height="12" rx="1"></rect>
+                  <rect x="19" y="3" width="5" height="16" rx="1"></rect>
+                </svg>
+                <span>Kanban</span>
+              </button>
+              <button class="nav-tab" id="tab-list" data-view="list">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="8" y1="6" x2="21" y2="6"></line>
+                  <line x1="8" y1="12" x2="21" y2="12"></line>
+                  <line x1="8" y1="18" x2="21" y2="18"></line>
+                  <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                  <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                  <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                </svg>
+                <span>Liste</span>
+              </button>
+              <button class="nav-tab" id="tab-analytics" data-view="analytics">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="20" x2="18" y2="10"></line>
+                  <line x1="12" y1="20" x2="12" y2="4"></line>
+                  <line x1="6" y1="20" x2="6" y2="14"></line>
+                </svg>
+                <span>Analytics</span>
+              </button>
+            </nav>
+          </div>
+
+          <div class="header-right">
+            <div class="dropdown-wrapper">
+              <button class="btn-secondary" id="btn-more-options" aria-label="Optionen">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="1"></circle>
+                  <circle cx="12" cy="5" r="1"></circle>
+                  <circle cx="12" cy="19" r="1"></circle>
+                </svg>
+                <span>Optionen</span>
+              </button>
+              <div class="dropdown-menu hidden" id="more-options-menu">
+                <button class="dropdown-item" id="opt-load-demo">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+                  Demo-Daten laden
+                </button>
+                <button class="dropdown-item" id="opt-export-json">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  Als JSON exportieren
+                </button>
+                <label class="dropdown-item file-upload-item" for="input-import-json">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                  JSON importieren
+                  <input type="file" id="input-import-json" accept=".json" style="display:none">
+                </label>
+                <div class="dropdown-divider"></div>
+                <button class="dropdown-item danger" id="opt-clear-all">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                  Alle Aufgaben löschen
+                </button>
               </div>
             </div>
-            <div class="progress-details" id="analytics-progress-details">
-              <!-- Rendered via JS -->
+
+            <button class="btn-primary" id="btn-create-task">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>Neue Aufgabe</span>
+            </button>
+          </div>
+        </header>
+
+        <!-- Metrics Bar / KPIs -->
+        <section class="metrics-bar" id="metrics-bar">
+          <div class="metric-card" id="card-total-tasks">
+            <div class="metric-icon total">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            </div>
+            <div class="metric-info">
+              <span class="metric-label">Aufgaben gesamt</span>
+              <span class="metric-value" id="val-total-tasks">0</span>
+            </div>
+            <div class="metric-trend" id="sub-total-tasks">Alle Projekte</div>
+          </div>
+
+          <div class="metric-card" id="card-in-progress">
+            <div class="metric-icon in-progress">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            </div>
+            <div class="metric-info">
+              <span class="metric-label">In Bearbeitung</span>
+              <span class="metric-value" id="val-in-progress">0</span>
+            </div>
+            <div class="metric-trend" id="sub-in-progress">Aktiv im Fokus</div>
+          </div>
+
+          <div class="metric-card" id="card-completed">
+            <div class="metric-icon completed">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            </div>
+            <div class="metric-info">
+              <span class="metric-label">Abgeschlossen</span>
+              <span class="metric-value" id="val-completed">0</span>
+            </div>
+            <div class="metric-trend positive" id="val-completion-rate">0% Quote</div>
+          </div>
+
+          <div class="metric-card" id="card-overdue">
+            <div class="metric-icon overdue">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            </div>
+            <div class="metric-info">
+              <span class="metric-label">Überfällig</span>
+              <span class="metric-value" id="val-overdue">0</span>
+            </div>
+            <div class="metric-trend warning" id="sub-overdue">Dringend prüfen</div>
+          </div>
+        </section>
+
+        <!-- Filters & Quick Controls Strip -->
+        <section class="controls-strip" id="controls-strip">
+          <div class="filter-group">
+            <span class="filter-title">Filter:</span>
+            <button class="filter-chip active" data-filter-type="all" data-filter-val="all">Alle</button>
+            <button class="filter-chip" data-filter-type="priority" data-filter-val="urgent">🚨 Dringend</button>
+            <button class="filter-chip" data-filter-type="priority" data-filter-val="high">⚡ Hoch</button>
+            <button class="filter-chip" data-filter-type="time" data-filter-val="today">📅 Heute fällig</button>
+            <button class="filter-chip" data-filter-type="time" data-filter-val="overdue">⚠️ Überfällig</button>
+          </div>
+
+          <div class="tag-filters-container" id="tag-filters">
+            <!-- Dynamically injected category chips -->
+          </div>
+
+          <div class="sort-container">
+            <label for="sort-select" class="sort-label">Sortieren nach:</label>
+            <select id="sort-select" class="select-input">
+              <option value="createdAt-desc">Neueste zuerst</option>
+              <option value="dueDate-asc">Fälligkeit (bald zuerst)</option>
+              <option value="priority-desc">Höchste Priorität</option>
+              <option value="title-asc">Titel (A-Z)</option>
+            </select>
+          </div>
+        </section>
+
+        <!-- Main Content Area -->
+        <main class="main-content" id="main-content">
+          
+          <!-- 1. Kanban View -->
+          <section class="view-panel active" id="view-kanban-panel">
+            <div class="kanban-board" id="kanban-board">
+              
+              <!-- Column: Backlog -->
+              <div class="kanban-column" data-status="backlog" id="col-backlog">
+                <div class="column-header">
+                  <div class="column-title-group">
+                    <span class="status-indicator status-backlog"></span>
+                    <h3 class="column-title">Backlog</h3>
+                    <span class="column-count" id="count-backlog">0</span>
+                  </div>
+                  <button class="btn-quick-add" data-status="backlog" title="Aufgabe zum Backlog hinzufügen">+</button>
+                </div>
+                <div class="kanban-cards-container" data-status="backlog" id="container-backlog"></div>
+              </div>
+
+              <!-- Column: To Do -->
+              <div class="kanban-column" data-status="todo" id="col-todo">
+                <div class="column-header">
+                  <div class="column-title-group">
+                    <span class="status-indicator status-todo"></span>
+                    <h3 class="column-title">Zu erledigen</h3>
+                    <span class="column-count" id="count-todo">0</span>
+                  </div>
+                  <button class="btn-quick-add" data-status="todo" title="Aufgabe zu 'Zu erledigen' hinzufügen">+</button>
+                </div>
+                <div class="kanban-cards-container" data-status="todo" id="container-todo"></div>
+              </div>
+
+              <!-- Column: In Progress -->
+              <div class="kanban-column" data-status="inprogress" id="col-inprogress">
+                <div class="column-header">
+                  <div class="column-title-group">
+                    <span class="status-indicator status-inprogress"></span>
+                    <h3 class="column-title">In Bearbeitung</h3>
+                    <span class="column-count" id="count-inprogress">0</span>
+                  </div>
+                  <button class="btn-quick-add" data-status="inprogress" title="Aufgabe zu 'In Bearbeitung' hinzufügen">+</button>
+                </div>
+                <div class="kanban-cards-container" data-status="inprogress" id="container-inprogress"></div>
+              </div>
+
+              <!-- Column: Review -->
+              <div class="kanban-column" data-status="review" id="col-review">
+                <div class="column-header">
+                  <div class="column-title-group">
+                    <span class="status-indicator status-review"></span>
+                    <h3 class="column-title">Prüfung</h3>
+                    <span class="column-count" id="count-review">0</span>
+                  </div>
+                  <button class="btn-quick-add" data-status="review" title="Aufgabe zu 'Prüfung' hinzufügen">+</button>
+                </div>
+                <div class="kanban-cards-container" data-status="review" id="container-review"></div>
+              </div>
+
+              <!-- Column: Done -->
+              <div class="kanban-column" data-status="done" id="col-done">
+                <div class="column-header">
+                  <div class="column-title-group">
+                    <span class="status-indicator status-done"></span>
+                    <h3 class="column-title">Erledigt</h3>
+                    <span class="column-count" id="count-done">0</span>
+                  </div>
+                  <button class="btn-quick-add" data-status="done" title="Aufgabe zu 'Erledigt' hinzufügen">+</button>
+                </div>
+                <div class="kanban-cards-container" data-status="done" id="container-done"></div>
+              </div>
+
+            </div>
+          </section>
+
+          <!-- 2. List View -->
+          <section class="view-panel" id="view-list-panel">
+            <div class="list-container">
+              <div class="list-header-row">
+                <span class="col-head check-head">Status</span>
+                <span class="col-head title-head">Aufgabe & Beschreibung</span>
+                <span class="col-head category-head">Kategorie</span>
+                <span class="col-head priority-head">Priorität</span>
+                <span class="col-head due-head">Fälligkeit</span>
+                <span class="col-head subtasks-head">Subtasks</span>
+                <span class="col-head actions-head">Aktionen</span>
+              </div>
+              <div class="list-items-body" id="list-items-body">
+                <!-- Dynamically populated rows -->
+              </div>
+            </div>
+          </section>
+
+          <!-- 3. Analytics View -->
+          <section class="view-panel" id="view-analytics-panel">
+            <div class="analytics-dashboard">
+              
+              <div class="analytics-card progress-overview-card">
+                <h3 class="card-title">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+                  Gesamterledigungsgrad
+                </h3>
+                <div class="progress-radial-wrapper">
+                  <svg class="radial-chart" viewBox="0 0 160 160">
+                    <circle class="radial-bg" cx="80" cy="80" r="65"></circle>
+                    <circle class="radial-progress" id="analytics-radial-circle" cx="80" cy="80" r="65" stroke-dasharray="408.4" stroke-dashoffset="408.4"></circle>
+                  </svg>
+                  <div class="radial-inner-content">
+                    <span class="radial-percentage" id="analytics-radial-percent">0%</span>
+                    <span class="radial-label">Erledigt</span>
+                  </div>
+                </div>
+                <div class="progress-details" id="analytics-progress-details"></div>
+              </div>
+
+              <div class="analytics-card status-distribution-card">
+                <h3 class="card-title">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+                  Status-Verteilung
+                </h3>
+                <div class="bar-chart-container" id="analytics-status-bars"></div>
+              </div>
+
+              <div class="analytics-card priority-distribution-card">
+                <h3 class="card-title">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                  Prioritäts-Matrix
+                </h3>
+                <div class="priority-grid" id="analytics-priority-grid"></div>
+              </div>
+
+              <div class="analytics-card category-breakdown-card">
+                <h3 class="card-title">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+                  Aufgaben nach Kategorie
+                </h3>
+                <div class="category-breakdown-list" id="analytics-categories-list"></div>
+              </div>
+
+            </div>
+          </section>
+
+        </main>
+      </div>
+    </section>
+
+    <!-- ======================================================================
+         APP VIEW 2: ORBITNOTES (RICH QUICK-NOTES & MARKDOWN STUDIO)
+         ====================================================================== -->
+    <section class="suite-app-view" id="app-view-notes">
+      <div class="app-layout">
+        <header class="app-header">
+          <div class="header-left">
+            <div class="brand-logo" data-app-nav="notes">
+              <div class="logo-icon notes-icon-gradient">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                </svg>
+              </div>
+              <div class="logo-text">
+                <span class="logo-title">Orbit<span class="gradient-text-notes">Notes</span></span>
+                <span class="logo-badge">MARKDOWN</span>
+              </div>
+            </div>
+
+            <!-- Notes Search Bar -->
+            <div class="search-container">
+              <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input type="text" id="notes-search-input" placeholder="Notizen durchsuchen..." autocomplete="off">
             </div>
           </div>
 
-          <div class="analytics-card status-distribution-card">
-            <h3 class="card-title">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
-              Status-Verteilung
-            </h3>
-            <div class="bar-chart-container" id="analytics-status-bars">
-              <!-- Rendered via JS -->
+          <div class="header-right">
+            <button class="btn-primary" id="btn-create-note">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>Neue Notiz</span>
+            </button>
+          </div>
+        </header>
+
+        <!-- Notes Filter Chips -->
+        <section class="controls-strip">
+          <div class="filter-group">
+            <span class="filter-title">Kategorie:</span>
+            <button class="filter-chip active notes-filter-chip" data-category="all">Alle</button>
+            <button class="filter-chip notes-filter-chip" data-category="Ideen">💡 Ideen</button>
+            <button class="filter-chip notes-filter-chip" data-category="Arbeit">💼 Arbeit</button>
+            <button class="filter-chip notes-filter-chip" data-category="Code">💻 Code</button>
+            <button class="filter-chip notes-filter-chip" data-category="Wichtig">⭐ Wichtig</button>
+            <button class="filter-chip notes-filter-chip" data-category="Privat">🌱 Privat</button>
+          </div>
+          <div class="notes-stats-info" id="notes-count-summary">
+            4 Notizen vorhanden
+          </div>
+        </section>
+
+        <!-- Notes Grid -->
+        <main class="main-content">
+          <div class="notes-grid" id="notes-cards-container">
+            <!-- Dynamically populated notes -->
+          </div>
+        </main>
+      </div>
+    </section>
+
+    <!-- ======================================================================
+         APP VIEW 3: ORBITFOCUS (POMODORO & FLOW STATE TIMER + AMBIENT SOUND)
+         ====================================================================== -->
+    <section class="suite-app-view" id="app-view-focus">
+      <div class="app-layout">
+        <header class="app-header">
+          <div class="header-left">
+            <div class="brand-logo" data-app-nav="focus">
+              <div class="logo-icon focus-icon-gradient">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+              </div>
+              <div class="logo-text">
+                <span class="logo-title">Orbit<span class="gradient-text-focus">Focus</span></span>
+                <span class="logo-badge">FLOW STATE</span>
+              </div>
             </div>
           </div>
 
-          <!-- Bottom Row Charts -->
-          <div class="analytics-card priority-distribution-card">
-            <h3 class="card-title">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-              Prioritäts-Matrix
-            </h3>
-            <div class="priority-grid" id="analytics-priority-grid">
-              <!-- Rendered via JS -->
+          <div class="header-center">
+            <!-- Focus Mode Selector Tabs -->
+            <div class="focus-mode-tabs" id="focus-mode-tabs">
+              <button class="focus-tab active" data-mode="pomodoro" data-duration="25">
+                <span>🎯 Fokus (25m)</span>
+              </button>
+              <button class="focus-tab" data-mode="short-break" data-duration="5">
+                <span>☕ Pause (5m)</span>
+              </button>
+              <button class="focus-tab" data-mode="long-break" data-duration="15">
+                <span>🌴 Lange Pause (15m)</span>
+              </button>
             </div>
           </div>
 
-          <div class="analytics-card category-breakdown-card">
-            <h3 class="card-title">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
-              Aufgaben nach Kategorie
-            </h3>
-            <div class="category-breakdown-list" id="analytics-categories-list">
-              <!-- Rendered via JS -->
+          <div class="header-right">
+            <div class="focus-session-badge">
+              <span id="focus-sessions-count">🍅 0 / 4 Sessions</span>
+            </div>
+          </div>
+        </header>
+
+        <main class="focus-main-content">
+          <div class="focus-display-card">
+            
+            <!-- Circular Animated Countdown Timer -->
+            <div class="focus-timer-ring-wrapper">
+              <svg class="focus-ring-svg" viewBox="0 0 320 320">
+                <circle class="ring-bg" cx="160" cy="160" r="140"></circle>
+                <circle class="ring-progress" id="focus-ring-progress" cx="160" cy="160" r="140" stroke-dasharray="879.6" stroke-dashoffset="0"></circle>
+              </svg>
+              <div class="focus-timer-text-wrap">
+                <span class="focus-status-label" id="focus-status-label">FOKUS-ZEIT</span>
+                <span class="focus-countdown-display" id="focus-countdown-display">25:00</span>
+                <span class="focus-sub-label" id="focus-sub-label">Bereit für maximale Konzentration</span>
+              </div>
+            </div>
+
+            <!-- Focus Controls -->
+            <div class="focus-controls-row">
+              <button class="focus-btn-round secondary" id="focus-btn-reset" title="Zurücksetzen">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline></svg>
+              </button>
+              
+              <button class="focus-btn-round primary" id="focus-btn-toggle" title="Start / Pause">
+                <svg class="play-icon" id="focus-play-icon" width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                <svg class="pause-icon hidden" id="focus-pause-icon" width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+                  <rect x="6" y="4" width="4" height="16"></rect>
+                  <rect x="14" y="4" width="4" height="16"></rect>
+                </svg>
+              </button>
+
+              <button class="focus-btn-round secondary" id="focus-btn-skip" title="Überspringen">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>
+              </button>
+            </div>
+
+            <!-- Ambient Soundscapes Generator -->
+            <div class="ambient-sound-panel">
+              <div class="ambient-panel-header">
+                <div class="ambient-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+                  <span>Ambient Audio Synthesizer</span>
+                </div>
+                <div class="ambient-vol-control">
+                  <span class="vol-icon">🔉</span>
+                  <input type="range" id="ambient-volume" min="0" max="1" step="0.05" value="0.5" title="Lautstärke">
+                </div>
+              </div>
+
+              <div class="ambient-buttons-row">
+                <button class="ambient-sound-btn" data-sound="rain">
+                  <span class="sound-emoji">🌧️</span>
+                  <span class="sound-name">Sanfter Regen</span>
+                </button>
+                <button class="ambient-sound-btn" data-sound="zen">
+                  <span class="sound-emoji">🧘</span>
+                  <span class="sound-name">Zen Meditation (432Hz)</span>
+                </button>
+                <button class="ambient-sound-btn" data-sound="white">
+                  <span class="sound-emoji">📻</span>
+                  <span class="sound-name">Weißes Rauschen</span>
+                </button>
+                <button class="ambient-sound-btn active" data-sound="off">
+                  <span class="sound-emoji">🔇</span>
+                  <span class="sound-name">Aus</span>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </main>
+      </div>
+    </section>
+
+    <!-- ======================================================================
+         APP VIEW 4: ORBITHABITS (DAILY HABIT & STREAK TRACKER)
+         ====================================================================== -->
+    <section class="suite-app-view" id="app-view-habits">
+      <div class="app-layout">
+        <header class="app-header">
+          <div class="header-left">
+            <div class="brand-logo" data-app-nav="habits">
+              <div class="logo-icon habits-icon-gradient">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>
+                </svg>
+              </div>
+              <div class="logo-text">
+                <span class="logo-title">Orbit<span class="gradient-text-habits">Habits</span></span>
+                <span class="logo-badge">STREAKS</span>
+              </div>
+            </div>
+
+            <div class="habits-week-badge" id="habits-week-label">
+              📅 Aktuelle Woche
             </div>
           </div>
 
-        </div>
-      </section>
+          <div class="header-right">
+            <button class="btn-primary" id="btn-create-habit">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>Neue Gewohnheit</span>
+            </button>
+          </div>
+        </header>
 
-    </main>
+        <!-- Habits Today Progress Banner -->
+        <section class="habits-progress-banner">
+          <div class="progress-banner-info">
+            <h3 class="banner-title">Heutige Zielerreichung</h3>
+            <p class="banner-sub" id="habits-completion-text">0 von 4 Gewohnheiten heute erledigt</p>
+          </div>
+          <div class="banner-bar-wrap">
+            <div class="banner-progress-bar">
+              <div class="banner-progress-fill" id="habits-today-progress-fill" style="width: 0%;"></div>
+            </div>
+            <span class="banner-percentage" id="habits-today-percent">0%</span>
+          </div>
+        </section>
+
+        <!-- Weekly Habits Grid Board -->
+        <main class="main-content">
+          <div class="habits-board-card">
+            <div class="habits-table-header">
+              <span class="col-habit-name">Gewohnheit</span>
+              <span class="col-habit-streak">Streak</span>
+              <span class="col-habit-day" data-weekday="0">Mo</span>
+              <span class="col-habit-day" data-weekday="1">Di</span>
+              <span class="col-habit-day" data-weekday="2">Mi</span>
+              <span class="col-habit-day" data-weekday="3">Do</span>
+              <span class="col-habit-day" data-weekday="4">Fr</span>
+              <span class="col-habit-day" data-weekday="5">Sa</span>
+              <span class="col-habit-day" data-weekday="6">So</span>
+              <span class="col-habit-progress">Woche</span>
+              <span class="col-habit-actions">Aktionen</span>
+            </div>
+            <div class="habits-list-body" id="habits-list-body">
+              <!-- Dynamically populated habits -->
+            </div>
+          </div>
+        </main>
+      </div>
+    </section>
+
+    <!-- ======================================================================
+         APP VIEW 5: ORBITTOOLS (DEVELOPER & PRODUCTIVITY QUICK TOOLS)
+         ====================================================================== -->
+    <section class="suite-app-view" id="app-view-tools">
+      <div class="app-layout">
+        <header class="app-header">
+          <div class="header-left">
+            <div class="brand-logo" data-app-nav="tools">
+              <div class="logo-icon tools-icon-gradient">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+                </svg>
+              </div>
+              <div class="logo-text">
+                <span class="logo-title">Orbit<span class="gradient-text-tools">Tools</span></span>
+                <span class="logo-badge">UTILITIES</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="header-center">
+            <div class="tools-subnav" id="tools-subnav">
+              <button class="tool-tab active" data-tool="json">
+                <span>{ } JSON Studio</span>
+              </button>
+              <button class="tool-tab" data-tool="text">
+                <span>Aa Text Converter</span>
+              </button>
+              <button class="tool-tab" data-tool="inspector">
+                <span>📊 Text Inspektor</span>
+              </button>
+              <button class="tool-tab" data-tool="uuid">
+                <span>🔑 UUID & Timestamp</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="header-right">
+            <span class="tool-status-pill">100% Client-Side & Offline</span>
+          </div>
+        </header>
+
+        <main class="main-content">
+          <!-- 1. JSON Studio Tool -->
+          <div class="tool-panel active" id="tool-panel-json">
+            <div class="tools-card">
+              <div class="tool-card-toolbar">
+                <div class="toolbar-actions">
+                  <button class="btn-secondary" id="btn-json-beautify">✨ Formatieren (2 Spaces)</button>
+                  <button class="btn-secondary" id="btn-json-minify">📦 Minifizieren</button>
+                  <button class="btn-secondary" id="btn-json-sample">💡 Beispiel laden</button>
+                </div>
+                <div class="toolbar-right">
+                  <span class="json-validation-badge" id="json-val-status">Bereit</span>
+                  <button class="btn-primary" id="btn-json-copy">📋 Kopieren</button>
+                </div>
+              </div>
+              <div class="tool-editor-grid">
+                <div class="editor-pane">
+                  <label class="pane-label">JSON Eingabe</label>
+                  <textarea id="json-input" class="code-textarea" placeholder='{"schlüssel": "wert", "array": [1, 2, 3]}'></textarea>
+                </div>
+                <div class="editor-pane">
+                  <label class="pane-label">Ergebnis / Ausgabe</label>
+                  <textarea id="json-output" class="code-textarea" readonly placeholder="Formatiertes JSON erscheint hier..."></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. Text Converter Tool -->
+          <div class="tool-panel" id="tool-panel-text">
+            <div class="tools-card">
+              <div class="editor-pane">
+                <label class="pane-label">Eingabetext</label>
+                <textarea id="text-conv-input" class="form-textarea" rows="3" placeholder="Gib hier einen Text ein, um ihn in verschiedene Schreibweisen zu konvertieren..."></textarea>
+              </div>
+
+              <div class="text-conv-grid">
+                <div class="conv-result-row">
+                  <span class="conv-label">UPPERCASE:</span>
+                  <input type="text" id="conv-upper" class="form-input readonly-copy" readonly>
+                  <button class="btn-copy-chip" data-copy-target="conv-upper">Kopieren</button>
+                </div>
+                <div class="conv-result-row">
+                  <span class="conv-label">lowercase:</span>
+                  <input type="text" id="conv-lower" class="form-input readonly-copy" readonly>
+                  <button class="btn-copy-chip" data-copy-target="conv-lower">Kopieren</button>
+                </div>
+                <div class="conv-result-row">
+                  <span class="conv-label">Title Case:</span>
+                  <input type="text" id="conv-title" class="form-input readonly-copy" readonly>
+                  <button class="btn-copy-chip" data-copy-target="conv-title">Kopieren</button>
+                </div>
+                <div class="conv-result-row">
+                  <span class="conv-label">camelCase:</span>
+                  <input type="text" id="conv-camel" class="form-input readonly-copy" readonly>
+                  <button class="btn-copy-chip" data-copy-target="conv-camel">Kopieren</button>
+                </div>
+                <div class="conv-result-row">
+                  <span class="conv-label">kebab-case:</span>
+                  <input type="text" id="conv-kebab" class="form-input readonly-copy" readonly>
+                  <button class="btn-copy-chip" data-copy-target="conv-kebab">Kopieren</button>
+                </div>
+                <div class="conv-result-row">
+                  <span class="conv-label">snake_case:</span>
+                  <input type="text" id="conv-snake" class="form-input readonly-copy" readonly>
+                  <button class="btn-copy-chip" data-copy-target="conv-snake">Kopieren</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Text Inspector Tool -->
+          <div class="tool-panel" id="tool-panel-inspector">
+            <div class="tools-card">
+              <div class="editor-pane">
+                <label class="pane-label">Text zur Analyse eingeben</label>
+                <textarea id="text-inspect-input" class="form-textarea" rows="6" placeholder="Füge deinen Text hier ein, um Live-Statistiken zu berechnen..."></textarea>
+              </div>
+
+              <div class="inspect-stats-grid">
+                <div class="stat-box">
+                  <span class="stat-number" id="stat-words">0</span>
+                  <span class="stat-name">Wörter</span>
+                </div>
+                <div class="stat-box">
+                  <span class="stat-number" id="stat-chars-all">0</span>
+                  <span class="stat-name">Zeichen (inkl. Leerz.)</span>
+                </div>
+                <div class="stat-box">
+                  <span class="stat-number" id="stat-chars-nospace">0</span>
+                  <span class="stat-name">Zeichen (ohne Leerz.)</span>
+                </div>
+                <div class="stat-box">
+                  <span class="stat-number" id="stat-sentences">0</span>
+                  <span class="stat-name">Sätze</span>
+                </div>
+                <div class="stat-box">
+                  <span class="stat-number" id="stat-paragraphs">0</span>
+                  <span class="stat-name">Absätze</span>
+                </div>
+                <div class="stat-box">
+                  <span class="stat-number" id="stat-reading-time">0m 0s</span>
+                  <span class="stat-name">Lesezeit (~200 WpM)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. UUID & Timestamp Tool -->
+          <div class="tool-panel" id="tool-panel-uuid">
+            <div class="tools-card">
+              <div class="gen-section">
+                <div class="gen-header">
+                  <h3>🔑 UUID v4 Generator</h3>
+                  <button class="btn-primary" id="btn-gen-uuid">Neue UUID generieren</button>
+                </div>
+                <div class="gen-input-row">
+                  <input type="text" id="val-uuid" class="form-input readonly-copy" readonly>
+                  <button class="btn-copy-chip" data-copy-target="val-uuid">Kopieren</button>
+                </div>
+              </div>
+
+              <div class="gen-section">
+                <div class="gen-header">
+                  <h3>⏱️ Unix & ISO Timestamp</h3>
+                  <button class="btn-secondary" id="btn-refresh-time">Aktualisieren</button>
+                </div>
+                <div class="gen-grid">
+                  <div class="gen-input-row">
+                    <span class="row-label">Unix (Sekunden):</span>
+                    <input type="text" id="val-unix-sec" class="form-input readonly-copy" readonly>
+                    <button class="btn-copy-chip" data-copy-target="val-unix-sec">Kopieren</button>
+                  </div>
+                  <div class="gen-input-row">
+                    <span class="row-label">Unix (Millisekunden):</span>
+                    <input type="text" id="val-unix-ms" class="form-input readonly-copy" readonly>
+                    <button class="btn-copy-chip" data-copy-target="val-unix-ms">Kopieren</button>
+                  </div>
+                  <div class="gen-input-row">
+                    <span class="row-label">ISO 8601:</span>
+                    <input type="text" id="val-iso" class="form-input readonly-copy" readonly>
+                    <button class="btn-copy-chip" data-copy-target="val-iso">Kopieren</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </main>
+      </div>
+    </section>
+
   </div>
 
-  <!-- Task Modal (Create & Edit) -->
+  <!-- ======================================================================
+       MODALS & DIALOGS
+       ====================================================================== -->
+
+  <!-- 1. Task Modal (Create & Edit) -->
   <div class="modal-backdrop hidden" id="task-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
     <div class="modal-window">
       <div class="modal-header">
@@ -433,9 +1340,7 @@
             <input type="text" id="subtask-input-text" class="form-input" placeholder="Teilaufgabe hinzufügen...">
             <button type="button" class="btn-subtask-add" id="btn-add-subtask">+ Hinzufügen</button>
           </div>
-          <div class="subtasks-list" id="modal-subtasks-list">
-            <!-- Dynamic Subtask checklist items -->
-          </div>
+          <div class="subtasks-list" id="modal-subtasks-list"></div>
         </div>
 
         <!-- Modal Footer Actions -->
@@ -450,10 +1355,169 @@
     </div>
   </div>
 
-  <!-- Toast Notification Container -->
+  <!-- 2. Note Modal (Create & Edit) -->
+  <div class="modal-backdrop hidden" id="note-modal" role="dialog" aria-modal="true">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h2 class="modal-title" id="note-modal-title">Neue Notiz erstellen</h2>
+        <button class="modal-close-btn" id="note-modal-close">✕</button>
+      </div>
+
+      <form id="note-form">
+        <input type="hidden" id="note-form-id">
+
+        <div class="form-group">
+          <label for="note-input-title" class="form-label">Titel <span class="required">*</span></label>
+          <input type="text" id="note-input-title" class="form-input" placeholder="Titel der Notiz..." required maxlength="100">
+        </div>
+
+        <div class="form-group">
+          <label for="note-input-content" class="form-label">Inhalt (Markdown unterstützt)</label>
+          <textarea id="note-input-content" class="form-textarea" placeholder="Schreibe deine Notiz, Gedanken oder Code-Snippets..." rows="8" required></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group col-half">
+            <label for="note-input-category" class="form-label">Kategorie / Tag</label>
+            <select id="note-input-category" class="form-select">
+              <option value="Ideen">💡 Ideen</option>
+              <option value="Arbeit">💼 Arbeit</option>
+              <option value="Code">💻 Code</option>
+              <option value="Wichtig">⭐ Wichtig</option>
+              <option value="Privat">🌱 Privat</option>
+            </select>
+          </div>
+
+          <div class="form-group col-half">
+            <label class="form-label">Optionen</label>
+            <label class="checkbox-label-row">
+              <input type="checkbox" id="note-input-pinned">
+              <span>📌 An Startseite und oben anheften</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" id="btn-note-cancel">Abbrechen</button>
+          <button type="submit" class="btn-primary" id="btn-note-save">
+            <span>Notiz speichern</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. Habit Modal (Create) -->
+  <div class="modal-backdrop hidden" id="habit-modal" role="dialog" aria-modal="true">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h2 class="modal-title">Neue Gewohnheit erstellen</h2>
+        <button class="modal-close-btn" id="habit-modal-close">✕</button>
+      </div>
+
+      <form id="habit-form">
+        <div class="form-group">
+          <label for="habit-input-title" class="form-label">Gewohnheit <span class="required">*</span></label>
+          <input type="text" id="habit-input-title" class="form-input" placeholder="z.B. 2 Liter Wasser trinken, 30 Min Sport..." required maxlength="60">
+        </div>
+
+        <div class="form-group">
+          <label for="habit-input-category" class="form-label">Kategorie</label>
+          <select id="habit-input-category" class="form-select">
+            <option value="Gesundheit">💧 Gesundheit & Vitalität</option>
+            <option value="Fitness">🏋️ Sport & Fitness</option>
+            <option value="Geist">🧠 Lernen & Geist</option>
+            <option value="Produktivität">⚡ Produktivität & Fokus</option>
+          </select>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" id="btn-habit-cancel">Abbrechen</button>
+          <button type="submit" class="btn-primary" id="btn-habit-save">
+            <span>Gewohnheit anlegen</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 4. Global Suite Backup & Sync Modal -->
+  <div class="modal-backdrop hidden" id="backup-modal" role="dialog" aria-modal="true">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h2 class="modal-title">OrbitSuite Daten & Backup</h2>
+        <button class="modal-close-btn" id="backup-modal-close">✕</button>
+      </div>
+
+      <div class="backup-modal-content">
+        <p class="backup-info-text">Sichere alle deine Daten (Aufgaben, Notizen, Gewohnheiten, Fokus-Historie) lokal in einer einzelnen JSON-Backup-Datei oder stelle sie wieder her.</p>
+
+        <div class="backup-actions-grid">
+          <div class="backup-box">
+            <h3>Gesamt-Backup exportieren</h3>
+            <p>Erstellt eine vollständige Sicherungsdatei aller OrbitSuite Apps.</p>
+            <button class="btn-primary" id="btn-export-suite-backup">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              <span>Komplettes Backup herunterladen</span>
+            </button>
+          </div>
+
+          <div class="backup-box">
+            <h3>Backup wiederherstellen</h3>
+            <p>Lade eine zuvor exportierte OrbitSuite JSON-Datei hoch.</p>
+            <label class="btn-secondary file-upload-btn" for="input-suite-import">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+              <span>Backup-Datei auswählen</span>
+              <input type="file" id="input-suite-import" accept=".json" style="display:none">
+            </label>
+          </div>
+        </div>
+
+        <div class="backup-danger-box">
+          <div>
+            <h4>Alle Daten zurücksetzen</h4>
+            <p>Setzt alle Apps auf die Standard-Demo-Daten zurück.</p>
+          </div>
+          <button class="btn-danger" id="btn-reset-all-demo">Demo-Daten wiederherstellen</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Shortcuts Modal -->
+  <div class="modal-backdrop hidden" id="shortcuts-modal" role="dialog" aria-modal="true">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h2 class="modal-title">Tastaturkürzel (Shortcuts)</h2>
+        <button class="modal-close-btn" id="shortcuts-modal-close">✕</button>
+      </div>
+
+      <div class="shortcuts-table-content">
+        <table class="shortcuts-table">
+          <thead>
+            <tr><th>Shortcut</th><th>Aktion</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><kbd>Alt</kbd> + <kbd>0</kbd></td><td>Startseite (Hub) aufrufen</td></tr>
+            <tr><td><kbd>Alt</kbd> + <kbd>1</kbd></td><td>OrbitTask öffnen</td></tr>
+            <tr><td><kbd>Alt</kbd> + <kbd>2</kbd></td><td>OrbitNotes öffnen</td></tr>
+            <tr><td><kbd>Alt</kbd> + <kbd>3</kbd></td><td>OrbitFocus öffnen</td></tr>
+            <tr><td><kbd>Alt</kbd> + <kbd>4</kbd></td><td>OrbitHabits öffnen</td></tr>
+            <tr><td><kbd>Alt</kbd> + <kbd>5</kbd></td><td>OrbitTools öffnen</td></tr>
+            <tr><td><kbd>Alt</kbd> + <kbd>K</kbd></td><td>App-Selector Dropdown öffnen</td></tr>
+            <tr><td><kbd>Strg</kbd> + <kbd>K</kbd></td><td>Aufgaben-Suche fokussieren</td></tr>
+            <tr><td><kbd>Escape</kbd></td><td>Geöffnetes Modalfenster / Menü schließen</td></tr>
+            <tr><td><kbd>Leertaste</kbd></td><td>In OrbitFocus Timer starten / pausieren</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Global Toast Notification Container -->
   <div class="toast-container" id="toast-container" aria-live="polite"></div>
 
-  <!-- Confetti Canvas -->
+  <!-- Global Confetti Canvas -->
   <canvas id="confetti-canvas" class="confetti-canvas"></canvas>
 
   <script src="app.js"></script>

@@ -1,44 +1,51 @@
-# 🚀 OrbitTask • Pro Task Tracking Suite
+# 🪐 OrbitSuite • Integriertes Multi-App Produktivitäts-Framework
 
-Eine moderne, blitzschnelle und hochgradig anpassbare Task-Tracking- und Produktivitätsanwendung im eleganten **Dark Glassmorphism Design**. Entwickelt mit Fokus auf visuelle Ästhetik, intuitive Bedienung und Zero-Dependency-Leichtbau.
+Eine hochmoderne, modulare All-in-One Produktivitäts- und Workflow-Suite im eleganten **Dark Glassmorphism Design**. Entwickelt mit Fokus auf visuelle Ästhetik, blitzschnelle Performance und Zero-Dependency-Leichtbau.
+
+Über die zentrale **Startseite (App-Hub & Selector)** und die universelle **Schnellwechsel-Leiste** kann nahtlos zwischen allen Anwendungen der Suite gewechselt werden.
 
 ---
 
-## ✨ Features im Überblick
+## 🚀 Die Suite-Module im Überblick
 
-### 1. 🗂️ Drei flexible Arbeitsansichten
-- **Kanban-Board**: 5 strukturierte Workflow-Spalten (*Backlog*, *Zu erledigen*, *In Bearbeitung*, *Prüfung*, *Erledigt*) mit intuitivem HTML5 Drag-and-Drop, Status-Glows und Schnell-Hinzufügen-Buttons.
-- **Listenansicht**: Tabellarische Übersicht aller Tasks inklusive Status-Checkboxen, Prioritäts-Badges, Fälligkeitsstatus, Subtask-Fortschritt und Aktionen zum Bearbeiten/Löschen.
-- **Analytics & Statistiken**:
-  - Dynamischer SVG-Radialfortschrittsbalken für den Gesamterledigungsgrad.
-  - Horizontale Statusverteilungs-Diagramme.
-  - 4-Quadranten Prioritäts-Matrix.
-  - Aufgabenaufschlüsselung nach Kategorien und Tags mit Erledigungsquote.
+### 🏠 0. Startseite & App-Selector Hub
+- **Zentraler Workspace Hub**: Begrüßungs-Banner mit Live-Uhrzeit, System-Status und tagesaktuellen KPIs aller Apps.
+- **Interaktiver App-Selector**: 3D-Karten mit individuellen Glow-Effekten, Status-Pills und Schnellstarter-Buttons für jedes Modul.
+- **Blitz-Aktionen**: Sofort neue Aufgaben anlegen, Notizen verfassen, Pomodoro-Timer starten oder Habits prüfen – ohne Umwege.
+- **Live-Aktivitäts-Widgets**: Vorschau fälliger Aufgaben, heutige Gewohnheiten (direkt auf der Startseite abhakbar!) und angeheftete Notizen.
 
-### 2. ⚡ Interaktivität & UX-Highlights
-- **Dark Glassmorphism UI**: Mehrschichtige dunkle Hintergründe, animierte Ambient Light Orbs, feine Glas-Transparenzen (`backdrop-filter: blur`) und abgestimmte HSL-Glows.
-- **Micro-Interactions**:
-  - Partikel-Konfetti-Feuerwerk (HTML5 Canvas) beim Abschließen von Aufgaben.
-  - Integrierter Sound-Synthesizer via Web Audio API (keine externen Audio-Dateien nötig, stummschaltbar mit Persistenz).
-  - Toast-Benachrichtigungen mit **"Rückgängig" (Undo)**-Funktion für gelöschte Aufgaben.
-- **Filter- & Suchsystem**:
-  - Globale Sofort-Suche (`Strg + K` / `Ctrl + K`) durchsucht Titel, Beschreibungen, Subtasks und Tags in Echtzeit.
-  - Schnellfilter für Prioritäten (*🚨 Dringend*, *⚡ Hoch*), Heute fällige Tasks und überfällige Fristen.
-  - Dynamische `#Tag`-Filter-Chips.
-  - Sortierung nach Erstellungsdatum, Frist, Priorität oder Alphabet.
+### 📋 1. OrbitTask • Pro Task Tracking & Kanban
+- **Kanban-Board**: 5 Spalten (*Backlog*, *Zu erledigen*, *In Bearbeitung*, *Prüfung*, *Erledigt*) mit HTML5 Drag-and-Drop.
+- **Listenansicht**: Tabellarische Übersicht mit Status-Checkboxen, Prioritäten, Fälligkeitsampel und Subtask-Fortschritt.
+- **Analytics Dashboard**: SVG-Radialdiagramm für Gesamterledigung, horizontale Statusverteilung, Prioritätsmatrix und Kategorie-Aufschlüsselung.
+- **Subtasks & Details**: Teilaufgaben mit Zähler, Notizen, Tags und Fälligkeitsdaten.
 
-### 3. 📝 Detailliertes Aufgaben-Management
-- Titel & mehrzeilige Notizen/Beschreibungen.
-- Prioritäten (*Dringend*, *Hoch*, *Mittel*, *Niedrig*) mit farbkodierten Glow-Indikatoren.
-- Fälligkeitsdaten mit automatischer Ampel-Kennzeichnung (*Heute fällig*, *Morgen*, *Überfällig*).
-- Beliebige Kategorien mit Auto-Vervollständigung.
-- Dynamische Teilaufgaben (Subtasks) mit Fortschrittsanzeige (`2/3 erledigt`).
+### 📝 2. OrbitNotes • Markdown & Quick-Notes Studio
+- **Markdown-Unterstützung**: Überschriften, Listen, fette/kursive Formatierung und Code-Blöcke.
+- **Farbkategorien & Filter**: Filterung nach *Ideen*, *Arbeit*, *Code*, *Wichtig* und *Privat*.
+- **Pinning & Suche**: Wichtige Notizen oben anheften (werden auch auf der Startseite gespiegelt) und Sofortsuche.
+- **Zwischenablage**: 1-Klick-Kopieren von Notizen mit Bestätigungs-Toast.
 
-### 4. 💾 Datensicherheit & Export
-- Automatische Speicherung im lokalen Speicher (`localStorage`) – keine Registrierung oder Server nötig.
-- **JSON-Export**: Backup aller Aufgaben per Klick herunterladen.
-- **JSON-Import**: Vorhandene Backups wiederherstellen.
-- **Demo-Daten Generator**: Realistische Beispieldaten auf Knopfdruck laden.
+### ⏱️ 3. OrbitFocus • Pomodoro & Ambient Soundscape
+- **Pomodoro-Zyklen**: *Fokus* (25 Min.), *Kurze Pause* (5 Min.), *Lange Pause* (15 Min.).
+- **Animierter Countdown-Ring**: SVG-Kreisanzeige mit Farbanpassung je nach Modus.
+- **Web Audio Ambient-Synthesizer**:
+  - 🌧️ *Sanfter Regen* (prozedurales Rauschen mit Tiefpass-Filter)
+  - 🧘 *Zen Meditation* (432Hz Sinus/Dreieck-Klang)
+  - 📻 *Weißes Rauschen* (reines statisches Signal)
+  - Stufenloser Lautstärkeregler & Stummschaltung
+- **Session-Tracking**: Anzeige abgeschlossener Pomodoro-Zyklen und fokussierter Gesamtminuten.
+
+### 🎯 4. OrbitHabits • Daily Habit & Streak Tracker
+- **Wöchentliche Matrix**: Montag bis Sonntag mit visueller Hervorhebung des heutigen Tages.
+- **Streak-Counter**: Automatische Berechnung aufeinanderfolgender Tage (🔥 *X Tage*).
+- **Fortschrittsbalken & Feuerwerk**: Erledigungsquote für heute und Konfetti-Belohnung beim Abschluss aller Tagesziele.
+
+### 🛠️ 5. OrbitTools • Smart Utilities & Dev-Tools
+- **{ } JSON Studio**: Formatieren (2 Leerzeichen), Minifizieren, Live-Validierung mit Syntaxfehlern und 1-Klick-Kopieren.
+- **Aa Text Converter**: Konvertierung in *UPPERCASE*, *lowercase*, *Title Case*, *camelCase*, *kebab-case* und *snake_case*.
+- **📊 Text Inspektor**: Live-Zählung von Wörtern, Zeichen, Sätzen, Absätzen und geschätzter Lesezeit (~200 WpM).
+- **🔑 UUID & Timestamp**: Generierung von UUID v4, Unix-Zeitstempeln (Sekunden/Millisekunden) und ISO 8601 Strings.
 
 ---
 
@@ -46,29 +53,45 @@ Eine moderne, blitzschnelle und hochgradig anpassbare Task-Tracking- und Produkt
 
 | Shortcut | Aktion |
 |---|---|
-| <kbd>Strg</kbd> + <kbd>K</kbd> / <kbd>Cmd</kbd> + <kbd>K</kbd> | Globale Schnellsuche fokussieren |
-| <kbd>Escape</kbd> | Modalfenster / Dialog schließen |
-| <kbd>Enter</kbd> im Subtask-Feld | Subtask sofort zur Liste hinzufügen |
+| <kbd>Alt</kbd> + <kbd>0</kbd> | Startseite (Hub) aufrufen |
+| <kbd>Alt</kbd> + <kbd>1</kbd> | OrbitTask öffnen |
+| <kbd>Alt</kbd> + <kbd>2</kbd> | OrbitNotes öffnen |
+| <kbd>Alt</kbd> + <kbd>3</kbd> | OrbitFocus öffnen |
+| <kbd>Alt</kbd> + <kbd>4</kbd> | OrbitHabits öffnen |
+| <kbd>Alt</kbd> + <kbd>5</kbd> | OrbitTools öffnen |
+| <kbd>Alt</kbd> + <kbd>K</kbd> | App-Selector Dropdown öffnen |
+| <kbd>Strg</kbd> + <kbd>K</kbd> | Globale Suche in OrbitTask fokussieren |
+| <kbd>Leertaste</kbd> | Timer in OrbitFocus starten / pausieren |
+| <kbd>Escape</kbd> | Geöffnetes Modalfenster / Menü schließen |
+
+---
+
+## 💾 Gesamtsicherung & Datenmanagement
+
+- **Lokale Persistenz**: Alle Daten werden isoliert und sicher im Browser-`localStorage` gespeichert.
+- **Suite-Gesamt-Backup**: Export aller Module (Aufgaben, Notizen, Gewohnheiten, Fokus-Historie) in einer einzigen `.json`-Datei.
+- **Wiederherstellung**: Einfacher Import vorhandener JSON-Backups oder Wiederherstellung der Beispieldaten auf Knopfdruck.
 
 ---
 
 ## 🛠️ Technologie-Stack
 - **Struktur**: Semantisches HTML5
-- **Styling**: Modernes Vanilla CSS (Custom Properties, Glassmorphism Tokens, CSS Grid, Flexbox, Keyframe-Animationen)
-- **Logik**: Modernes ES6+ JavaScript (Web Audio API Synthesizer, Canvas Particle Engine, HTML5 Drag & Drop)
-- **Keine externen Abhängigkeiten** (funktioniert direkt offline im Browser)
+- **Styling**: Modernes Vanilla CSS (Dark Glassmorphism, CSS Grid, Flexbox, Keyframe-Animationen)
+- **Logik**: Modernes ES6+ JavaScript
+- **Audio**: Web Audio API Sound-Synthesizer & Ambient-Noise-Generator
+- **Visuals**: HTML5 Canvas Partikel-Engine
+- **Keine externen Abhängigkeiten / Node-Module nötig** – 100% autark und offlinefähig.
 
 ---
 
 ## 🚀 Lokale Ausführung
 
-Der lokale Server läuft standardmäßig auf:
-```
-http://127.0.0.1:4173/
-```
-
-Oder einfach per Python / Node im Projektordner starten:
+Einfach per Python im Projektordner starten:
 ```bash
-python -m http.server 4173
+python -m http.server 8080
 ```
-oder direkt die `index.html` per Doppelklick im Webbrowser öffnen.
+Und im Browser aufrufen:
+```
+http://127.0.0.1:8080/
+```
+Oder direkt die `index.html` per Doppelklick in einem modernen Webbrowser (Edge, Chrome, Firefox) öffnen.
