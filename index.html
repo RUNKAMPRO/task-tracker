@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="OrbitTask - Moderne, hochmoderne Task-Tracking & Produktivitäts-App im edlen Dark Glassmorphism Design mit Kanban, Listenansicht und Analytics.">
+  <title>OrbitTask • Pro Task Tracking Suite</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236366f1'><path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/></svg>">
+</head>
+<body>
+  <!-- Ambient Background Glows -->
+  <div class="ambient-glow glow-1" aria-hidden="true"></div>
+  <div class="ambient-glow glow-2" aria-hidden="true"></div>
+  <div class="ambient-glow glow-3" aria-hidden="true"></div>
+
+  <!-- App Wrapper -->
+  <div class="app-layout">
+    <!-- Top Navigation Header -->
+    <header class="app-header" id="app-header">
+      <div class="header-left">
+        <div class="brand-logo" id="brand-logo">
+          <div class="logo-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+            </svg>
+          </div>
+          <div class="logo-text">
+            <span class="logo-title">Orbit<span class="gradient-text">Task</span></span>
+            <span class="logo-badge">PRO v2.5</span>
+          </div>
+        </div>
+
+        <!-- Global Search Bar -->
+        <div class="search-container" id="search-container">
+          <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="global-search-input" placeholder="Aufgaben durchsuchen... (Strg + K)" autocomplete="off">
+          <kbd class="search-shortcut">Ctrl K</kbd>
+          <button class="clear-search-btn" id="clear-search-btn" title="Suche zurücksetzen" aria-label="Suche zurücksetzen">✕</button>
+        </div>
+      </div>
+
+      <div class="header-center">
+        <!-- View Switcher Tabs -->
+        <nav class="view-nav" id="view-nav" aria-label="Ansichten">
+          <button class="nav-tab active" id="tab-kanban" data-view="kanban">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="5" height="18" rx="1"></rect>
+              <rect x="11" y="3" width="5" height="12" rx="1"></rect>
+              <rect x="19" y="3" width="5" height="16" rx="1"></rect>
+            </svg>
+            <span>Kanban</span>
+          </button>
+          <button class="nav-tab" id="tab-list" data-view="list">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="8" y1="6" x2="21" y2="6"></line>
+              <line x1="8" y1="12" x2="21" y2="12"></line>
+              <line x1="8" y1="18" x2="21" y2="18"></line>
+              <line x1="3" y1="6" x2="3.01" y2="6"></line>
+              <line x1="3" y1="12" x2="3.01" y2="12"></line>
+              <line x1="3" y1="18" x2="3.01" y2="18"></line>
+            </svg>
+            <span>Liste</span>
+          </button>
+          <button class="nav-tab" id="tab-analytics" data-view="analytics">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="20" x2="18" y2="10"></line>
+              <line x1="12" y1="20" x2="12" y2="4"></line>
+              <line x1="6" y1="20" x2="6" y2="14"></line>
+            </svg>
+            <span>Analytics</span>
+          </button>
+        </nav>
+      </div>
+
+      <div class="header-right">
+        <!-- Quick Action Buttons -->
+        <button class="btn-icon" id="btn-sound-toggle" title="Sound-Effekte umschalten" aria-label="Sound umschalten">
+          <svg id="sound-icon-on" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          </svg>
+        </button>
+
+        <div class="dropdown-wrapper">
+          <button class="btn-secondary" id="btn-more-options" aria-label="Optionen">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="1"></circle>
+              <circle cx="12" cy="5" r="1"></circle>
+              <circle cx="12" cy="19" r="1"></circle>
+            </svg>
+            <span>Optionen</span>
+          </button>
+          <div class="dropdown-menu hidden" id="more-options-menu">
+            <button class="dropdown-item" id="opt-load-demo">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+              Demo-Daten laden
+            </button>
+            <button class="dropdown-item" id="opt-export-json">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              Als JSON exportieren
+            </button>
+            <label class="dropdown-item file-upload-item" for="input-import-json">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+              JSON importieren
+              <input type="file" id="input-import-json" accept=".json" style="display:none">
+            </label>
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item danger" id="opt-clear-all">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              Alle Aufgaben löschen
+            </button>
+          </div>
+        </div>
+
+        <button class="btn-primary" id="btn-create-task">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span>Neue Aufgabe</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Metrics Bar / KPIs -->
+    <section class="metrics-bar" id="metrics-bar">
+      <div class="metric-card" id="card-total-tasks">
+        <div class="metric-icon total">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+        </div>
+        <div class="metric-info">
+          <span class="metric-label">Aufgaben gesamt</span>
+          <span class="metric-value" id="val-total-tasks">0</span>
+        </div>
+        <div class="metric-trend" id="sub-total-tasks">Alle Projekte</div>
+      </div>
+
+      <div class="metric-card" id="card-in-progress">
+        <div class="metric-icon in-progress">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+        </div>
+        <div class="metric-info">
+          <span class="metric-label">In Bearbeitung</span>
+          <span class="metric-value" id="val-in-progress">0</span>
+        </div>
+        <div class="metric-trend" id="sub-in-progress">Aktiv im Fokus</div>
+      </div>
+
+      <div class="metric-card" id="card-completed">
+        <div class="metric-icon completed">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+        </div>
+        <div class="metric-info">
+          <span class="metric-label">Abgeschlossen</span>
+          <span class="metric-value" id="val-completed">0</span>
+        </div>
+        <div class="metric-trend positive" id="val-completion-rate">0% Quote</div>
+      </div>
+
+      <div class="metric-card" id="card-overdue">
+        <div class="metric-icon overdue">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        </div>
+        <div class="metric-info">
+          <span class="metric-label">Überfällig</span>
+          <span class="metric-value" id="val-overdue">0</span>
+        </div>
+        <div class="metric-trend warning" id="sub-overdue">Dringend prüfen</div>
+      </div>
+    </section>
+
+    <!-- Filters & Quick Controls Strip -->
+    <section class="controls-strip" id="controls-strip">
+      <div class="filter-group">
+        <span class="filter-title">Filter:</span>
+        <button class="filter-chip active" data-filter-type="all" data-filter-val="all">Alle</button>
+        <button class="filter-chip" data-filter-type="priority" data-filter-val="urgent">🚨 Dringend</button>
+        <button class="filter-chip" data-filter-type="priority" data-filter-val="high">⚡ Hoch</button>
+        <button class="filter-chip" data-filter-type="time" data-filter-val="today">📅 Heute fällig</button>
+        <button class="filter-chip" data-filter-type="time" data-filter-val="overdue">⚠️ Überfällig</button>
+      </div>
+
+      <div class="tag-filters-container" id="tag-filters">
+        <!-- Dynamically injected category/tag chips -->
+      </div>
+
+      <div class="sort-container">
+        <label for="sort-select" class="sort-label">Sortieren nach:</label>
+        <select id="sort-select" class="select-input">
+          <option value="createdAt-desc">Neueste zuerst</option>
+          <option value="dueDate-asc">Fälligkeit (bald zuerst)</option>
+          <option value="priority-desc">Höchste Priorität</option>
+          <option value="title-asc">Titel (A-Z)</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- Main Content Area -->
+    <main class="main-content" id="main-content">
+      
+      <!-- 1. Kanban View -->
+      <section class="view-panel active" id="view-kanban-panel">
+        <div class="kanban-board" id="kanban-board">
+          
+          <!-- Column: Backlog -->
+          <div class="kanban-column" data-status="backlog" id="col-backlog">
+            <div class="column-header">
+              <div class="column-title-group">
+                <span class="status-indicator status-backlog"></span>
+                <h3 class="column-title">Backlog</h3>
+                <span class="column-count" id="count-backlog">0</span>
+              </div>
+              <button class="btn-quick-add" data-status="backlog" title="Aufgabe zum Backlog hinzufügen">+</button>
+            </div>
+            <div class="kanban-cards-container" data-status="backlog" id="container-backlog"></div>
+          </div>
+
+          <!-- Column: To Do -->
+          <div class="kanban-column" data-status="todo" id="col-todo">
+            <div class="column-header">
+              <div class="column-title-group">
+                <span class="status-indicator status-todo"></span>
+                <h3 class="column-title">Zu erledigen</h3>
+                <span class="column-count" id="count-todo">0</span>
+              </div>
+              <button class="btn-quick-add" data-status="todo" title="Aufgabe zu 'Zu erledigen' hinzufügen">+</button>
+            </div>
+            <div class="kanban-cards-container" data-status="todo" id="container-todo"></div>
+          </div>
+
+          <!-- Column: In Progress -->
+          <div class="kanban-column" data-status="inprogress" id="col-inprogress">
+            <div class="column-header">
+              <div class="column-title-group">
+                <span class="status-indicator status-inprogress"></span>
+                <h3 class="column-title">In Bearbeitung</h3>
+                <span class="column-count" id="count-inprogress">0</span>
+              </div>
+              <button class="btn-quick-add" data-status="inprogress" title="Aufgabe zu 'In Bearbeitung' hinzufügen">+</button>
+            </div>
+            <div class="kanban-cards-container" data-status="inprogress" id="container-inprogress"></div>
+          </div>
+
+          <!-- Column: Review -->
+          <div class="kanban-column" data-status="review" id="col-review">
+            <div class="column-header">
+              <div class="column-title-group">
+                <span class="status-indicator status-review"></span>
+                <h3 class="column-title">Prüfung</h3>
+                <span class="column-count" id="count-review">0</span>
+              </div>
+              <button class="btn-quick-add" data-status="review" title="Aufgabe zu 'Prüfung' hinzufügen">+</button>
+            </div>
+            <div class="kanban-cards-container" data-status="review" id="container-review"></div>
+          </div>
+
+          <!-- Column: Done -->
+          <div class="kanban-column" data-status="done" id="col-done">
+            <div class="column-header">
+              <div class="column-title-group">
+                <span class="status-indicator status-done"></span>
+                <h3 class="column-title">Erledigt</h3>
+                <span class="column-count" id="count-done">0</span>
+              </div>
+              <button class="btn-quick-add" data-status="done" title="Aufgabe zu 'Erledigt' hinzufügen">+</button>
+            </div>
+            <div class="kanban-cards-container" data-status="done" id="container-done"></div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- 2. List View -->
+      <section class="view-panel" id="view-list-panel">
+        <div class="list-container">
+          <div class="list-header-row">
+            <span class="col-head check-head">Status</span>
+            <span class="col-head title-head">Aufgabe & Beschreibung</span>
+            <span class="col-head category-head">Kategorie</span>
+            <span class="col-head priority-head">Priorität</span>
+            <span class="col-head due-head">Fälligkeit</span>
+            <span class="col-head subtasks-head">Subtasks</span>
+            <span class="col-head actions-head">Aktionen</span>
+          </div>
+          <div class="list-items-body" id="list-items-body">
+            <!-- Dynamically populated rows -->
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. Analytics View -->
+      <section class="view-panel" id="view-analytics-panel">
+        <div class="analytics-dashboard">
+          
+          <!-- Top Row Charts -->
+          <div class="analytics-card progress-overview-card">
+            <h3 class="card-title">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+              Gesamterledigungsgrad
+            </h3>
+            <div class="progress-radial-wrapper">
+              <svg class="radial-chart" viewBox="0 0 160 160">
+                <circle class="radial-bg" cx="80" cy="80" r="65"></circle>
+                <circle class="radial-progress" id="analytics-radial-circle" cx="80" cy="80" r="65" stroke-dasharray="408.4" stroke-dashoffset="408.4"></circle>
+              </svg>
+              <div class="radial-inner-content">
+                <span class="radial-percentage" id="analytics-radial-percent">0%</span>
+                <span class="radial-label">Erledigt</span>
+              </div>
+            </div>
+            <div class="progress-details" id="analytics-progress-details">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <div class="analytics-card status-distribution-card">
+            <h3 class="card-title">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+              Status-Verteilung
+            </h3>
+            <div class="bar-chart-container" id="analytics-status-bars">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Bottom Row Charts -->
+          <div class="analytics-card priority-distribution-card">
+            <h3 class="card-title">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+              Prioritäts-Matrix
+            </h3>
+            <div class="priority-grid" id="analytics-priority-grid">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <div class="analytics-card category-breakdown-card">
+            <h3 class="card-title">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+              Aufgaben nach Kategorie
+            </h3>
+            <div class="category-breakdown-list" id="analytics-categories-list">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Task Modal (Create & Edit) -->
+  <div class="modal-backdrop hidden" id="task-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h2 class="modal-title" id="modal-title">Neue Aufgabe erstellen</h2>
+        <button class="modal-close-btn" id="modal-close-btn" aria-label="Schließen">✕</button>
+      </div>
+
+      <form id="task-form">
+        <input type="hidden" id="task-form-id">
+
+        <div class="form-group">
+          <label for="task-input-title" class="form-label">Titel <span class="required">*</span></label>
+          <input type="text" id="task-input-title" class="form-input" placeholder="Was muss erledigt werden?" required maxlength="120">
+        </div>
+
+        <div class="form-group">
+          <label for="task-input-desc" class="form-label">Beschreibung</label>
+          <textarea id="task-input-desc" class="form-textarea" placeholder="Zusätzliche Details, Notizen oder Links..." rows="3"></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group col-half">
+            <label for="task-input-status" class="form-label">Status</label>
+            <select id="task-input-status" class="form-select">
+              <option value="backlog">💡 Backlog</option>
+              <option value="todo" selected>📋 Zu erledigen</option>
+              <option value="inprogress">⚡ In Bearbeitung</option>
+              <option value="review">🔍 Prüfung</option>
+              <option value="done">✅ Erledigt</option>
+            </select>
+          </div>
+
+          <div class="form-group col-half">
+            <label for="task-input-priority" class="form-label">Priorität</label>
+            <select id="task-input-priority" class="form-select">
+              <option value="low">🌱 Niedrig</option>
+              <option value="medium" selected>⚡ Mittel</option>
+              <option value="high">🔥 Hoch</option>
+              <option value="urgent">🚨 Dringend</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group col-half">
+            <label for="task-input-category" class="form-label">Kategorie / Tag</label>
+            <div class="category-input-wrapper">
+              <input type="text" id="task-input-category" class="form-input" list="category-suggestions" placeholder="z.B. Entwicklung, Design, Marketing">
+              <datalist id="category-suggestions">
+                <option value="Entwicklung">
+                <option value="Design">
+                <option value="Marketing">
+                <option value="Management">
+                <option value="Privat">
+                <option value="Bugfix">
+              </datalist>
+            </div>
+          </div>
+
+          <div class="form-group col-half">
+            <label for="task-input-duedate" class="form-label">Fälligkeitsdatum</label>
+            <input type="date" id="task-input-duedate" class="form-input">
+          </div>
+        </div>
+
+        <!-- Subtasks Section -->
+        <div class="form-group subtasks-group">
+          <label class="form-label">
+            <span>Teilaufgaben (Subtasks)</span>
+            <span class="subtasks-counter-badge" id="modal-subtasks-count">0 Aufgaben</span>
+          </label>
+          <div class="subtask-add-row">
+            <input type="text" id="subtask-input-text" class="form-input" placeholder="Teilaufgabe hinzufügen...">
+            <button type="button" class="btn-subtask-add" id="btn-add-subtask">+ Hinzufügen</button>
+          </div>
+          <div class="subtasks-list" id="modal-subtasks-list">
+            <!-- Dynamic Subtask checklist items -->
+          </div>
+        </div>
+
+        <!-- Modal Footer Actions -->
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" id="btn-modal-cancel">Abbrechen</button>
+          <button type="submit" class="btn-primary" id="btn-modal-save">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>Aufgabe speichern</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toast-container" aria-live="polite"></div>
+
+  <!-- Confetti Canvas -->
+  <canvas id="confetti-canvas" class="confetti-canvas"></canvas>
+
+  <script src="app.js"></script>
+</body>
+</html>
