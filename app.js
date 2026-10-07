@@ -4785,7 +4785,10 @@ class OrbitRiddleGenerator {
       const j = Math.floor(rng() * (i + 1));
       [allCoords[i], allCoords[j]] = [allCoords[j], allCoords[i]];
     }
-    for (let i = 0; i < 5; i++) {
+    const diffTier = level <= 5 ? 'easy' : (level <= 10 ? 'medium' : 'hard');
+    const givenCount = diffTier === 'easy' ? 8 : (diffTier === 'medium' ? 5 : 3);
+    const edgeClueCount = diffTier === 'easy' ? 6 : (diffTier === 'medium' ? 4 : 3);
+    for (let i = 0; i < givenCount; i++) {
       const { r, c } = allCoords[i];
       givens[r][c] = grid[r][c];
     }
@@ -4875,7 +4878,8 @@ class OrbitRiddleGenerator {
       const j = Math.floor(rng() * (i + 1));
       [coords[i], coords[j]] = [coords[j], coords[i]];
     }
-    const removeCount = 18 + Math.floor(rng() * 3);
+    const diffTier = level <= 5 ? 'easy' : (level <= 10 ? 'medium' : 'hard');
+    const removeCount = diffTier === 'easy' ? (14 + Math.floor(rng() * 2)) : (diffTier === 'medium' ? (18 + Math.floor(rng() * 2)) : (22 + Math.floor(rng() * 2)));
     for (let i = 0; i < removeCount; i++) {
       givens[coords[i].r][coords[i].c] = 0;
     }
@@ -4949,7 +4953,10 @@ class OrbitRiddleGenerator {
     }
 
     const checkpoints = {};
-    const steps = [0, 4, 8, 12, 16, 20, 24];
+    const diffTier = level <= 5 ? 'easy' : (level <= 10 ? 'medium' : 'hard');
+    const steps = diffTier === 'easy'
+      ? [0, 3, 6, 9, 12, 15, 18, 21, 24]
+      : (diffTier === 'medium' ? [0, 4, 8, 12, 16, 20, 24] : [0, 6, 12, 18, 24]);
     steps.forEach((stepIdx, numIdx) => {
       const cell = path[stepIdx];
       checkpoints[`${cell.r},${cell.c}`] = {
@@ -5916,6 +5923,282 @@ btnRandom: document.getElementById('btn-riddle-random'),
     // ==========================================
     // UNIFIED LEVEL & SOLVED SYSTEM (UNLIMITED PLAY)
     // ==========================================
+    getLevelDifficulty(lvl) {
+      const l = Math.max(1, parseInt(lvl, 10) || 1);
+      if (l <= 5) {
+        return {
+          tier: 'easy',
+          label: 'Leicht',
+          icon: '🟢',
+          range: 'Level 1 – 5',
+          desc: 'Sanfter Einstieg & Grundlagen. Ideal zum Aufwärmen und Verstehen der Regeln.'
+        };
+      }
+      if (l <= 10) {
+        return {
+          tier: 'medium',
+          label: 'Mittel',
+          icon: '🟡',
+          range: 'Level 6 – 10',
+          desc: 'Taktische Züge, tiefere Ausschlusslogik und kniffligere Verzweigungen.'
+        };
+      }
+      return {
+        tier: 'hard',
+        label: 'Schwer',
+        icon: '🔴',
+        range: 'Level 11 – 15+',
+        desc: 'Meister-Herausforderung: Höchste Knobeldichte für echte Rätsel-Profis.'
+      };
+    }
+
+    renderLevelHub(game) {
+      const container = document.getElementById(`${game}-level-hub`);
+      if (!container) return;
+
+      const cur = this.getCurrentLevel(game);
+      const solvedSet = this.getSolvedSet(game);
+      const viewMode = localStorage.getItem('orbitsuite_level_selector_mode') || 'path';
+      const diffInfo = this.getLevelDifficulty(cur);
+
+      // Update toolbar level badge
+      const tbBadge = document.getElementById(`${game}-toolbar-level-badge`);
+      if (tbBadge) {
+        tbBadge.textContent = `Level #${cur} • ${diffInfo.icon} ${diffInfo.label}`;
+      }
+
+      // Tier definitions (5 levels per tier)
+      const easyLevels = [1, 2, 3, 4, 5];
+      const medLevels = [6, 7, 8, 9, 10];
+      const hardLevels = [11, 12, 13, 14, 15];
+      if (cur > 15) {
+        for (let i = 16; i <= cur; i++) {
+          hardLevels.push(i);
+        }
+      }
+
+      const countSolved = arr => arr.filter(lvl => solvedSet.has(lvl)).length;
+      const easySolved = countSolved(easyLevels);
+      const medSolved = countSolved(medLevels);
+      const hardSolved = countSolved(hardLevels);
+      const totalLevels = easyLevels.length + medLevels.length + hardLevels.length;
+      const totalSolved = solvedSet.size;
+
+      // Find next unsolved level for 'Weiter auf dem Pfad'
+      let nextUnsolved = null;
+      for (let i = 1; i <= totalLevels; i++) {
+        if (!solvedSet.has(i)) {
+          nextUnsolved = i;
+          break;
+        }
+      }
+      if (!nextUnsolved) nextUnsolved = cur + 1;
+
+      // Render HTML
+      let html = `
+        <div class="level-hub-header">
+          <div class="level-hub-title-group">
+            <span class="level-hub-title">🎯 Level-Wahl</span>
+            <span class="level-hub-pill">${diffInfo.icon} Level #${cur} (${diffInfo.label}) aktiv</span>
+          </div>
+          <div class="level-mode-switcher">
+            <button class="level-mode-tab ${viewMode === 'path' ? 'active' : ''}" data-hub-mode="path" title="Schrittweiser Kampagnen-Pfad mit ansteigender Schwierigkeit">
+              <span>🗺️ Level-Pfad</span>
+              <small>Kampagne</small>
+            </button>
+            <button class="level-mode-tab ${viewMode === 'difficulty' ? 'active' : ''}" data-hub-mode="difficulty" title="Freie Auswahl nach Schwierigkeitsgrad">
+              <span>🎚️ Nach Schwierigkeit</span>
+              <small>Freies Spiel</small>
+            </button>
+          </div>
+        </div>
+      `;
+
+      if (viewMode === 'path') {
+        // VIEW 1: LEVEL-PFAD
+        const renderTrackNodes = (levels, tier) => {
+          return levels.map((lvl, idx) => {
+            const isSolved = solvedSet.has(lvl);
+            const isActive = lvl === cur;
+            const connector = idx < levels.length - 1
+              ? `<div class="trail-connector ${isSolved ? 'solved' : ''}"></div>`
+              : '';
+            return `
+              <button class="trail-node ${isSolved ? 'solved' : ''} ${isActive ? 'active' : ''} tier-${tier}"
+                      data-select-level="${lvl}"
+                      title="Level ${lvl} (${this.getLevelDifficulty(lvl).label}) ${isSolved ? '• Gelöst ✓' : '• Offen'}">
+                <span class="node-number">${lvl}</span>
+                ${isSolved ? '<span class="node-status-badge">✓</span>' : (isActive ? '<span class="node-status-badge active-dot">👑</span>' : '')}
+              </button>
+              ${connector}
+            `;
+          }).join('');
+        };
+
+        html += `
+          <div class="level-path-view">
+            <div class="path-header-row">
+              <span class="path-subtitle">🏆 <strong>Level-Pfad:</strong> Die Rätsel werden mit jedem Level schrittweise kniffliger!</span>
+              <span class="path-progress-pill">Gesamt: ${totalSolved}/${totalLevels} Gelöst</span>
+            </div>
+
+            <div class="level-trail-track">
+              <!-- Tier 1: Leicht -->
+              <div class="trail-tier-section tier-easy">
+                <div class="trail-tier-header">
+                  <span class="tier-badge easy">🟢 Leicht (1–5)</span>
+                  <span class="tier-solved-fraction">${easySolved}/${easyLevels.length} ✓</span>
+                </div>
+                <div class="trail-nodes-flow">
+                  ${renderTrackNodes(easyLevels, 'easy')}
+                </div>
+              </div>
+
+              <div class="trail-section-arrow">➔</div>
+
+              <!-- Tier 2: Mittel -->
+              <div class="trail-tier-section tier-medium">
+                <div class="trail-tier-header">
+                  <span class="tier-badge medium">🟡 Mittel (6–10)</span>
+                  <span class="tier-solved-fraction">${medSolved}/${medLevels.length} ✓</span>
+                </div>
+                <div class="trail-nodes-flow">
+                  ${renderTrackNodes(medLevels, 'medium')}
+                </div>
+              </div>
+
+              <div class="trail-section-arrow">➔</div>
+
+              <!-- Tier 3: Schwer -->
+              <div class="trail-tier-section tier-hard">
+                <div class="trail-tier-header">
+                  <span class="tier-badge hard">🔴 Schwer (11–15+)</span>
+                  <span class="tier-solved-fraction">${hardSolved}/${hardLevels.length} ✓</span>
+                </div>
+                <div class="trail-nodes-flow">
+                  ${renderTrackNodes(hardLevels, 'hard')}
+                </div>
+              </div>
+            </div>
+
+            <div class="trail-action-bar">
+              <button class="btn-path-next" data-select-level="${nextUnsolved}" title="Gehe zum nächsten offenen Level auf dem Pfad">
+                <span>▶ Weiter auf dem Pfad (Level #${nextUnsolved})</span>
+              </button>
+              <div style="display: flex; gap: 8px;">
+                <button class="btn-secondary" data-action="random-level" title="Zufälliges Level spielen">
+                  <span>🎲 Zufall</span>
+                </button>
+                <button class="btn-secondary" data-action="generate-level" title="Neues Level generieren">
+                  <span>⚡ Neu generieren</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      } else {
+        // VIEW 2: SCHWIERIGKEITS-MODUS
+        const renderChips = (levels) => {
+          return levels.map(lvl => {
+            const isSolved = solvedSet.has(lvl);
+            const isActive = lvl === cur;
+            return `
+              <button class="diff-chip ${isSolved ? 'solved' : ''} ${isActive ? 'active' : ''}"
+                      data-select-level="${lvl}"
+                      title="Level #${lvl}">
+                Lvl ${lvl} ${isSolved ? '✓' : ''}
+              </button>
+            `;
+          }).join('');
+        };
+
+        const getFirstUnsolvedInTier = (levels) => {
+          const first = levels.find(l => !solvedSet.has(l));
+          return first || levels[0];
+        };
+
+        html += `
+          <div class="level-difficulty-view">
+            <div class="difficulty-cards-grid">
+              <!-- Leicht Card -->
+              <div class="difficulty-card tier-easy">
+                <div class="diff-card-header">
+                  <span class="diff-card-title">🟢 Leicht</span>
+                  <span class="tier-badge easy">${easySolved}/${easyLevels.length} Gelöst</span>
+                </div>
+                <p class="diff-desc">Sanfter Einstieg & Grundlagen. Ideal zum Aufwärmen und Verstehen der Spielregeln.</p>
+                <div class="diff-chips-row">
+                  ${renderChips(easyLevels)}
+                </div>
+                <button class="btn-diff-play" data-select-level="${getFirstUnsolvedInTier(easyLevels)}" title="Spiele ein leichtes Board">
+                  <span>▶ Leichtes Level spielen (Lvl #${getFirstUnsolvedInTier(easyLevels)})</span>
+                </button>
+              </div>
+
+              <!-- Mittel Card -->
+              <div class="difficulty-card tier-medium">
+                <div class="diff-card-header">
+                  <span class="diff-card-title">🟡 Mittel</span>
+                  <span class="tier-badge medium">${medSolved}/${medLevels.length} Gelöst</span>
+                </div>
+                <p class="diff-desc">Taktische Züge, tiefere Ausschlusslogik und kniffligere Verzweigungen.</p>
+                <div class="diff-chips-row">
+                  ${renderChips(medLevels)}
+                </div>
+                <button class="btn-diff-play" data-select-level="${getFirstUnsolvedInTier(medLevels)}" title="Spiele ein mittleres Board">
+                  <span>▶ Mittleres Level spielen (Lvl #${getFirstUnsolvedInTier(medLevels)})</span>
+                </button>
+              </div>
+
+              <!-- Schwer Card -->
+              <div class="difficulty-card tier-hard">
+                <div class="diff-card-header">
+                  <span class="diff-card-title">🔴 Schwer</span>
+                  <span class="tier-badge hard">${hardSolved}/${hardLevels.length} Gelöst</span>
+                </div>
+                <p class="diff-desc">Meister-Herausforderung: Höchste Komplexität für echte Knobel-Profis.</p>
+                <div class="diff-chips-row">
+                  ${renderChips(hardLevels)}
+                </div>
+                <button class="btn-diff-play" data-select-level="${getFirstUnsolvedInTier(hardLevels)}" title="Spiele ein schweres Board">
+                  <span>▶ Schweres Level spielen (Lvl #${getFirstUnsolvedInTier(hardLevels)})</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      container.innerHTML = html;
+
+      // Event handlers
+      container.querySelectorAll('[data-hub-mode]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const mode = btn.dataset.hubMode;
+          localStorage.setItem('orbitsuite_level_selector_mode', mode);
+          this.renderLevelHub(game);
+        });
+      });
+
+      container.querySelectorAll('[data-select-level]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const lvl = parseInt(btn.dataset.selectLevel, 10);
+          if (lvl) {
+            this.setGameLevel(game, lvl);
+          }
+        });
+      });
+
+      const btnRandom = container.querySelector('[data-action="random-level"]');
+      if (btnRandom) {
+        btnRandom.addEventListener('click', () => this.randomGameLevel(game));
+      }
+
+      const btnGenerate = container.querySelector('[data-action="generate-level"]');
+      if (btnGenerate) {
+        btnGenerate.addEventListener('click', () => this.generateNewLevel(game));
+      }
+    }
     getSolvedSet(game) {
       try {
         return new Set(JSON.parse(localStorage.getItem(`orbitsuite_${game}_solved_levels`) || '[]'));
@@ -5990,13 +6273,20 @@ btnRandom: document.getElementById('btn-riddle-random'),
         this.renderSudoku();
       }
       this.updateGameBanner(game);
+      this.renderLevelHub(game);
     }
 
     nextGameLevel(game) {
       const cur = this.getCurrentLevel(game);
       const next = cur + 1;
+      const prevDiff = this.getLevelDifficulty(cur);
+      const nextDiff = this.getLevelDifficulty(next);
       this.setGameLevel(game, next);
-      this.suite.showToast(`Level #${next} geladen! 🚀`);
+      if (prevDiff.tier !== nextDiff.tier) {
+        this.suite.showToast(`🎉 Stufe aufgestiegen! Weiter geht's mit ${nextDiff.icon} ${nextDiff.label}!`);
+      } else {
+        this.suite.showToast(`Level #${next} geladen! 🚀`);
+      }
     }
 
     prevGameLevel(game) {
@@ -6027,21 +6317,24 @@ btnRandom: document.getElementById('btn-riddle-random'),
         const opt = document.createElement('option');
         opt.value = String(i);
         const isSolved = this.isLevelSolved(game, i);
+        const diff = this.getLevelDifficulty(i);
         let label = `Board #${i}`;
         if (game === 'pinpoint') label = `Rätsel #${i}`;
         if (game === 'crossclimb') label = `Leiter #${i}`;
         if (game === 'zip') label = `Pfad #${i}`;
         if (game === 'sudoku') label = `Sudoku #${i}`;
-        opt.textContent = `${label} (Level ${i})${isSolved ? ' ✓ (Gelöst)' : ''}`;
+        opt.textContent = `${label} (${diff.icon} ${diff.label})${isSolved ? ' ✓ (Gelöst)' : ''}`;
         selectEl.appendChild(opt);
       }
       selectEl.value = String(cur);
+      this.renderLevelHub(game);
     }
 
     updateGameBanner(game) {
       const cur = this.getCurrentLevel(game);
       const isSolved = this.isLevelSolved(game, cur);
       const solvedCount = this.getSolvedCount(game);
+      const diff = this.getLevelDifficulty(cur);
 
       const statusEl = this.dom[`${game}StatusPill`];
       if (statusEl) {
@@ -6056,16 +6349,16 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
       const titleEl = this.dom[`${game}DateTitle`];
       if (titleEl) {
-        if (game === 'queens') titleEl.textContent = `👑 Queens: Board #${cur} (6×6)`;
-        else if (game === 'tango') titleEl.textContent = `☀️🌙 Tango: Board #${cur} (6×6)`;
-        else if (game === 'pinpoint') titleEl.textContent = `🎯 Pinpoint: Rätsel #${cur}`;
-        else if (game === 'crossclimb') titleEl.textContent = `🪜 Crossclimb: Leiter #${cur}`;
-        else if (game === 'zip') titleEl.textContent = `⚡ Zip: Pfad #${cur} (5×5)`;
-        else if (game === 'sudoku') titleEl.textContent = `🔢 Mini Sudoku: Board #${cur} (6×6)`;
+        if (game === 'queens') titleEl.textContent = `🤑 Queens: Board #${cur} (6×6 • ${diff.icon} ${diff.label})`;
+        else if (game === 'tango') titleEl.textContent = `☀️🌙 Tango: Board #${cur} (6×6 • ${diff.icon} ${diff.label})`;
+        else if (game === 'pinpoint') titleEl.textContent = `🎯 Pinpoint: Rätsel #${cur} (${diff.icon} ${diff.label})`;
+        else if (game === 'crossclimb') titleEl.textContent = `🪜 Crossclimb: Leiter #${cur} (${diff.icon} ${diff.label})`;
+        else if (game === 'zip') titleEl.textContent = `⚡ Zip: Pfad #${cur} (5×5 • ${diff.icon} ${diff.label})`;
+        else if (game === 'sudoku') titleEl.textContent = `🔢 Mini Sudoku: Board #${cur} (6×6 • ${diff.icon} ${diff.label})`;
       }
 
       const lvlNumEl = document.getElementById(`${game}-banner-level-num`);
-      if (lvlNumEl) lvlNumEl.textContent = String(cur);
+      if (lvlNumEl) lvlNumEl.textContent = `${cur} (${diff.icon} ${diff.label})`;
 
       const navBadgeEl = document.getElementById(`${game}-nav-badge`);
       if (navBadgeEl) {
@@ -6143,6 +6436,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
       if (mode === 'queens') {
         this.initQueens();
+      this.renderLevelHub(mode);
       } else if (mode === 'tango') {
         this.initTango();
       } else if (mode === 'crossclimb') {
@@ -7934,6 +8228,7 @@ init() {
       this.bindEvents();
       this.updateTotalStats();
       this.switchGameMode('queens');
+      this.renderLevelHub('queens');
     }
 
     render() {
