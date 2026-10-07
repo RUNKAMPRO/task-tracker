@@ -4730,7 +4730,7 @@ body {
 }
 
 .select-level {
-  min-width: 220px;
+  min-width: 200px;
   padding: 8px 12px;
   border-radius: 10px;
   font-size: 0.88rem;
@@ -4828,14 +4828,20 @@ body {
 
 .queens-grid {
   display: grid;
-  grid-template-columns: repeat(6, 62px);
-  grid-template-rows: repeat(6, 62px);
+  width: min(460px, 94vw);
+  height: min(460px, 94vw);
+  max-width: 460px;
+  max-height: 460px;
+  aspect-ratio: 1 / 1;
+  grid-template-columns: repeat(6, 1fr);
+  grid-template-rows: repeat(6, 1fr);
   gap: 0;
-  border: 3px solid #475569;
-  border-radius: 8px;
+  border: 3.5px solid #475569;
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
   user-select: none;
+  box-sizing: border-box;
 }
 
 .queens-cell {
@@ -4843,10 +4849,14 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.85rem;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 1 / 1;
+  font-size: clamp(1.8rem, 4.5vw, 2.3rem);
   cursor: pointer;
-  transition: background-color 0.15s ease, transform 0.1s ease;
+  transition: background-color 0.15s ease, transform 0.08s ease;
   box-sizing: border-box;
+  user-select: none;
 }
 
 .queens-cell:hover {
@@ -5161,8 +5171,12 @@ body {
     grid-template-columns: 1fr;
   }
   .queens-grid {
-    grid-template-columns: repeat(6, 48px);
-    grid-template-rows: repeat(6, 48px);
+    width: min(390px, 92vw);
+    height: min(390px, 92vw);
+    max-width: 390px;
+    max-height: 390px;
+    grid-template-columns: repeat(6, 1fr);
+    grid-template-rows: repeat(6, 1fr);
   }
   .tango-board-card-inner {
     grid-template-columns: repeat(6, 46px);
