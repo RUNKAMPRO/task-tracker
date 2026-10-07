@@ -6278,3 +6278,53 @@ body {
 .trail-node.diff-tint-hard {
   border-color: rgba(239, 68, 68, 0.45);
 }
+
+/* Auto-X button active state */
+#btn-queens-autox.active {
+  background: rgba(99, 102, 241, 0.22) !important;
+  border-color: rgba(99, 102, 241, 0.6) !important;
+  color: #c7d2fe !important;
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.3) !important;
+}
+
+#btn-queens-autox.active:hover {
+  background: rgba(99, 102, 241, 0.32) !important;
+  border-color: var(--accent) !important;
+}
+
+/* Responsive screen adaptation for level quantity & trail layout */
+@media (max-width: 640px) {
+  .linear-trail-wrapper {
+    gap: 6px;
+  }
+  .linear-trail-container {
+    padding: 10px 8px !important;
+  }
+  .trail-node {
+    width: 38px !important;
+    height: 38px !important;
+    font-size: 0.85rem !important;
+  }
+  .trail-node.active {
+    transform: scale(1.08) !important;
+  }
+  .trail-connector {
+    width: 14px !important;
+  }
+  .trail-scroll-btn {
+    width: 28px !important;
+    height: 38px !important;
+    font-size: 1.2rem !important;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  .trail-node {
+    width: 42px;
+    height: 42px;
+    font-size: 0.9rem;
+  }
+  .trail-connector {
+    width: 18px;
+  }
+}

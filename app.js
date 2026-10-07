@@ -5143,6 +5143,9 @@ class OrbitRiddleApp {
       this.queensTime = 0;
 
       this.queensTimerInterval = null;
+      this.queensTimerStarted = false;
+      this.queensAutoXEnabled = true;
+      this.queensManualX = new Set();
 
 
 
@@ -5155,6 +5158,7 @@ class OrbitRiddleApp {
       this.tangoTime = 0;
 
       this.tangoTimerInterval = null;
+      this.tangoTimerStarted = false;
 
 
 
@@ -5185,6 +5189,7 @@ class OrbitRiddleApp {
       this.sudokuSelectedCell = null;
       this.sudokuTime = 0;
       this.sudokuTimerInterval = null;
+      this.sudokuTimerStarted = false;
 
 
 this.zipNextExpectedCp = 2;
@@ -5967,18 +5972,35 @@ btnRandom: document.getElementById('btn-riddle-random'),
       return l <= this.getHighestUnlockedLevel(game);
     }
 
+    getScreenFitLevelCount() {
+      const w = window.innerWidth || document.documentElement.clientWidth || 1024;
+      const isDesktop = w >= 992;
+      const effectiveWidth = isDesktop ? Math.max(300, w - 360) : Math.max(260, w - 70);
+      const pitch = w < 640 ? 56 : 70;
+      const count = Math.floor(effectiveWidth / pitch);
+      return Math.max(6, count);
+    }
+
     getPathLength(game) {
       const cur = this.getCurrentLevel(game);
       const highest = this.getHighestUnlockedLevel(game);
       const playerPos = Math.max(cur, highest);
+      const screenFit = this.getScreenFitLevelCount();
+
+      // Menge der Level dynamisch an den Bildschirm anpassen
+      const baseLength = Math.max(screenFit, 8);
 
       let storedLength = parseInt(localStorage.getItem(`orbitsuite_${game}_path_length`), 10);
-      if (isNaN(storedLength) || storedLength < 10) {
-        storedLength = 10;
+      if (isNaN(storedLength) || storedLength < baseLength) {
+        storedLength = baseLength;
       }
 
-      // Regel: Nur weitergenerieren wenn man 5 Level vor dem letzten ist,
-      // sodass man immer mindestens 5 Level vor sich hat!
+      // Bei vergrößertem Fenster / breiterem Bildschirm anpassen
+      if (storedLength < screenFit) {
+        storedLength = screenFit;
+      }
+
+      // Dynamische Weitergenerierung: Mindestens 5 Level vor dem Spieler
       const minAhead = 5;
       if (playerPos >= storedLength - minAhead) {
         storedLength = playerPos + minAhead;
@@ -6331,11 +6353,9 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
       if (game === 'queens') {
         this.resetQueensBoard(true);
-        this.startQueensTimer();
         this.renderQueens();
       } else if (game === 'tango') {
         this.resetTangoBoard();
-        this.startTangoTimer();
         this.renderTango();
       } else if (game === 'pinpoint') {
         this.resetPinpoint();
@@ -6348,7 +6368,6 @@ btnRandom: document.getElementById('btn-riddle-random'),
         this.renderZip();
       } else if (game === 'sudoku') {
         this.resetSudoku();
-        this.startSudokuTimer();
         this.renderSudoku();
       }
       this.updateGameBanner(game);
@@ -6581,225 +6600,188 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
     initQueens() {
       this.populateLevelSelect('queens');
-
-
-
       this.resetQueensBoard(false);
-
-      this.startQueensTimer();
-
       this.renderQueens();
-
     }
 
-
+    resetQueensTimer() {
+      if (this.queensTimerInterval) clearInterval(this.queensTimerInterval);
+      this.queensTimerInterval = null;
+      this.queensTime = 0;
+      this.queensTimerStarted = false;
+      if (this.dom.queensTimerBadge) {
+        this.dom.queensTimerBadge.textContent = '⏱️ 00:00';
+      }
+    }
 
     startQueensTimer() {
-
       if (this.queensTimerInterval) clearInterval(this.queensTimerInterval);
-
       this.queensTime = 0;
-
       this.queensTimerInterval = setInterval(() => {
-
         this.queensTime += 1;
-
         if (this.dom.queensTimerBadge) {
-
           const m = String(Math.floor(this.queensTime / 60)).padStart(2, '0');
-
           const s = String(this.queensTime % 60).padStart(2, '0');
-
           this.dom.queensTimerBadge.textContent = `⏱️ ${m}:${s}`;
-
         }
-
       }, 1000);
-
     }
-
-
 
     resetQueensBoard(clearHistory = true) {
-
       this.queensUserGrid = Array(6).fill(null).map(() => Array(6).fill(null));
-
+      this.queensManualX = new Set();
       if (clearHistory) {
-
         this.queensHistory = [];
-
         this.queensMoves = 0;
-
       }
-
+      this.resetQueensTimer();
       if (this.dom.queensMovesBadge) {
-
         this.dom.queensMovesBadge.textContent = `Züge: ${this.queensMoves}`;
-
       }
-
       if (this.dom.queensFeedback) {
-
         this.dom.queensFeedback.className = 'game-inline-feedback';
-
         this.dom.queensFeedback.textContent = '';
-
       }
       this.renderQueens();
-
-      this.renderQueens();
-
     }
-
-
 
     undoQueensMove() {
-
       if (!this.queensHistory.length) return;
-
       const last = this.queensHistory.pop();
-
       this.queensUserGrid[last.r][last.c] = last.prevVal;
-
-      this.queensMoves = Math.max(0, this.queensMoves - 1);
-
-      if (this.dom.queensMovesBadge) {
-
-        this.dom.queensMovesBadge.textContent = `Züge: ${this.queensMoves}`;
-
+      const key = `${last.r},${last.c}`;
+      if (last.prevVal === 'X') {
+        this.queensManualX.add(key);
+      } else {
+        this.queensManualX.delete(key);
       }
-
+      if (this.queensAutoXEnabled) {
+        this.autoXQueens();
+      }
+      this.queensMoves = Math.max(0, this.queensMoves - 1);
+      if (this.dom.queensMovesBadge) {
+        this.dom.queensMovesBadge.textContent = `Züge: ${this.queensMoves}`;
+      }
       this.renderQueens();
-
     }
 
-
+    toggleQueensAutoX() {
+      this.queensAutoXEnabled = !this.queensAutoXEnabled;
+      if (this.dom.btnQueensAutoX) {
+        this.dom.btnQueensAutoX.classList.toggle('active', this.queensAutoXEnabled);
+        this.dom.btnQueensAutoX.innerHTML = `<span>⚡ Auto-X (${this.queensAutoXEnabled ? 'Aktiv' : 'Aus'})</span>`;
+      }
+      if (this.queensAutoXEnabled) {
+        this.autoXQueens();
+        this.renderQueens();
+        this.suite.showToast('⚡ Auto-X aktiv: Ungültige Felder werden automatisch gekreuzt!');
+      } else {
+        this.suite.showToast('Auto-X deaktiviert.');
+      }
+    }
 
     autoXQueens() {
-
-      // Place 'X' in all cells that clash with currently placed queens
-
+      // Auto-X wirklich automatisch: Markiert alle ungültigen Felder um gesetzte Kronen mit 'X'
       const board = this.getActiveQueensBoard();
-
+      if (!board) return false;
       const size = board.size;
-
       let changed = false;
 
+      const placedQueens = [];
+      for (let r = 0; r < size; r++) {
+        for (let c = 0; c < size; c++) {
+          if (this.queensUserGrid[r][c] === 'Q') {
+            placedQueens.push({ r, c, reg: board.regions[r][c] });
+          }
+        }
+      }
 
+      const blockedByQueens = new Set();
+      for (const q of placedQueens) {
+        for (let tr = 0; tr < size; tr++) {
+          for (let tc = 0; tc < size; tc++) {
+            if (tr === q.r && tc === q.c) continue;
+            const isNeighbor = Math.abs(tr - q.r) <= 1 && Math.abs(tc - q.c) <= 1;
+            const isRow = tr === q.r;
+            const isCol = tc === q.c;
+            const isRegion = board.regions[tr][tc] === q.reg;
+            if (isNeighbor || isRow || isCol || isRegion) {
+              blockedByQueens.add(`${tr},${tc}`);
+            }
+          }
+        }
+      }
 
       for (let r = 0; r < size; r++) {
-
         for (let c = 0; c < size; c++) {
+          const key = `${r},${c}`;
+          if (this.queensUserGrid[r][c] === 'Q') continue;
 
-          if (this.queensUserGrid[r][c] === 'Q') {
-
-            const reg = board.regions[r][c];
-
-            // Mark same row, same col, same region, and 8-neighbors with X
-
-            for (let tr = 0; tr < size; tr++) {
-
-              for (let tc = 0; tc < size; tc++) {
-
-                if (tr === r && tc === c) continue;
-
-                if (this.queensUserGrid[tr][tc] === null) {
-
-                  const isNeighbor = Math.abs(tr - r) <= 1 && Math.abs(tc - c) <= 1;
-
-                  const isRow = tr === r;
-
-                  const isCol = tc === c;
-
-                  const isRegion = board.regions[tr][tc] === reg;
-
-                  if (isNeighbor || isRow || isCol || isRegion) {
-
-                    this.queensUserGrid[tr][tc] = 'X';
-
-                    changed = true;
-
-                  }
-
-                }
-
-              }
-
+          if (blockedByQueens.has(key)) {
+            if (this.queensUserGrid[r][c] !== 'X') {
+              this.queensUserGrid[r][c] = 'X';
+              changed = true;
             }
-
+          } else {
+            // Wenn nicht mehr durch eine Krone blockiert:
+            // Falls es ein Auto-X war (nicht manuell gesetzt), wieder aufheben!
+            if (this.queensUserGrid[r][c] === 'X' && !this.queensManualX.has(key)) {
+              this.queensUserGrid[r][c] = null;
+              changed = true;
+            }
           }
-
         }
-
       }
 
-
-
-      if (changed) {
-
-        this.suite.sound.playClick();
-
-        this.renderQueens();
-
-      }
-
+      return changed;
     }
-
-
 
     handleQueensCellClick(r, c, forceQueen = false) {
+      // Timer startet erst bei der allerersten Benutzer-Interaktion!
+      if (!this.queensTimerStarted) {
+        this.startQueensTimer();
+        this.queensTimerStarted = true;
+      }
 
       const cur = this.queensUserGrid[r][c];
-
       let nextVal = null;
 
-
-
       if (forceQueen) {
-
         nextVal = cur === 'Q' ? null : 'Q';
-
       } else {
-
         // Cycle: null -> 'X' -> 'Q' -> null
-
         if (cur === null) nextVal = 'X';
-
         else if (cur === 'X') nextVal = 'Q';
-
         else nextVal = null;
-
       }
 
-
+      const key = `${r},${c}`;
+      if (nextVal === 'X') {
+        this.queensManualX.add(key);
+      } else {
+        this.queensManualX.delete(key);
+      }
 
       this.queensHistory.push({ r, c, prevVal: cur, newVal: nextVal });
-
       this.queensUserGrid[r][c] = nextVal;
-
       this.queensMoves += 1;
 
-
-
       if (this.dom.queensMovesBadge) {
-
         this.dom.queensMovesBadge.textContent = `Züge: ${this.queensMoves}`;
-
       }
 
-
+      // Auto-X wird wirklich automatisch ausgeführt!
+      if (this.queensAutoXEnabled) {
+        this.autoXQueens();
+      }
 
       this.suite.sound.playClick();
-
       this.renderQueens();
-
       this.checkQueensStatus();
-
     }
 
 
-
-    getQueensClashes() {
+        getQueensClashes() {
 
       const board = this.getActiveQueensBoard();
 
@@ -7067,99 +7049,67 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
     initTango() {
       this.populateLevelSelect('tango');
-
-
-
       this.resetTangoBoard();
-
-      this.startTangoTimer();
-
       this.renderTango();
-
     }
 
-
+    resetTangoTimer() {
+      if (this.tangoTimerInterval) clearInterval(this.tangoTimerInterval);
+      this.tangoTimerInterval = null;
+      this.tangoTime = 0;
+      this.tangoTimerStarted = false;
+      if (this.dom.tangoTimerBadge) {
+        this.dom.tangoTimerBadge.textContent = '⏱️ 00:00';
+      }
+    }
 
     startTangoTimer() {
-
       if (this.tangoTimerInterval) clearInterval(this.tangoTimerInterval);
-
       this.tangoTime = 0;
-
       this.tangoTimerInterval = setInterval(() => {
-
         this.tangoTime += 1;
-
         if (this.dom.tangoTimerBadge) {
-
           const m = String(Math.floor(this.tangoTime / 60)).padStart(2, '0');
-
           const s = String(this.tangoTime % 60).padStart(2, '0');
-
           this.dom.tangoTimerBadge.textContent = `⏱️ ${m}:${s}`;
-
         }
-
       }, 1000);
-
     }
-
-
 
     resetTangoBoard() {
-
       const puzzle = this.getActiveTangoPuzzle();
-
       const size = puzzle.size;
-
       this.tangoUserGrid = Array(size).fill(null).map((_, r) =>
-
         Array(size).fill(null).map((_, c) => puzzle.givens[r][c])
-
       );
-
+      this.resetTangoTimer();
       if (this.dom.tangoFeedback) {
-
         this.dom.tangoFeedback.className = 'game-inline-feedback';
-
         this.dom.tangoFeedback.textContent = '';
-
       }
-
       this.renderTango();
-
     }
 
-
-
     handleTangoCellClick(r, c) {
-
       const puzzle = this.getActiveTangoPuzzle();
-
       if (puzzle.givens[r][c] !== null) return; // Locked given cell
 
-
+      // Timer erst bei erster Interaktion starten!
+      if (!this.tangoTimerStarted) {
+        this.startTangoTimer();
+        this.tangoTimerStarted = true;
+      }
 
       const cur = this.tangoUserGrid[r][c];
-
       let next = null;
-
       if (cur === null) next = 'S';
-
       else if (cur === 'S') next = 'M';
-
       else next = null;
 
-
-
       this.tangoUserGrid[r][c] = next;
-
       this.suite.sound.playClick();
-
       this.renderTango();
-
       this.checkTangoStatus();
-
     }
 
 
@@ -8117,7 +8067,17 @@ btnRandom: document.getElementById('btn-riddle-random'),
     initSudoku() {
       this.populateLevelSelect('sudoku');
       this.resetSudoku();
-      this.startSudokuTimer();
+      this.renderSudoku();
+    }
+
+    resetSudokuTimer() {
+      if (this.sudokuTimerInterval) clearInterval(this.sudokuTimerInterval);
+      this.sudokuTimerInterval = null;
+      this.sudokuTime = 0;
+      this.sudokuTimerStarted = false;
+      if (this.dom.sudokuTimerBadge) {
+        this.dom.sudokuTimerBadge.textContent = '⏱️ 00:00';
+      }
     }
 
     startSudokuTimer() {
@@ -8139,6 +8099,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
         Array(6).fill(0).map((_, c) => puzzle.givens[r][c])
       );
       this.sudokuSelectedCell = null;
+      this.resetSudokuTimer();
       if (this.dom.sudokuFeedback) {
         this.dom.sudokuFeedback.className = 'game-inline-feedback';
         this.dom.sudokuFeedback.textContent = '';
@@ -8147,12 +8108,20 @@ btnRandom: document.getElementById('btn-riddle-random'),
     }
 
     selectSudokuCell(r, c) {
+      if (!this.sudokuTimerStarted) {
+        this.startSudokuTimer();
+        this.sudokuTimerStarted = true;
+      }
       this.sudokuSelectedCell = { r, c };
       this.suite.sound.playClick();
       this.renderSudoku();
     }
 
     inputSudokuNumber(num) {
+      if (!this.sudokuTimerStarted) {
+        this.startSudokuTimer();
+        this.sudokuTimerStarted = true;
+      }
       if (!this.sudokuSelectedCell) return;
       const { r, c } = this.sudokuSelectedCell;
       const puzzle = this.getActiveSudoku();
@@ -8336,6 +8305,16 @@ init() {
 
             // LinkedIn Games Tab Switcher
 
+      // Bildschirmgrößen-Anpassung für Levelpfad
+      window.addEventListener('resize', () => {
+        if (this.trailResizeTimer) clearTimeout(this.trailResizeTimer);
+        this.trailResizeTimer = setTimeout(() => {
+          if (this.activeGameMode) {
+            this.populateLevelSelect(this.activeGameMode);
+          }
+        }, 150);
+      });
+
       if (this.dom.gamesNavBtns) {
 
         this.dom.gamesNavBtns.forEach(btn => {
@@ -8385,9 +8364,9 @@ init() {
       }
 
       if (this.dom.btnQueensAutoX) {
-
-        this.dom.btnQueensAutoX.addEventListener('click', () => this.autoXQueens());
-
+        this.dom.btnQueensAutoX.classList.toggle('active', this.queensAutoXEnabled);
+        this.dom.btnQueensAutoX.innerHTML = `<span>⚡ Auto-X (Aktiv)</span>`;
+        this.dom.btnQueensAutoX.addEventListener('click', () => this.toggleQueensAutoX());
       }
 
       if (this.dom.btnQueensUndo) {
@@ -8401,8 +8380,6 @@ init() {
         this.dom.btnQueensReset.addEventListener('click', () => {
 
           this.resetQueensBoard(true);
-
-          this.startQueensTimer();
 
         });
 
@@ -8425,8 +8402,6 @@ init() {
         this.dom.btnTangoReset.addEventListener('click', () => {
 
           this.resetTangoBoard();
-
-          this.startTangoTimer();
 
         });
 
@@ -8507,7 +8482,6 @@ init() {
       if (this.dom.btnSudokuReset) {
         this.dom.btnSudokuReset.addEventListener('click', () => {
           this.resetSudoku();
-          this.startSudokuTimer();
         });
       }
       if (this.dom.sudokuNumpad) {
