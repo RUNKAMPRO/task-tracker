@@ -5977,6 +5977,51 @@ btnRandom: document.getElementById('btn-riddle-random'),
       return l <= this.getHighestUnlockedLevel(game);
     }
 
+    getCampaignCheckpoints(game) {
+      const highest = this.getHighestUnlockedLevel(game);
+      const isCp1Solved = this.isLevelSolved(game, 5) || highest > 5;
+      const isCp2Solved = this.isLevelSolved(game, 10) || highest > 10;
+      const isCp3Solved = this.isLevelSolved(game, 20) || highest > 20;
+
+      return [
+        {
+          num: 1,
+          level: 5,
+          name: 'Checkpoint 1 (Level 5)',
+          shortBadge: 'CP 1',
+          unlockDesc: 'Schaltet Stufe Mittel & 8×8 Spielfelder frei',
+          isUnlocked: isCp1Solved
+        },
+        {
+          num: 2,
+          level: 10,
+          name: 'Checkpoint 2 (Level 10)',
+          shortBadge: 'CP 2',
+          unlockDesc: 'Schaltet Stufe Schwer & 10×10 Spielfelder frei',
+          isUnlocked: isCp2Solved
+        },
+        {
+          num: 3,
+          level: 20,
+          name: 'Checkpoint 3 (Level 20)',
+          shortBadge: 'CP 3',
+          unlockDesc: 'Champion-Meisterpfad',
+          isUnlocked: isCp3Solved
+        }
+      ];
+    }
+
+    isTierUnlocked(game, tier) {
+      if (tier === 'easy') return true;
+      if (tier === 'medium') {
+        return this.isLevelSolved(game, 5) || this.getHighestUnlockedLevel(game) > 5;
+      }
+      if (tier === 'hard') {
+        return this.isLevelSolved(game, 10) || this.getHighestUnlockedLevel(game) > 10;
+      }
+      return false;
+    }
+
     getScreenFitLevelCount(game) {
       const w = window.innerWidth || document.documentElement.clientWidth || 1024;
 
@@ -6085,7 +6130,10 @@ btnRandom: document.getElementById('btn-riddle-random'),
       `;
 
       if (viewMode === 'path') {
-        // VIEW 1: EINFACH LINEARER LEVEL-PFAD (KEINE SCHWIERIGKEITS-UNTERTEILUNG)
+        // VIEW 1: EINFACH LINEARER LEVEL-PFAD MIT KAMPAGNEN-CHECKPOINTS
+        const cps = this.getCampaignCheckpoints(game);
+        const nextCp = cps.find(cp => !cp.isUnlocked) || cps[cps.length - 1];
+
         const renderLinearNodes = () => {
           return allLevels.map((lvl, idx) => {
             const isSolved = solvedSet.has(lvl);
@@ -6097,14 +6145,17 @@ btnRandom: document.getElementById('btn-riddle-random'),
               ? `<div class="trail-connector ${isSolved ? 'solved' : (nextUnlocked ? 'unlocked' : 'locked')}"></div>`
               : '';
 
-            const diff = this.getLevelDifficulty(lvl);
+            const cpObj = cps.find(c => c.level === lvl);
+            const cpClass = cpObj ? 'checkpoint' : '';
 
             if (isUnlocked) {
               return `
-                <button class="trail-node ${isSolved ? 'solved' : ''} ${isActive ? 'active' : 'unlocked'}"
+                <button class="trail-node ${cpClass} ${isSolved ? 'solved' : ''} ${isActive ? 'active' : 'unlocked'}"
                         data-select-level="${lvl}"
-                        title="Level #${lvl} ${isSolved ? '• Gelöst ✓' : '• Freigeschaltet'}">
+                        title="${cpObj ? `${cpObj.name}: ${cpObj.unlockDesc}` : `Level #${lvl} ${isSolved ? '• Gelöst ✓' : '• Freigeschaltet'}`}">
+                  ${cpObj ? `<span class="checkpoint-flag-icon">${isSolved ? '🏆' : '🚩'}</span>` : ''}
                   <span class="node-number">${lvl}</span>
+                  ${cpObj ? `<span class="checkpoint-sub-pill">${cpObj.shortBadge}</span>` : ''}
                   ${isSolved ? '<span class="node-status-badge">✓</span>' : (isActive ? '<span class="node-status-badge active-dot">👑</span>' : '')}
                 </button>
                 ${connector}
@@ -6112,10 +6163,12 @@ btnRandom: document.getElementById('btn-riddle-random'),
             } else {
               // Nicht freigeschaltet: Zahl durch Schloss ersetzen!
               return `
-                <button class="trail-node locked"
+                <button class="trail-node ${cpClass} locked"
                         data-locked-level="${lvl}"
-                        title="Level #${lvl} • 🔒 Gesperrt (Schließe Level #${lvl - 1} ab)">
+                        title="${cpObj ? `${cpObj.name} • 🔒 Gesperrt: ${cpObj.unlockDesc}` : `Level #${lvl} • 🔒 Gesperrt (Schließe Level #${lvl - 1} ab)`}">
+                  ${cpObj ? `<span class="checkpoint-flag-icon">🚩</span>` : ''}
                   <span class="node-lock" aria-label="Gesperrt">🔒</span>
+                  ${cpObj ? `<span class="checkpoint-sub-pill">${cpObj.shortBadge}</span>` : ''}
                 </button>
                 ${connector}
               `;
@@ -6125,8 +6178,25 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
         html += `
           <div class="level-path-view">
+            <div class="campaign-checkpoint-banner">
+              <div class="cp-banner-left">
+                <span class="cp-banner-icon">${nextCp.isUnlocked ? '🏆' : '🚩'}</span>
+                <div class="cp-banner-info">
+                  <strong>${nextCp.isUnlocked ? 'Alle Kampagnen-Checkpoints erreicht!' : `Nächstes Kampagnen-Ziel: ${nextCp.name}`}</strong>
+                  <small>${nextCp.isUnlocked ? 'Alle Stufen & Spielfeldgrößen im Freien Spiel freigeschaltet!' : `${nextCp.unlockDesc} (Erreiche Level #${nextCp.level})`}</small>
+                </div>
+              </div>
+              <div class="cp-milestone-pills">
+                ${cps.map(cp => `
+                  <span class="cp-pill ${cp.isUnlocked ? 'completed' : (nextCp.num === cp.num ? 'current' : 'locked')}">
+                    ${cp.isUnlocked ? '✓' : '🚩'} ${cp.shortBadge} (Lvl ${cp.level})
+                  </span>
+                `).join('')}
+              </div>
+            </div>
+
             <div class="path-header-row">
-              <span class="path-subtitle">🗺️ <strong>Linearer Level-Pfad:</strong> Gehe den Pfad Level für Level durch. Es sind immer mindestens 5 Level vor dir aufgedeckt!</span>
+              <span class="path-subtitle">🗺️ <strong>Linearer Level-Pfad:</strong> Gehe den Pfad Level für Level durch und erreiche die Checkpoints zur Freischaltung!</span>
               <span class="path-progress-pill">Fortschritt: ${totalSolved}/${totalLevels} Gelöst</span>
             </div>
 
@@ -6186,6 +6256,9 @@ btnRandom: document.getElementById('btn-riddle-random'),
         };
 
         const activeSizeDef = tierSizeDefs[game] || tierSizeDefs.queens;
+        const isMedUnlocked = this.isTierUnlocked(game, 'medium');
+        const isHardUnlocked = this.isTierUnlocked(game, 'hard');
+
         const easyLevels = allLevels.filter(l => l <= 5);
         const medLevels = allLevels.filter(l => l > 5 && l <= 10);
         const hardLevels = allLevels.filter(l => l > 10);
@@ -6195,20 +6268,28 @@ btnRandom: document.getElementById('btn-riddle-random'),
         const medSolved = countSolved(medLevels);
         const hardSolved = countSolved(hardLevels);
 
-        const renderChips = (levels) => {
+        const renderChips = (levels, tierUnlocked = true) => {
           return levels.map(lvl => {
             const isSolved = solvedSet.has(lvl);
-            const isUnlocked = this.isLevelUnlocked(game, lvl);
             const isActive = lvl === cur;
 
-            // Im Freien Spiel kann jedes Level direkt gespielt werden
-            return `
-              <button class="diff-chip ${isSolved ? 'solved' : ''} ${isActive ? 'active' : ''}"
-                      data-select-level="${lvl}"
-                      title="Level #${lvl} (${this.getLevelDifficulty(lvl).label})">
-                Lvl ${lvl} ${isSolved ? '✓' : ''}
-              </button>
-            `;
+            if (tierUnlocked) {
+              return `
+                <button class="diff-chip ${isSolved ? 'solved' : ''} ${isActive ? 'active' : ''}"
+                        data-select-level="${lvl}"
+                        title="Level #${lvl} (${this.getLevelDifficulty(lvl).label})">
+                  Lvl ${lvl} ${isSolved ? '✓' : ''}
+                </button>
+              `;
+            } else {
+              return `
+                <button class="diff-chip locked"
+                        data-goto-checkpoint="${lvl <= 10 ? 5 : 10}"
+                        title="Level #${lvl} • 🔒 Gesperrt (Erreiche erst Kampagnen-Checkpoint)">
+                  <span class="chip-lock-icon">🔒</span>
+                </button>
+              `;
+            }
           }).join('');
         };
 
@@ -6226,7 +6307,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
         html += `
           <div class="level-difficulty-view">
             <div class="difficulty-cards-grid">
-              <!-- Leicht Card -->
+              <!-- Leicht Card (Immer freigeschaltet) -->
               <div class="difficulty-card tier-easy">
                 <div class="diff-card-header">
                   <div class="diff-title-col">
@@ -6238,49 +6319,71 @@ btnRandom: document.getElementById('btn-riddle-random'),
                 <div class="diff-size-subtitle">${activeSizeDef.easy.sub}</div>
                 <p class="diff-desc">${activeSizeDef.easy.desc}</p>
                 <div class="diff-chips-row">
-                  ${renderChips(easyLevels)}
+                  ${renderChips(easyLevels, true)}
                 </div>
                 <button class="btn-diff-play" data-select-level="${easyTarget}" title="Spiele ${activeSizeDef.easy.badge}">
                   <span>▶ ${activeSizeDef.easy.badge} spielen (Lvl #${easyTarget})</span>
                 </button>
               </div>
 
-              <!-- Mittel Card -->
-              <div class="difficulty-card tier-medium">
+              <!-- Mittel Card (Freischaltung ab Checkpoint 1 / Level 5) -->
+              <div class="difficulty-card tier-medium ${isMedUnlocked ? '' : 'card-locked'}">
                 <div class="diff-card-header">
                   <div class="diff-title-col">
-                    <span class="diff-card-title">🟡 Mittel</span>
+                    <span class="diff-card-title">🟡 Mittel${isMedUnlocked ? '' : ' • 🔒 Gesperrt'}</span>
                     <span class="diff-size-pill">📐 ${activeSizeDef.medium.badge}</span>
                   </div>
                   <span class="tier-badge medium">${medSolved}/${medLevels.length} Gelöst</span>
                 </div>
                 <div class="diff-size-subtitle">${activeSizeDef.medium.sub}</div>
+                ${isMedUnlocked ? `
+                  <div class="diff-checkpoint-lock-notice unlocked">✅ Kampagnen-Checkpoint 1 erreicht • ${activeSizeDef.medium.badge} freigeschaltet!</div>
+                ` : `
+                  <div class="diff-checkpoint-lock-notice">🚩 Gesperrt • Erreiche Kampagnen-Checkpoint 1 (Level #5), um ${activeSizeDef.medium.badge} freizuschalten!</div>
+                `}
                 <p class="diff-desc">${activeSizeDef.medium.desc}</p>
                 <div class="diff-chips-row">
-                  ${renderChips(medLevels)}
+                  ${renderChips(medLevels, isMedUnlocked)}
                 </div>
-                <button class="btn-diff-play" data-select-level="${medTarget}" title="Spiele ${activeSizeDef.medium.badge}">
-                  <span>▶ ${activeSizeDef.medium.badge} spielen (Lvl #${medTarget})</span>
-                </button>
+                ${isMedUnlocked ? `
+                  <button class="btn-diff-play" data-select-level="${medTarget}" title="Spiele ${activeSizeDef.medium.badge}">
+                    <span>▶ ${activeSizeDef.medium.badge} spielen (Lvl #${medTarget})</span>
+                  </button>
+                ` : `
+                  <button class="btn-diff-play locked" data-goto-checkpoint="5" title="Zu Kampagnen-Checkpoint 1 springen">
+                    <span>🚩 Zu Kampagnen-Checkpoint 1 (Level #5)</span>
+                  </button>
+                `}
               </div>
 
-              <!-- Schwer Card -->
-              <div class="difficulty-card tier-hard">
+              <!-- Schwer Card (Freischaltung ab Checkpoint 2 / Level 10) -->
+              <div class="difficulty-card tier-hard ${isHardUnlocked ? '' : 'card-locked'}">
                 <div class="diff-card-header">
                   <div class="diff-title-col">
-                    <span class="diff-card-title">🔴 Schwer</span>
+                    <span class="diff-card-title">🔴 Schwer${isHardUnlocked ? '' : ' • 🔒 Gesperrt'}</span>
                     <span class="diff-size-pill">📐 ${activeSizeDef.hard.badge}</span>
                   </div>
                   <span class="tier-badge hard">${hardSolved}/${hardLevels.length} Gelöst</span>
                 </div>
                 <div class="diff-size-subtitle">${activeSizeDef.hard.sub}</div>
+                ${isHardUnlocked ? `
+                  <div class="diff-checkpoint-lock-notice unlocked">✅ Kampagnen-Checkpoint 2 erreicht • ${activeSizeDef.hard.badge} freigeschaltet!</div>
+                ` : `
+                  <div class="diff-checkpoint-lock-notice">🏆 Gesperrt • Erreiche Kampagnen-Checkpoint 2 (Level #10), um ${activeSizeDef.hard.badge} freizuschalten!</div>
+                `}
                 <p class="diff-desc">${activeSizeDef.hard.desc}</p>
                 <div class="diff-chips-row">
-                  ${renderChips(hardLevels)}
+                  ${renderChips(hardLevels, isHardUnlocked)}
                 </div>
-                <button class="btn-diff-play" data-select-level="${hardTarget}" title="Spiele ${activeSizeDef.hard.badge}">
-                  <span>▶ ${activeSizeDef.hard.badge} spielen (Lvl #${hardTarget})</span>
-                </button>
+                ${isHardUnlocked ? `
+                  <button class="btn-diff-play" data-select-level="${hardTarget}" title="Spiele ${activeSizeDef.hard.badge}">
+                    <span>▶ ${activeSizeDef.hard.badge} spielen (Lvl #${hardTarget})</span>
+                  </button>
+                ` : `
+                  <button class="btn-diff-play locked" data-goto-checkpoint="10" title="Zu Kampagnen-Checkpoint 2 springen">
+                    <span>🏆 Zu Kampagnen-Checkpoint 2 (Level #10)</span>
+                  </button>
+                `}
               </div>
             </div>
           </div>
@@ -6342,6 +6445,18 @@ btnRandom: document.getElementById('btn-riddle-random'),
         });
       });
 
+      container.querySelectorAll('[data-goto-checkpoint]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const cpLvl = parseInt(btn.dataset.gotoCheckpoint, 10);
+          localStorage.setItem('orbitsuite_level_selector_mode', 'path');
+          const highest = this.getHighestUnlockedLevel(game);
+          const targetLvl = Math.min(highest, cpLvl);
+          this.setGameLevel(game, targetLvl);
+          this.renderLevelHub(game);
+          this.suite.showToast(`🗺️ Zurück auf dem Level-Pfad: Schließe Level bis #${cpLvl} ab, um diesen Checkpoint freizuschalten!`, 'info');
+        });
+      });
+
       container.querySelectorAll('[data-select-level]').forEach(btn => {
         btn.addEventListener('click', () => {
           const lvl = parseInt(btn.dataset.selectLevel, 10);
@@ -6380,13 +6495,32 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
     markLevelSolved(game, lvl) {
       const set = this.getSolvedSet(game);
-      set.add(Number(lvl));
+      const numLvl = Number(lvl);
+      const wasAlreadySolved = set.has(numLvl);
+      set.add(numLvl);
       localStorage.setItem(`orbitsuite_${game}_solved_levels`, JSON.stringify(Array.from(set)));
       this.populateLevelSelect(game);
       this.updateGameBanner(game);
       this.updateTotalStats();
       if (this.suite && this.suite.hubApp) {
         this.suite.hubApp.render();
+      }
+
+      // Checkpoint-Freischaltungs-Feier
+      if (!wasAlreadySolved) {
+        if (numLvl === 5) {
+          setTimeout(() => {
+            this.suite.sound.playSuccess();
+            this.suite.confetti.fire();
+            this.suite.showToast(`🎉 KAMPAGNEN-CHECKPOINT 1 ERREICHT! Stufe Mittel (8×8 Spielfelder) im Freien Spiel freigeschaltet! 🔓`, 'success');
+          }, 600);
+        } else if (numLvl === 10) {
+          setTimeout(() => {
+            this.suite.sound.playSuccess();
+            this.suite.confetti.fire();
+            this.suite.showToast(`🏆 KAMPAGNEN-CHECKPOINT 2 ERREICHT! Stufe Schwer (10×10 Spielfelder) im Freien Spiel freigeschaltet! 🔓`, 'success');
+          }, 600);
+        }
       }
     }
 
@@ -6413,6 +6547,19 @@ btnRandom: document.getElementById('btn-riddle-random'),
     setGameLevel(game, lvl, force = false) {
       const target = Math.max(1, parseInt(lvl, 10) || 1);
       const viewMode = localStorage.getItem('orbitsuite_level_selector_mode') || 'path';
+
+      // Checkpoint-Freischaltung für Freies Spiel prüfen
+      if (!force && viewMode === 'difficulty') {
+        const tier = this.getLevelDifficulty(target).tier;
+        if (!this.isTierUnlocked(game, tier)) {
+          const requiredLvl = tier === 'medium' ? 5 : 10;
+          const cpNum = tier === 'medium' ? 1 : 2;
+          this.suite.sound.playPop();
+          this.suite.showToast(`🚩 Stufe ${tier === 'medium' ? 'Mittel' : 'Schwer'} ist gesperrt! Erreiche erst Kampagnen-Checkpoint #${cpNum} (Level #${requiredLvl}).`, 'warning');
+          return;
+        }
+      }
+
       if (!force && viewMode !== 'difficulty' && !this.isLevelUnlocked(game, target)) {
         this.suite.showToast(`🔒 Level #${target} ist noch nicht freigeschaltet! Schließe zuerst Level #${target - 1} ab.`, 'warning');
         return;
