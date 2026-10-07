@@ -5162,103 +5162,186 @@ class OrbitRiddleGenerator {
 
     const extraPool = [
       {
-            "title": "Crossclimb: Korn bis Nord",
-            "words": [
-                  "KORN",
-                  "BORN",
-                  "BORT",
-                  "BORD",
-                  "MORD",
-                  "NORD"
-            ],
+            "category": "Automarken aus Deutschland",
             "clues": [
-                  "Getreidesame auf dem Feld",
-                  "Altes Wort für Quelle oder Brunnen",
-                  "Kante eines Bootes oder Schiffes",
-                  "An Bord eines Flugzeugs oder Schiffs",
-                  "Vorsätzliche Tötung im Strafrecht",
-                  "Himmelsrichtung nach oben auf der Landkarte"
+                  "Stern auf der Kühlerhaube als Markenzeichen",
+                  "Bayerische Motoren Werke mit weiß-blauem Propeller",
+                  "Vier verschlungene Ringe aus Ingolstadt",
+                  "Legendäre Sportwagenschmiede aus Stuttgart-Zuffenhausen",
+                  "Größter Automobilkonzern mit Sitz in Wolfsburg"
+            ],
+            "keywords": [
+                  "automarken",
+                  "deutsche automarken",
+                  "autos",
+                  "automarken aus deutschland",
+                  "autobauer",
+                  "deutsche autos"
             ]
       },
       {
-            "title": "Crossclimb: Wand bis Band",
-            "words": [
-                  "WAND",
-                  "WIND",
-                  "WILD",
-                  "BILD",
-                  "BALD",
-                  "BAND"
-            ],
+            "category": "Planeten unseres Sonnensystems",
             "clues": [
-                  "Begrenzung eines Zimmers",
-                  "Spürbare Luftbewegung im Freien",
-                  "Freilebende Tiere des Waldes",
-                  "Foto oder Gemälde an der Wand",
-                  "In naher Zukunft, schon sehr früh",
-                  "Musikgruppe oder flexibles Stoffband"
+                  "Sonnennächster Gesteinsplanet mit extremen Temperaturen",
+                  "Hell leuchtender Morgen- und Abendstern am Himmel",
+                  "Der Rote Planet mit Kratern, Vulkanen und Rovern",
+                  "Riesiger Gasplanet mit dem Großen Roten Fleck",
+                  "Faszinierender Planet mit weithin sichtbarem Ringsystem"
+            ],
+            "keywords": [
+                  "planeten",
+                  "sonnensystem",
+                  "planeten unseres sonnensystems",
+                  "unser sonnensystem",
+                  "himmelskörper"
             ]
       },
       {
-            "title": "Crossclimb: Mast bis Rost",
-            "words": [
-                  "MAST",
-                  "RAST",
-                  "REST",
-                  "PEST",
-                  "POST",
-                  "ROST"
-            ],
+            "category": "Hauptstädte in Europa",
             "clues": [
-                  "Hohe senkrechte Stange für Segel oder Antennen",
-                  "Erholsame Pause auf der Wanderung",
-                  "Der verbleibende Teil nach dem Essen",
-                  "Gefürchtete historische Seuche",
-                  "Behörde für Briefe und Paketsendungen",
-                  "Oxidationsschicht auf altem Eisen"
+                  "Stadt der Liebe an der Seine mit dem Eiffelturm",
+                  "Ewige Stadt am Tiber mit antikem Kolosseum",
+                  "Metropole an der Themse mit Big Ben und roten Bussen",
+                  "Historische Metropole mit Brandenburger Tor und Fernsehturm",
+                  "Stadt der Grachten, Museen und unzähligen Fahrräder"
+            ],
+            "keywords": [
+                  "hauptstädte",
+                  "hauptstädte europas",
+                  "europäische hauptstädte",
+                  "städte europas",
+                  "europäische städte"
             ]
       },
       {
-            "title": "Crossclimb: Bahn bis Zorn",
-            "words": [
-                  "BAHN",
-                  "BOHN",
-                  "BORN",
-                  "KORN",
-                  "ZORN",
-                  "VORN"
-            ],
+            "category": "Ozeane der Erde",
             "clues": [
-                  "Gleisanlage für Züge oder Fahrbahn",
-                  "Dialekt/Altwort für Bohne",
-                  "Frische sprudelnde Wasserquelle",
-                  "Getreidekörner auf dem Halm",
-                  "Heftige Wut und Verärgerung",
-                  "An der vorderen Front, Gegenteil von hinten"
+                  "Größte und tiefste zusammenhängende Wasserfläche der Erde",
+                  "Trennt die Kontinente Europa und Afrika von Amerika",
+                  "Warmes Weltmeer südlich des asiatischen Subkontinents",
+                  "Nördlichstes, von ewigem Packeis bedecktes Polarmeer",
+                  "Südpolarmeer, das den gesamten antarktischen Kontinent umfließt"
+            ],
+            "keywords": [
+                  "ozeane",
+                  "weltmeere",
+                  "meere der welt",
+                  "ozeane der erde",
+                  "die weltmeere",
+                  "weltmeer"
             ]
       },
       {
-            "title": "Crossclimb: Bein bis Wirt",
-            "words": [
-                  "BEIN",
-                  "WEIN",
-                  "WEIT",
-                  "WERT",
-                  "WORT",
-                  "WIRT"
-            ],
+            "category": "Musikinstrumente mit Saiten",
             "clues": [
-                  "Gliedmaße zum Stehen und Gehen",
-                  "Alkoholisches Getränk aus Weintrauben",
-                  "Große Entfernung, Gegenteil von nah",
-                  "Bedeutung oder materieller Preis",
-                  "Bestandteil eines gesprochenen Satzes",
-                  "Inhaber einer Gastwirtschaft"
+                  "Klassisches Streichinstrument mit vier Saiten und Bogen",
+                  "Tief klingendes Bassinstrument im Orchester oder Jazz",
+                  "Sechssaitiges Akustikinstrument für Lagerfeuer und Rockmusik",
+                  "Großes Tasteninstrument mit Hämmern und Saiten im Flügel",
+                  "Prächtiges hohes Zupfinstrument der Engel mit Pedalen"
+            ],
+            "keywords": [
+                  "saiteninstrumente",
+                  "musikinstrumente mit saiten",
+                  "saiteninstrument",
+                  "zupfinstrumente",
+                  "streichinstrumente",
+                  "instrumente"
+            ]
+      },
+      {
+            "category": "Kaffee-Spezialitäten",
+            "clues": [
+                  "Konzentrierter kleiner schwarzer Muntermacher aus der Siebträgermaschine",
+                  "Espresso verfeinert mit einer samtigen Haube aus cremigem Milchschaum",
+                  "Viel heiße Milch mit einem sanften Schuss kräftigem Espresso",
+                  "Schichtgetränk im Glas aus heißer Milch, Espresso und Schaum",
+                  "Mit reichlich heißem Wasser gestreckter klassischer Espresso"
+            ],
+            "keywords": [
+                  "kaffee",
+                  "kaffeespezialitäten",
+                  "kaffeegetränke",
+                  "kaffeesorten",
+                  "kaffeearten",
+                  "espresso"
+            ]
+      },
+      {
+            "category": "Programmiersprachen",
+            "clues": [
+                  "Universelle Sprache für interaktive Webanwendungen im Browser",
+                  "Sehr lesbare Skriptsprache für Data Science und Künstliche Intelligenz",
+                  "Moderne Systemsprache mit kompromissloser Speichersicherheit ohne GC",
+                  "Klassische objektorientierte Sprache für große Unternehmensanwendungen",
+                  "Kompakte Google-Sprache für skalierbare Cloud- und Server-Backends"
+            ],
+            "keywords": [
+                  "programmiersprachen",
+                  "coding",
+                  "programmiersprache",
+                  "code sprachen",
+                  "sprachen",
+                  "softwareentwicklung"
+            ]
+      },
+      {
+            "category": "Edelsteine",
+            "clues": [
+                  "Härtester natürlicher Kristall aus reinem komprimiertem Kohlenstoff",
+                  "Feuerroter kostbarer Korund mit leuchtendem Glanz",
+                  "Königsblauer geschätzter Schmuckstein der Kronjuwelen",
+                  "Leuchtend tiefgrünes Mineral aus der Beryll-Familie",
+                  "Violetter Kristallquarz mit jahrhundertealter mystischer Tradition"
+            ],
+            "keywords": [
+                  "edelsteine",
+                  "edelstein",
+                  "mineralien",
+                  "juwelen",
+                  "schmucksteine",
+                  "kristalle"
+            ]
+      },
+      {
+            "category": "Märchenfiguren der Brüder Grimm",
+            "clues": [
+                  "Mädchen mit markanter roter Mütze auf dem Waldweg zur Großmutter",
+                  "Königstochter, die sich an der Spindel sticht und hundert Jahre schläft",
+                  "Verliert auf der Schlosstreppe um Mitternacht ihren Schuh aus Glas",
+                  "Jungfrau mit endlos langem geflochtenem Goldhaar im hohen Turm",
+                  "Schneeweiße Schönheit bei den sieben Zwergen hinter den Bergen"
+            ],
+            "keywords": [
+                  "märchen",
+                  "märchenfiguren",
+                  "brüder grimm",
+                  "grimm märchen",
+                  "märchenfiguren der brüder grimm",
+                  "märchengestalten"
+            ]
+      },
+      {
+            "category": "Chemische Elemente",
+            "clues": [
+                  "Häufigstes und leichtestes Element im gesamten bekannten Universum",
+                  "Lebensnotwendiges gasförmiges Molekül zum Atmen aller Säugetiere",
+                  "Vielseitiger chemischer Grundbaustein aller organischen Moleküle",
+                  "Schweres, glänzendes und nicht rostendes gelbes Edelmetall",
+                  "Elementares magnetisches Metall für die weltweite Stahlproduktion"
+            ],
+            "keywords": [
+                  "chemische elemente",
+                  "elemente",
+                  "chemie",
+                  "periodensystem",
+                  "chemische elemente des periodensystems",
+                  "grundstoffe"
             ]
       }
 ];
 
-    const all = [...staticPool, ...extraPool];
+    const all = (staticPool && staticPool.length > 0) ? [...staticPool, ...extraPool] : extraPool;
     const idx = (level - 1) % all.length;
     const item = all[idx];
 
@@ -5271,6 +5354,8 @@ class OrbitRiddleGenerator {
     };
   }
 }
+
+window.OrbitRiddleGenerator = OrbitRiddleGenerator;
 
 class OrbitRiddleApp {
 
@@ -9619,6 +9704,14 @@ init() {
         cell = this.dom.sudokuGrid?.querySelector(`.sudoku-cell[data-r="${highlight.r}"][data-c="${highlight.c}"]`);
       } else if (game === 'zip') {
         cell = this.dom.zipGrid?.querySelector(`.zip-cell[data-r="${highlight.r}"][data-c="${highlight.c}"]`);
+      } else if (game === 'crossclimb' && highlight) {
+        if (highlight.rungIndex !== undefined) {
+          cell = this.dom.crossclimbLadderList?.querySelector(`.crossclimb-rung-card[data-rung-index="${highlight.rungIndex}"]`);
+        } else if (highlight.rungType === 'decke') {
+          cell = this.dom.crossclimbLadderList?.querySelector('.crossclimb-end-card.decke');
+        } else if (highlight.rungType === 'boden') {
+          cell = this.dom.crossclimbLadderList?.querySelector('.crossclimb-end-card.boden');
+        }
       }
 
       if (cell) {
@@ -9746,8 +9839,9 @@ init() {
 
       if (game === 'zip') {
         const puzzle = this.getActiveZip();
-        if (!puzzle || !puzzle.solution) return null;
-        const solution = puzzle.solution; // Array of { r, c }
+        if (!puzzle) return null;
+        const solution = puzzle.solution || puzzle.pathSolution;
+        if (!solution || !Array.isArray(solution)) return null;
         const curPath = this.zipPath || [];
 
         // Check if user path diverged
@@ -9778,25 +9872,66 @@ init() {
         const puzzle = this.getActiveCrossclimb();
         if (!puzzle) return null;
 
-        // Check unrevealed ladder rungs
-        const rungInputs = document.querySelectorAll('#crossclimb-ladder-list .crossclimb-input');
-        for (let i = 0; i < rungInputs.length; i++) {
-          const inp = rungInputs[i];
-          const expected = puzzle.words[i];
-          if (inp && (!inp.value || inp.value.trim().toUpperCase() !== expected.toUpperCase())) {
-            const hintLetter = expected.slice(0, 2);
+        // Step 1: Guessing middle rungs
+        if (this.crossclimbStep === 1) {
+          const unsolvedIdx = this.crossclimbRungs.findIndex(r => !r.isSolved && (r.currentWord || '').trim().toUpperCase() !== r.targetWord);
+          if (unsolvedIdx !== -1) {
+            const rung = this.crossclimbRungs[unsolvedIdx];
+            const hintLetter = rung.targetWord.slice(0, 2);
             return {
-              key: `crossclimb_word_${i}`,
-              text: `Sprosse #${i + 1} (${expected.length} Buchstaben): Beginnt mit '${hintLetter}...'`,
-              highlight: null
+              key: `crossclimb_word_${unsolvedIdx}_${hintLetter}`,
+              text: `Sprosse #${unsolvedIdx + 1} (${rung.targetWord.length} Buchstaben, Clue: "${rung.clue}"): Beginnt mit '${hintLetter}...'!`,
+              highlight: { rungIndex: unsolvedIdx }
             };
           }
         }
-        return {
-          key: 'crossclimb_sort',
-          text: 'Alle Wörter erraten! Ordne sie nun so an, dass benachbarte Sprossen sich in genau 1 Buchstaben unterscheiden.',
-          highlight: null
-        };
+
+        // Step 2: Sorting ladder rungs
+        if (this.crossclimbStep === 2) {
+          const rungs = this.crossclimbRungs;
+          let brokenIdx = -1;
+          for (let i = 0; i < rungs.length - 1; i++) {
+            if (this.crossclimbWordDiff(rungs[i].targetWord, rungs[i + 1].targetWord) !== 1) {
+              brokenIdx = i;
+              break;
+            }
+          }
+          if (brokenIdx !== -1) {
+            return {
+              key: `crossclimb_sort_${brokenIdx}`,
+              text: `Sortierung prüfen: Sprosse "${rungs[brokenIdx].targetWord}" und "${rungs[brokenIdx + 1].targetWord}" unterscheiden sich in mehr als 1 Buchstaben. Ordne sie um!`,
+              highlight: { rungIndex: brokenIdx }
+            };
+          }
+          return {
+            key: 'crossclimb_sort_ends',
+            text: 'Die Sprossen bilden eine Kette! Prüfe nun, ob das obere Wort zur Decke und das untere zum Boden passt (oder umgekehrt).',
+            highlight: null
+          };
+        }
+
+        // Step 3: Decke & Boden
+        if (this.crossclimbStep === 3) {
+          if (this.crossclimbDecke.currentWord !== this.crossclimbDecke.targetWord) {
+            const hintLetter = this.crossclimbDecke.targetWord.slice(0, 2);
+            return {
+              key: `crossclimb_decke_${hintLetter}`,
+              text: `Decke oben (${this.crossclimbDecke.targetWord.length} Buchstaben, Clue: "${this.crossclimbDecke.clue}"): Beginnt mit '${hintLetter}...'!`,
+              highlight: { rungType: 'decke' }
+            };
+          }
+          if (this.crossclimbBoden.currentWord !== this.crossclimbBoden.targetWord) {
+            const hintLetter = this.crossclimbBoden.targetWord.slice(0, 2);
+            return {
+              key: `crossclimb_boden_${hintLetter}`,
+              text: `Boden unten (${this.crossclimbBoden.targetWord.length} Buchstaben, Clue: "${this.crossclimbBoden.clue}"): Beginnt mit '${hintLetter}...'!`,
+              highlight: { rungType: 'boden' }
+            };
+          }
+          return { key: 'crossclimb_done', text: 'Die Leiter ist komplett gelöst!', highlight: null };
+        }
+
+        return { key: 'crossclimb_check', text: 'Überprüfe deine Eingaben auf der Leiter!', highlight: null };
       }
 
       if (game === 'pinpoint') {
@@ -9804,9 +9939,18 @@ init() {
         if (!puzzle) return null;
         const secret = (puzzle.keywords && puzzle.keywords[0]) || puzzle.category;
         const firstLetter = secret.charAt(0).toUpperCase();
+        const revealed = this.pinpointRevealedClues || 1;
+
+        if (revealed < puzzle.clues.length) {
+          return {
+            key: `pinpoint_clue_${puzzle.id}_${revealed}`,
+            text: `Weiterer Hinweis: "${puzzle.clues[revealed]}", Begriff beginnt mit '${firstLetter}...', Kategorie: '${puzzle.category}'!`,
+            highlight: null
+          };
+        }
         return {
-          key: `pinpoint_hint_${puzzle.id}`,
-          text: `Tipp zum gesuchten Begriff: Startet mit '${firstLetter}...', Kategorie: '${puzzle.category}'!`,
+          key: `pinpoint_secret_${puzzle.id}`,
+          text: `Tipp zum gesuchten Begriff (${secret.length} Buchstaben): Startet mit '${secret.slice(0, 2).toUpperCase()}...', Kategorie: '${puzzle.category}'!`,
           highlight: null
         };
       }
