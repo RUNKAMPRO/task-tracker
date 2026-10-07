@@ -8,6 +8,19 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- PWA & Mobile Web App Manifest -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#6366f1">
+  <meta name="color-scheme" content="dark">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="OrbitSuite">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png">
+  <meta name="msapplication-TileColor" content="#0b0f19">
+  <meta name="msapplication-TileImage" content="icons/icon-192.png">
   <link rel="stylesheet" href="style.css">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="shortcut icon" href="favicon.ico">
@@ -178,6 +191,14 @@
 
       <!-- Suite Header Controls (Right) -->
       <div class="suite-header-right">
+        <!-- PWA App Install Button (Shown when browser supports installation) -->
+        <button class="btn-icon suite-control-btn hidden" id="btn-pwa-install" title="OrbitSuite als App installieren" aria-label="App installieren">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+        </button>
         <!-- Live Clock Pill -->
         <div class="suite-clock-pill" id="suite-clock-display" title="Lokale Zeit">
           <span class="clock-time">--:--</span>
@@ -229,6 +250,17 @@
             </div>
             <h1 class="hero-title" id="hub-greeting">Willkommen im <span class="gradient-text">Orbit Workspace</span></h1>
             <p class="hero-subtitle">Deine All-in-One Produktivitäts-Zentrale. Wähle unten eine App oder starte sofort mit einer Schnellaktion.</p>
+            <!-- PWA Hub Install CTA Banner -->
+            <div class="hub-pwa-banner hidden" id="hub-pwa-banner">
+              <div class="pwa-banner-left">
+                <span class="pwa-banner-icon">📲</span>
+                <div class="pwa-banner-text">
+                  <strong>OrbitSuite als App installieren</strong>
+                  <p>Starte OrbitSuite direkt im Vollbild vom Desktop oder Homescreen – 100% offline-fähig.</p>
+                </div>
+              </div>
+              <button class="btn-primary btn-sm" id="btn-pwa-hub-install">App installieren</button>
+            </div>
           </div>
           <div class="hero-stats-badge">
             <div class="stat-badge-inner">
@@ -279,7 +311,7 @@
           <div class="hub-kpi-card" data-app-nav="riddle">
             <div class="kpi-icon riddle">🧩</div>
             <div class="kpi-data">
-              <span class="kpi-value" id="hub-stat-riddles">18 Rätsel</span>
+              <span class="kpi-value" id="hub-stat-riddles">18 Optische Rätsel</span>
               <span class="kpi-label">Denksport & Quiz</span>
             </div>
             <span class="kpi-arrow">→</span>
@@ -452,7 +484,7 @@
               <div class="app-card-meta">
                 <div class="meta-pill">
                   <span class="dot purple"></span>
-                  <span id="hub-card-riddle-summary">18 Denk-Rätsel</span>
+                  <span id="hub-card-riddle-summary">18 Optische Rätsel</span>
                 </div>
                 <button class="app-launch-btn riddle-btn" data-launch="riddle">
                   <span>App öffnen</span>
@@ -1346,11 +1378,12 @@
           <div class="filter-group">
             <span class="filter-title">Kategorie:</span>
             <button class="filter-chip active riddle-filter-chip" data-category="all">Alle</button>
-            <button class="filter-chip riddle-filter-chip" data-category="Logik">💡 Logik</button>
-            <button class="filter-chip riddle-filter-chip" data-category="Zahlen">🔢 Zahlen & Mathe</button>
-            <button class="filter-chip riddle-filter-chip" data-category="Tech">💻 Coder & Tech</button>
-            <button class="filter-chip riddle-filter-chip" data-category="Detektiv">🕵️ Detektiv</button>
-            <button class="filter-chip riddle-filter-chip" data-category="Querdenker">🧠 Querdenker</button>
+            <button class="filter-chip riddle-filter-chip" data-category="Muster">🧩 Muster</button>
+            <button class="filter-chip riddle-filter-chip" data-category="Geometrie">📐 Geometrie</button>
+            <button class="filter-chip riddle-filter-chip" data-category="Gleichung">⚖️ Gleichung</button>
+            <button class="filter-chip riddle-filter-chip" data-category="Illusion">👁️ Illusion</button>
+            <button class="filter-chip riddle-filter-chip" data-category="Streichholz">🪵 Streichholz</button>
+            <button class="filter-chip riddle-filter-chip" data-category="Raumdenken">🎲 3D-Raum</button>
           </div>
           <div class="sort-container">
             <label for="riddle-difficulty-select" class="sort-label">Stufe:</label>
@@ -1381,6 +1414,7 @@
 
             <!-- Puzzle Question Box -->
             <div class="riddle-question-wrapper">
+              <div class="riddle-visual-box" id="riddle-visual-box"></div>
               <h2 class="riddle-question-text" id="riddle-question-text">Lädt Rätsel...</h2>
             </div>
 
@@ -1652,11 +1686,12 @@
           <div class="form-group col-half">
             <label for="riddle-new-cat" class="form-label">Kategorie</label>
             <select id="riddle-new-cat" class="form-select">
-              <option value="Logik">💡 Logik</option>
-              <option value="Zahlen">🔢 Zahlen & Mathe</option>
-              <option value="Tech">💻 Coder & Tech</option>
-              <option value="Detektiv">🕵️ Detektiv</option>
-              <option value="Querdenker">🧠 Querdenker</option>
+              <option value="Muster">🧩 Muster & Matrizen</option>
+              <option value="Geometrie">📐 Geometrie & Zählen</option>
+              <option value="Gleichung">⚖️ Symbol-Gleichung</option>
+              <option value="Illusion">👁️ Optische Illusion</option>
+              <option value="Streichholz">🪵 Streichholz</option>
+              <option value="Raumdenken">🎲 3D & Raumdenken</option>
             </select>
           </div>
 

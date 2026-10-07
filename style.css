@@ -3854,6 +3854,29 @@ body {
 }
 
 /* Puzzle Question Box */
+
+/* Visual Riddle Container */
+.riddle-visual-box {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 22px;
+  padding: 18px 14px;
+  background: radial-gradient(circle at center, rgba(30, 41, 59, 0.6) 0%, rgba(11, 17, 33, 0.95) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4), inset 0 0 20px rgba(99, 102, 241, 0.05);
+  min-height: 220px;
+  overflow: hidden;
+}
+
+.riddle-visual-box svg {
+  max-width: 100%;
+  height: auto;
+  max-height: 290px;
+  display: block;
+}
+
 .riddle-question-wrapper {
   padding: 24px 22px;
   background: rgba(10, 15, 26, 0.6);
@@ -4265,3 +4288,77 @@ body {
 }
 
 
+
+/* ==========================================================================
+   PWA & INSTALL BANNER STYLES
+   ========================================================================== */
+#btn-pwa-install {
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.35);
+  background: rgba(56, 189, 248, 0.08);
+}
+
+#btn-pwa-install.hidden {
+  display: none !important;
+}
+
+#btn-pwa-install:hover {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: #38bdf8;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+}
+
+.hub-pwa-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 18px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(168, 85, 247, 0.12) 100%);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  animation: fadeIn 0.4s ease;
+}
+
+.hub-pwa-banner.hidden {
+  display: none !important;
+}
+
+.pwa-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.pwa-banner-icon {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.pwa-banner-text strong {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 2px;
+}
+
+.pwa-banner-text p {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.35;
+}
+
+@media (max-width: 640px) {
+  .hub-pwa-banner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .hub-pwa-banner button {
+    width: 100%;
+  }
+}

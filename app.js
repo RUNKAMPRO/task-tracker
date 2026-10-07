@@ -2297,204 +2297,851 @@
       this.suite = suite;
       this.defaultRiddles = [
         {
-          id: 'riddle-1',
-          title: 'Die zwei Wächter und die Wahrheit',
-          category: 'Logik',
-          difficulty: 'Mittel',
-          question: 'Du stehst vor zwei Türen: Eine führt in die Freiheit, die andere ins Verderben. Vor jeder Tür steht ein Wächter. Einer sagt immer die Wahrheit, der andere lügt immer. Du darfst genau eine einzige Frage an einen der beiden Wächter stellen. Welche Frage stellst du, um die Tür zur Freiheit zu finden?',
-          hint: 'Überlege, was passiert, wenn du nach der Auskunft des jeweils ANDEREN Wächters fragst.',
-          solutionTitle: 'Frage nach der Antwort des anderen Wächters',
-          solutionExplanation: 'Frage einen der Wächter: "Welche Tür würde mir der andere Wächter als Weg zur Freiheit nennen?" Beide Wächter werden dir in jedem Fall die falsche Tür (ins Verderben) nennen! Wähle daraufhin einfach die jeweils andere Tür.',
-          keywords: ['andere', 'lügner', 'wahrheit', 'andere wächter', 'tür des anderen', 'gegenteil']
+                "id": "riddle-1",
+                "title": "Die Raven-Matrix der Formen",
+                "category": "Muster",
+                "difficulty": "Einfach",
+                "visualSvg": "<svg viewBox=\"0 0 320 320\" width=\"100%\" height=\"240\" xmlns=\"http://www.w3.org/2000/svg\">
+  <defs>
+    <filter id=\"glow-p\" x=\"-20%\" y=\"-20%\" width=\"140%\" height=\"140%\"><feGaussianBlur stdDeviation=\"3\" result=\"blur\"/><feMerge><feMergeNode in=\"blur\"/><feMergeNode in=\"SourceGraphic\"/></feMerge></filter>
+  </defs>
+  <!-- Grid Backgrounds -->
+  <rect x=\"15\" y=\"15\" width=\"85\" height=\"85\" rx=\"10\" fill=\"#1e293b\" stroke=\"#334155\" stroke-width=\"2\"/>
+  <rect x=\"117\" y=\"15\" width=\"85\" height=\"85\" rx=\"10\" fill=\"#1e293b\" stroke=\"#334155\" stroke-width=\"2\"/>
+  <rect x=\"220\" y=\"15\" width=\"85\" height=\"85\" rx=\"10\" fill=\"#1e293b\" stroke=\"#334155\" stroke-width=\"2\"/>
+  
+  <rect x=\"15\" y=\"117\" width=\"85\" height=\"85\" rx=\"10\" fill=\"#1e293b\" stroke=\"#334155\" stroke-width=\"2\"/>
+  <rect x=\"117\" y=\"117\" width=\"85\" height=\"85\" rx=\"10\" fill=\"#1e293b\" stroke=\"#334155\" stroke-width=\"2\"/>
+  <rect x=\"220\" y=\"117\" width=\"85\" height=\"85\" rx=\"10\" fill=\"#1e293b\" stroke=\"#334155\" stroke-width=\"2\"/>
+  
+  <rect x=\"15\" y=\"220\" width=\"85\" height=\"85\" rx=\"10\" fill=\"#1e293b\" stroke=\"#334155\" stroke-width=\"2\"/>
+  <rect x=\"117\" y=\"220\" width=\"85\" height=\"85\" rx=\"10\" fill=\"#1e293b\" stroke=\"#334155\" stroke-width=\"2\"/>
+  <rect x=\"220\" y=\"220\" width=\"85\" height=\"85\" rx=\"10\" fill=\"#2e1065\" stroke=\"#a855f7\" stroke-width=\"2.5\" stroke-dasharray=\"4 4\"/>
+  
+  <!-- Row 1: Circles with dots -->
+  <circle cx=\"57\" cy=\"57\" r=\"28\" fill=\"rgba(56,189,248,0.12)\" stroke=\"#38bdf8\" stroke-width=\"2.5\"/>
+  <circle cx=\"57\" cy=\"57\" r=\"4\" fill=\"#38bdf8\"/>
+  
+  <circle cx=\"160\" cy=\"57\" r=\"28\" fill=\"rgba(56,189,248,0.12)\" stroke=\"#38bdf8\" stroke-width=\"2.5\"/>
+  <circle cx=\"151\" cy=\"57\" r=\"4\" fill=\"#38bdf8\"/><circle cx=\"169\" cy=\"57\" r=\"4\" fill=\"#38bdf8\"/>
+  
+  <circle cx=\"262\" cy=\"57\" r=\"28\" fill=\"rgba(56,189,248,0.12)\" stroke=\"#38bdf8\" stroke-width=\"2.5\"/>
+  <circle cx=\"250\" cy=\"57\" r=\"4\" fill=\"#38bdf8\"/><circle cx=\"262\" cy=\"57\" r=\"4\" fill=\"#38bdf8\"/><circle cx=\"274\" cy=\"57\" r=\"4\" fill=\"#38bdf8\"/>
+
+  <!-- Row 2: Squares with dots -->
+  <rect x=\"35\" y=\"137\" width=\"44\" height=\"44\" rx=\"4\" fill=\"rgba(245,158,11,0.12)\" stroke=\"#f59e0b\" stroke-width=\"2.5\"/>
+  <circle cx=\"57\" cy=\"159\" r=\"4\" fill=\"#f59e0b\"/>
+  
+  <rect x=\"138\" y=\"137\" width=\"44\" height=\"44\" rx=\"4\" fill=\"rgba(245,158,11,0.12)\" stroke=\"#f59e0b\" stroke-width=\"2.5\"/>
+  <circle cx=\"151\" cy=\"159\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"169\" cy=\"159\" r=\"4\" fill=\"#f59e0b\"/>
+  
+  <rect x=\"240\" y=\"137\" width=\"44\" height=\"44\" rx=\"4\" fill=\"rgba(245,158,11,0.12)\" stroke=\"#f59e0b\" stroke-width=\"2.5\"/>
+  <circle cx=\"250\" cy=\"159\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"262\" cy=\"159\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"274\" cy=\"159\" r=\"4\" fill=\"#f59e0b\"/>
+
+  <!-- Row 3: Triangles with dots -->
+  <polygon points=\"57,235 32,282 82,282\" fill=\"rgba(16,185,129,0.12)\" stroke=\"#10b981\" stroke-width=\"2.5\"/>
+  <circle cx=\"57\" cy=\"265\" r=\"4\" fill=\"#10b981\"/>
+  
+  <polygon points=\"160,235 135,282 185,282\" fill=\"rgba(16,185,129,0.12)\" stroke=\"#10b981\" stroke-width=\"2.5\"/>
+  <circle cx=\"152\" cy=\"265\" r=\"4\" fill=\"#10b981\"/><circle cx=\"168\" cy=\"265\" r=\"4\" fill=\"#10b981\"/>
+  
+  <!-- Missing Cell with ? -->
+  <text x=\"262\" y=\"278\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"44\" font-weight=\"bold\" fill=\"#c084fc\" text-anchor=\"middle\" filter=\"url(#glow-p)\">?</text>
+</svg>",
+                "question": "Welche geometrische Form und wie viele Punkte gehören in das Feld mit dem Fragezeichen (?)?",
+                "hint": "Untersuche die geometrischen Formen zeilenweise und die Punktanzahl spaltenweise.",
+                "solutionTitle": "Dreieck mit 3 Punkten",
+                "solutionExplanation": "Zeile 1 enthält Kreise, Zeile 2 Quadrate, Zeile 3 Dreiecke. Spalte 1 hat 1 Punkt, Spalte 2 hat 2 Punkte, Spalte 3 hat 3 Punkte. In das Zielfeld gehört daher ein Dreieck mit 3 Punkten.",
+                "keywords": [
+                        "dreieck",
+                        "3",
+                        "dreieck mit 3 punkten",
+                        "dreieck 3",
+                        "dreieck 3 punkte",
+                        "dreieck mit drei punkten",
+                        "3 punkte"
+                ]
         },
         {
-          id: 'riddle-2',
-          title: 'Die drei Schalter im Keller',
-          category: 'Logik',
-          difficulty: 'Mittel',
-          question: 'Im Keller befinden sich 3 Lichtschalter (A, B, C). Nur einer davon schaltet die Glühlampe auf dem Dachboden ein. Vom Keller aus sieht man den Dachboden nicht. Du darfst die Schalter beliebig oft schalten, darfst aber nur EIN EINZIGES MAL nach oben auf den Dachboden gehen. Wie findest du heraus, welcher Schalter die Lampe bedient?',
-          hint: 'Klassische Glühbirnen erzeugen nicht nur sichtbares Licht, sondern noch etwas anderes...',
-          solutionTitle: 'Nutzung der Wärmestrahlung der Glühbirne',
-          solutionExplanation: 'Schalte Schalter A für 10 Minuten an. Schalte ihn dann wieder aus und schalte Schalter B an. Gehe sofort nach oben: Brennt das Licht, ist es Schalter B. Ist die Lampe aus, aber heiß/warm, ist es Schalter A. Ist die Lampe aus und kalt, ist es Schalter C!',
-          keywords: ['wärme', 'warm', 'heiß', 'temperatur', 'hitze', 'abkühlen']
+                "id": "riddle-2",
+                "title": "Das fraktale Dreiecks-Gitter",
+                "category": "Geometrie",
+                "difficulty": "Mittel",
+                "visualSvg": "<svg viewBox=\"0 0 360 260\" width=\"100%\" height=\"240\" xmlns=\"http://www.w3.org/2000/svg\">
+  <defs>
+    <linearGradient id=\"tri-grad\" x1=\"0%\" y1=\"0%\" x2=\"100%\" y2=\"100%\">
+      <stop offset=\"0%\" stop-color=\"#10b981\" stop-opacity=\"0.25\"/>
+      <stop offset=\"100%\" stop-color=\"#064e3b\" stop-opacity=\"0.1\"/>
+    </linearGradient>
+  </defs>
+  <!-- Main Triangle -->
+  <polygon points=\"180,20 40,240 320,240\" fill=\"url(#tri-grad)\" stroke=\"#10b981\" stroke-width=\"3\"/>
+  <!-- Subdividing Lines (3 rows) -->
+  <!-- Level 1 horizontal -->
+  <line x1=\"133.3\" y1=\"93.3\" x2=\"226.7\" y2=\"93.3\" stroke=\"#34d399\" stroke-width=\"2\"/>
+  <!-- Level 2 horizontal -->
+  <line x1=\"86.7\" y1=\"166.7\" x2=\"273.3\" y2=\"166.7\" stroke=\"#34d399\" stroke-width=\"2\"/>
+  <!-- Diagonals / Inverted Triangles -->
+  <line x1=\"133.3\" y1=\"93.3\" x2=\"86.7\" y2=\"166.7\" stroke=\"#34d399\" stroke-width=\"2\"/>
+  <line x1=\"226.7\" y1=\"93.3\" x2=\"273.3\" y2=\"166.7\" stroke=\"#34d399\" stroke-width=\"2\"/>
+  <line x1=\"133.3\" y1=\"93.3\" x2=\"180\" y2=\"166.7\" stroke=\"#34d399\" stroke-width=\"2\"/>
+  <line x1=\"226.7\" y1=\"93.3\" x2=\"180\" y2=\"166.7\" stroke=\"#34d399\" stroke-width=\"2\"/>
+  <line x1=\"86.7\" y1=\"166.7\" x2=\"133.3\" y2=\"240\" stroke=\"#34d399\" stroke-width=\"2\"/>
+  <line x1=\"180\" y1=\"166.7\" x2=\"133.3\" y2=\"240\" stroke=\"#34d399\" stroke-width=\"2\"/>
+  <line x1=\"180\" y1=\"166.7\" x2=\"226.7\" y2=\"240\" stroke=\"#34d399\" stroke-width=\"2\"/>
+  <line x1=\"273.3\" y1=\"166.7\" x2=\"226.7\" y2=\"240\" stroke=\"#34d399\" stroke-width=\"2\"/>
+</svg>",
+                "question": "Wie viele aufrechte und zusammengesetzte Dreiecke verbergen sich insgesamt in dieser Figur?",
+                "hint": "Zähle die 9 kleinen 1×1-Dreiecke, die 3 mittleren 2×2-Dreiecke sowie das 1 große Gesamtdreieck.",
+                "solutionTitle": "Exakt 13 Dreiecke",
+                "solutionExplanation": "9 kleine Dreiecke (1x1) + 3 mittlere Dreiecke (aus je 4 Teilflächen zusammengesetzt) + 1 großes Außendreieck (3x3) = insgesamt 13 Dreiecke.",
+                "keywords": [
+                        "13",
+                        "dreizehn",
+                        "13 dreiecke"
+                ]
         },
         {
-          id: 'riddle-3',
-          title: 'Der Schläger und der Ball',
-          category: 'Zahlen',
-          difficulty: 'Einfach',
-          question: 'Ein Baseballschläger und ein Ball kosten zusammen 1,10 Euro. Der Schläger kostet genau 1,00 Euro mehr als der Ball. Wie viel kostet der Ball?',
-          hint: 'Achtung vor der schnellen Spontanantwort! Stelle eine kurze Gleichung auf: x + (x + 1,00) = 1,10.',
-          solutionTitle: 'Der Ball kostet genau 5 Cent (0,05 €)',
-          solutionExplanation: 'Wenn der Ball 5 Cent kostet und der Schläger 1,00 Euro mehr (also 1,05 Euro), kosten beide zusammen genau 1,10 Euro. Bei 10 Cent für den Ball wäre der Schläger 1,10 Euro und die Summe 1,20 Euro.',
-          keywords: ['5', '0.05', '0,05', '5 cent', 'fünf cent', '5ct', 'fünf']
+                "id": "riddle-3",
+                "title": "Kosmisches Symbol-Gleichungssystem",
+                "category": "Gleichung",
+                "difficulty": "Mittel",
+                "visualSvg": "<svg viewBox=\"0 0 380 230\" width=\"100%\" height=\"240\" xmlns=\"http://www.w3.org/2000/svg\">
+  <style>
+    .math-row { font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; fill: #f8fafc; }
+    .symbol { font-size: 26px; }
+    .op { fill: #94a3b8; font-size: 22px; font-weight: 500; }
+    .res { fill: #38bdf8; font-weight: 700; }
+    .target { fill: #f43f5e; font-weight: 900; font-size: 24px; }
+  </style>
+  <!-- Row 1 -->
+  <rect x=\"15\" y=\"10\" width=\"350\" height=\"44\" rx=\"8\" fill=\"#1e293b\" stroke=\"#334155\"/>
+  <text x=\"35\" y=\"40\" class=\"symbol\">🚀</text><text x=\"75\" y=\"40\" class=\"op\">+</text>
+  <text x=\"100\" y=\"40\" class=\"symbol\">🚀</text><text x=\"140\" y=\"40\" class=\"op\">+</text>
+  <text x=\"165\" y=\"40\" class=\"symbol\">🚀</text><text x=\"210\" y=\"40\" class=\"op\">=</text>
+  <text x=\"245\" y=\"40\" class=\"math-row res\">30</text>
+
+  <!-- Row 2 -->
+  <rect x=\"15\" y=\"64\" width=\"350\" height=\"44\" rx=\"8\" fill=\"#1e293b\" stroke=\"#334155\"/>
+  <text x=\"35\" y=\"94\" class=\"symbol\">🚀</text><text x=\"75\" y=\"94\" class=\"op\">+</text>
+  <text x=\"100\" y=\"94\" class=\"symbol\">🛸</text><text x=\"140\" y=\"94\" class=\"op\">+</text>
+  <text x=\"165\" y=\"94\" class=\"symbol\">🛸</text><text x=\"210\" y=\"94\" class=\"op\">=</text>
+  <text x=\"245\" y=\"94\" class=\"math-row res\">20</text>
+
+  <!-- Row 3 -->
+  <rect x=\"15\" y=\"118\" width=\"350\" height=\"44\" rx=\"8\" fill=\"#1e293b\" stroke=\"#334155\"/>
+  <text x=\"35\" y=\"148\" class=\"symbol\">🛸</text><text x=\"75\" y=\"148\" class=\"op\">+</text>
+  <text x=\"100\" y=\"148\" class=\"symbol\">⭐</text><text x=\"140\" y=\"148\" class=\"op\">+</text>
+  <text x=\"165\" y=\"148\" class=\"symbol\">⭐</text><text x=\"210\" y=\"148\" class=\"op\">=</text>
+  <text x=\"245\" y=\"148\" class=\"math-row res\">9</text>
+
+  <!-- Row 4 -->
+  <rect x=\"15\" y=\"172\" width=\"350\" height=\"48\" rx=\"8\" fill=\"#2a1532\" stroke=\"#f43f5e\" stroke-width=\"2\"/>
+  <text x=\"35\" y=\"204\" class=\"symbol\">🚀</text><text x=\"75\" y=\"204\" class=\"op\">+</text>
+  <text x=\"100\" y=\"204\" class=\"symbol\">⭐</text><text x=\"140\" y=\"204\" class=\"op\">×</text>
+  <text x=\"165\" y=\"204\" class=\"symbol\">🛸</text><text x=\"210\" y=\"204\" class=\"op\">=</text>
+  <text x=\"250\" y=\"206\" class=\"math-row target\">?</text>
+</svg>",
+                "question": "Welche Zahl ersetzt das Fragezeichen (?)? Vorsicht: Achte auf Punkt- vor Strichrechnung!",
+                "hint": "3 Raketen = 30 -> Rakete = 10. Berechne Ufo und Stern, und multipliziere am Schluss vor der Addition.",
+                "solutionTitle": "Die Lösung ist 20",
+                "solutionExplanation": "🚀 = 10 (30 / 3). 🛸 = 5 ((20 - 10) / 2). ⭐ = 2 ((9 - 5) / 2). Letzte Zeile: 10 + (2 × 5) = 10 + 10 = 20 (Multiplikation vor Addition!).",
+                "keywords": [
+                        "20",
+                        "zwanzig"
+                ]
         },
         {
-          id: 'riddle-4',
-          title: 'Der wachsende Seerosenteich',
-          category: 'Zahlen',
-          difficulty: 'Einfach',
-          question: 'Auf einem See wächst eine Seerose, deren Fläche sich jeden Tag verdoppelt. Nach genau 48 Tagen ist der gesamte See vollständig von Seerosen bedeckt. An welchem Tag war der See genau zur Hälfte bedeckt?',
-          hint: 'Rechne vom 48. Tag aus einen Schritt rückwärts.',
-          solutionTitle: 'Am 47. Tag',
-          solutionExplanation: 'Da sich die Fläche jeden Tag verdoppelt, war der See genau einen Tag vor der vollständigen Bedeckung (also an Tag 48 - 1 = Tag 47) exakt zur Hälfte bedeckt.',
-          keywords: ['47', '47.', '47 tag', 'tag 47', 'siebenundvierzig']
+                "id": "riddle-4",
+                "title": "Müller-Lyer Linientäuschung",
+                "category": "Illusion",
+                "difficulty": "Einfach",
+                "visualSvg": "<svg viewBox=\"0 0 380 200\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\">
+  <defs>
+    <filter id=\"glow-line\"><feGaussianBlur stdDeviation=\"2\" result=\"b\"/><feMerge><feMergeNode in=\"b\"/><feMergeNode in=\"SourceGraphic\"/></feMerge></filter>
+  </defs>
+  <!-- Line A Label -->
+  <text x=\"30\" y=\"65\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"16\" font-weight=\"700\" fill=\"#38bdf8\">Linie A:</text>
+  <!-- Line A (Length 220px, x=90 to 310, y=60) with inward arrows -->
+  <line x1=\"90\" y1=\"60\" x2=\"310\" y2=\"60\" stroke=\"#fff\" stroke-width=\"4\" filter=\"url(#glow-line)\"/>
+  <!-- Left inward wings -->
+  <line x1=\"65\" y1=\"40\" x2=\"90\" y2=\"60\" stroke=\"#38bdf8\" stroke-width=\"3.5\" stroke-linecap=\"round\"/>
+  <line x1=\"65\" y1=\"80\" x2=\"90\" y2=\"60\" stroke=\"#38bdf8\" stroke-width=\"3.5\" stroke-linecap=\"round\"/>
+  <!-- Right inward wings -->
+  <line x1=\"335\" y1=\"40\" x2=\"310\" y2=\"60\" stroke=\"#38bdf8\" stroke-width=\"3.5\" stroke-linecap=\"round\"/>
+  <line x1=\"335\" y1=\"80\" x2=\"310\" y2=\"60\" stroke=\"#38bdf8\" stroke-width=\"3.5\" stroke-linecap=\"round\"/>
+
+  <!-- Line B Label -->
+  <text x=\"30\" y=\"145\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"16\" font-weight=\"700\" fill=\"#f59e0b\">Linie B:</text>
+  <!-- Line B (Length 220px, x=90 to 310, y=140) with outward wings -->
+  <line x1=\"90\" y1=\"140\" x2=\"310\" y2=\"140\" stroke=\"#fff\" stroke-width=\"4\" filter=\"url(#glow-line)\"/>
+  <!-- Left outward wings -->
+  <line x1=\"115\" y1=\"120\" x2=\"90\" y2=\"140\" stroke=\"#f59e0b\" stroke-width=\"3.5\" stroke-linecap=\"round\"/>
+  <line x1=\"115\" y1=\"160\" x2=\"90\" y2=\"140\" stroke=\"#f59e0b\" stroke-width=\"3.5\" stroke-linecap=\"round\"/>
+  <!-- Right outward wings -->
+  <line x1=\"285\" y1=\"120\" x2=\"310\" y2=\"140\" stroke=\"#f59e0b\" stroke-width=\"3.5\" stroke-linecap=\"round\"/>
+  <line x1=\"285\" y1=\"160\" x2=\"310\" y2=\"140\" stroke=\"#f59e0b\" stroke-width=\"3.5\" stroke-linecap=\"round\"/>
+</svg>",
+                "question": "Welche der beiden horizontalen Linien (Linie A oder Linie B) ist in Wirklichkeit länger?",
+                "hint": "Lass dich nicht von den Pfeilspitzen an den Enden täuschen – betrachte nur die weißen horizontalen Linien.",
+                "solutionTitle": "Beide Linien sind exakt gleich lang!",
+                "solutionExplanation": "Die 1889 von Franz Müller-Lyer entdeckte geometrisch-optische Täuschung: Nach außen zeigende Pfeilflügel lassen eine Strecke deutlich kürzer wirken als nach innen zeigende Flügel, obwohl beide Horizontalen exakt 220 Pixel lang sind.",
+                "keywords": [
+                        "gleich",
+                        "beide gleich",
+                        "gleich lang",
+                        "beide",
+                        "keine",
+                        "identisch",
+                        "sie sind gleich lang"
+                ]
         },
         {
-          id: 'riddle-5',
-          title: 'Warum feiern Programmierer Halloween an Weihnachten?',
-          category: 'Tech',
-          difficulty: 'Mittel',
-          question: 'Ein berühmter Tech-Witz: Warum können viele Software-Entwickler Halloween (31. Oktober) und Weihnachten (25. Dezember) nicht voneinander unterscheiden?',
-          hint: 'Denke an Zahlensysteme: Die englischen Abkürzungen OCT und DEC haben in der Informatik eine mathematische Bedeutung.',
-          solutionTitle: 'Weil OCT 31 gleich DEC 25 ist!',
-          solutionExplanation: 'Im Oktalsystem (Basis 8): 31 (Oktal) = 3 × 8 + 1 = 25 (Dezimal). Abkürzungen für Oktober (OCT) und Dezember (DEC) entsprechen Oktal- und Dezimalsystem: OCT 31 = DEC 25!',
-          keywords: ['oct 31 = dec 25', 'oktal', 'oktalsystem', 'basis 8', 'octal', 'dec', 'oct']
+                "id": "riddle-5",
+                "title": "Streichholz-Gleichung: 6 + 4 = 4",
+                "category": "Streichholz",
+                "difficulty": "Einfach",
+                "visualSvg": "<svg viewBox=\"0 0 380 200\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\">
+  <defs>
+    <!-- Horizontal Matchstick -->
+    <g id=\"h-match\">
+      <rect x=\"0\" y=\"2\" width=\"46\" height=\"8\" rx=\"2\" fill=\"#d97706\"/>
+      <circle cx=\"4\" cy=\"6\" r=\"5\" fill=\"#ef4444\"/>
+    </g>
+    <!-- Vertical Matchstick -->
+    <g id=\"v-match\">
+      <rect x=\"2\" y=\"0\" width=\"8\" height=\"46\" rx=\"2\" fill=\"#d97706\"/>
+      <circle cx=\"6\" cy=\"4\" r=\"5\" fill=\"#ef4444\"/>
+    </g>
+  </defs>
+  <!-- Digit 6: x=40 -->
+  <use href=\"#h-match\" x=\"40\" y=\"30\"/>
+  <use href=\"#v-match\" x=\"34\" y=\"36\"/>
+  <use href=\"#v-match\" x=\"34\" y=\"86\"/>
+  <use href=\"#h-match\" x=\"40\" y=\"80\"/>
+  <use href=\"#v-match\" x=\"80\" y=\"86\"/>
+  <use href=\"#h-match\" x=\"40\" y=\"130\"/>
+
+  <!-- Plus Sign: x=115 -->
+  <use href=\"#h-match\" x=\"110\" y=\"80\"/>
+  <use href=\"#v-match\" x=\"129\" y=\"61\"/>
+
+  <!-- Digit 4: x=185 -->
+  <use href=\"#v-match\" x=\"175\" y=\"36\"/>
+  <use href=\"#h-match\" x=\"180\" y=\"80\"/>
+  <use href=\"#v-match\" x=\"220\" y=\"36\"/>
+  <use href=\"#v-match\" x=\"220\" y=\"86\"/>
+
+  <!-- Equals Sign: x=255 -->
+  <use href=\"#h-match\" x=\"250\" y=\"72\"/>
+  <use href=\"#h-match\" x=\"250\" y=\"92\"/>
+
+  <!-- Digit 4: x=325 -->
+  <use href=\"#v-match\" x=\"315\" y=\"36\"/>
+  <use href=\"#h-match\" x=\"320\" y=\"80\"/>
+  <use href=\"#v-match\" x=\"360\" y=\"36\"/>
+  <use href=\"#v-match\" x=\"360\" y=\"86\"/>
+
+  <text x=\"190\" y=\"180\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"14\" fill=\"#94a3b8\" text-anchor=\"middle\">Bewege genau 1 Streichholz!</text>
+</svg>",
+                "question": "Bewege genau 1 Streichholz, um diese Gleichung mathematisch wahr zu machen. Welche Rechnung entsteht?",
+                "hint": "Nimm das mittlere Streichholz der 6 und mache daraus eine 0 (oder verändere das Plus in ein Minus).",
+                "solutionTitle": "0 + 4 = 4 (oder 8 - 4 = 4)",
+                "solutionExplanation": "Entferne das mittlere Querstäbchen der 6 und setze es oben rechts ein, um aus der 6 eine 0 zu machen: 0 + 4 = 4! Alternativ: Nimm das vertikale Holz des Pluszeichens und schließe die 6 zu einer 8: 8 - 4 = 4.",
+                "keywords": [
+                        "0+4=4",
+                        "0 + 4 = 4",
+                        "0+4",
+                        "8-4=4",
+                        "8 - 4 = 4",
+                        "5+4=9",
+                        "5 + 4 = 9"
+                ]
         },
         {
-          id: 'riddle-6',
-          title: 'Der Zaunpfahlfehler (Fencepost / Off-by-One)',
-          category: 'Tech',
-          difficulty: 'Einfach',
-          question: 'Du möchtest einen geraden Zaun von 100 Metern Länge bauen. Alle 10 Meter soll ein Zaunpfahl stehen, und an beiden Enden muss zwingend ebenfalls ein Pfahl stehen. Wie viele Zaunpfähle benötigst du insgesamt?',
-          hint: 'Zähle die Zaunabschnitte und denke an den allerersten Pfahl am Anfang.',
-          solutionTitle: 'Genau 11 Zaunpfähle',
-          solutionExplanation: 'Es gibt 100 / 10 = 10 Zaun-Segmente. Da an beiden Enden ein Pfahl stehen muss, benötigt man Segmente + 1 = 11 Pfähle. Dies ist der berühmte Fencepost- bzw. Off-by-one-Fehler in der Programmierung.',
-          keywords: ['11', 'elf', '11 pfähle', '11 zaunpfähle', 'fencepost']
+                "id": "riddle-6",
+                "title": "Isometrische 3D-Würfelpyramide",
+                "category": "Raumdenken",
+                "difficulty": "Mittel",
+                "visualSvg": "<svg viewBox=\"0 0 360 260\" width=\"100%\" height=\"240\" xmlns=\"http://www.w3.org/2000/svg\">
+  <defs>
+    <!-- Isometric Cube: w=50, h=30 -->
+    <g id=\"iso-cube\">
+      <!-- Top Face -->
+      <polygon points=\"0,0 26,-15 52,0 26,15\" fill=\"#38bdf8\" stroke=\"#0284c7\" stroke-width=\"1.2\"/>
+      <!-- Left Face -->
+      <polygon points=\"0,0 26,15 26,45 0,30\" fill=\"#0284c7\" stroke=\"#0369a1\" stroke-width=\"1.2\"/>
+      <!-- Right Face -->
+      <polygon points=\"26,15 52,0 52,30 26,45\" fill=\"#0369a1\" stroke=\"#075985\" stroke-width=\"1.2\"/>
+    </g>
+  </defs>
+  <!-- Level 1 (Bottom 3x3 = 9 cubes) -->
+  <g transform=\"translate(154, 180)\"><use href=\"#iso-cube\"/></g>
+  <g transform=\"translate(128, 165)\"><use href=\"#iso-cube\"/></g>
+  <g transform=\"translate(180, 165)\"><use href=\"#iso-cube\"/></g>
+  <g transform=\"translate(102, 150)\"><use href=\"#iso-cube\"/></g>
+  <g transform=\"translate(154, 150)\"><use href=\"#iso-cube\"/></g>
+  <g transform=\"translate(206, 150)\"><use href=\"#iso-cube\"/></g>
+  <g transform=\"translate(128, 135)\"><use href=\"#iso-cube\"/></g>
+  <g transform=\"translate(180, 135)\"><use href=\"#iso-cube\"/></g>
+  <g transform=\"translate(154, 120)\"><use href=\"#iso-cube\"/></g>
+
+  <!-- Level 2 (Middle 2x2 = 4 cubes, elevated by 30px) -->
+  <g transform=\"translate(154, 135)\"><use href=\"#iso-cube\"/></g>
+  <g transform=\"translate(128, 120)\"><use href=\"#iso-cube\"/></g>
+  <g transform=\"translate(180, 120)\"><use href=\"#iso-cube\"/></g>
+  <g transform=\"translate(154, 105)\"><use href=\"#iso-cube\"/></g>
+
+  <!-- Level 3 (Top 1x1 = 1 cube, elevated by another 30px) -->
+  <g transform=\"translate(154, 75)\"><use href=\"#iso-cube\"/></g>
+</svg>",
+                "question": "Aus wie vielen gleich großen Würfeln besteht diese 3D-Pyramide insgesamt (inklusive aller verdeckten Stützwürfel)?",
+                "hint": "Zähle ebenenweise von oben nach unten: 1 (Spitze) + 4 (mittlere Ebene) + 9 (Grundfläche).",
+                "solutionTitle": "Genau 14 Würfel",
+                "solutionExplanation": "1. Ebene (oben): 1 Würfel (1×1). 2. Ebene (Mitte): 4 Würfel (2×2). 3. Ebene (unten): 9 Würfel (3×3). 1 + 4 + 9 = 14 Würfel insgesamt.",
+                "keywords": [
+                        "14",
+                        "vierzehn",
+                        "14 wuerfel",
+                        "14 würfel"
+                ]
         },
         {
-          id: 'riddle-7',
-          title: 'Das klassische Deadlock-Dilemma',
-          category: 'Tech',
-          difficulty: 'Schwer',
-          question: 'Fünf Philosophen sitzen an einem runden Tisch. Zwischen je zwei Tellern liegt genau eine Gabel (insgesamt 5 Gabeln). Jeder Philosoph benötigt zum Essen zwingend BEIDE Nachbargabeln. Alle greifen gleichzeitig nach ihrer linken Gabel. Welcher Systemzustand tritt ein, und wie nennt man dieses fundamentale Informatik-Problem?',
-          hint: 'Niemand kann weiteressen, weil alle zyklisch aufeinander warten.',
-          solutionTitle: 'Deadlock (Systemverklemmung)',
-          solutionExplanation: 'Es tritt ein Deadlock (zyklisches Warten / Verklemmung) ein. Jeder Prozess hält eine Ressource und wartet blockiert auf eine belegte Nachbarressource. Ohne Deadlock-Handling verhungern alle.',
-          keywords: ['deadlock', 'verklemmung', 'verkeilung', 'circular wait', 'zyklisches warten']
+                "id": "riddle-7",
+                "title": "Die Ebbinghaus-Größentäuschung",
+                "category": "Illusion",
+                "difficulty": "Einfach",
+                "visualSvg": "<svg viewBox=\"0 0 380 210\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\">
+  <!-- Left Group: Large Surrounding Circles (r=40) -->
+  <g transform=\"translate(100, 105)\">
+    <!-- Surrounding Circles -->
+    <circle cx=\"0\" cy=\"-62\" r=\"28\" fill=\"#334155\" stroke=\"#475569\"/>
+    <circle cx=\"54\" cy=\"-31\" r=\"28\" fill=\"#334155\" stroke=\"#475569\"/>
+    <circle cx=\"54\" cy=\"31\" r=\"28\" fill=\"#334155\" stroke=\"#475569\"/>
+    <circle cx=\"0\" cy=\"62\" r=\"28\" fill=\"#334155\" stroke=\"#475569\"/>
+    <circle cx=\"-54\" cy=\"31\" r=\"28\" fill=\"#334155\" stroke=\"#475569\"/>
+    <circle cx=\"-54\" cy=\"-31\" r=\"28\" fill=\"#334155\" stroke=\"#475569\"/>
+    <!-- Center Orange Circle (r=22) -->
+    <circle cx=\"0\" cy=\"0\" r=\"22\" fill=\"#f97316\" stroke=\"#fb923c\" stroke-width=\"2\"/>
+    <text x=\"0\" y=\"5\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"14\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">A</text>
+  </g>
+
+  <!-- Right Group: Small Surrounding Circles (r=11) -->
+  <g transform=\"translate(280, 105)\">
+    <!-- Surrounding Circles -->
+    <circle cx=\"0\" cy=\"-38\" r=\"10\" fill=\"#334155\" stroke=\"#475569\"/>
+    <circle cx=\"27\" cy=\"-27\" r=\"10\" fill=\"#334155\" stroke=\"#475569\"/>
+    <circle cx=\"38\" cy=\"0\" r=\"10\" fill=\"#334155\" stroke=\"#475569\"/>
+    <circle cx=\"27\" cy=\"27\" r=\"10\" fill=\"#334155\" stroke=\"#475569\"/>
+    <circle cx=\"0\" cy=\"38\" r=\"10\" fill=\"#334155\" stroke=\"#475569\"/>
+    <circle cx=\"-27\" cy=\"27\" r=\"10\" fill=\"#334155\" stroke=\"#475569\"/>
+    <circle cx=\"-38\" cy=\"0\" r=\"10\" fill=\"#334155\" stroke=\"#475569\"/>
+    <circle cx=\"-27\" cy=\"-27\" r=\"10\" fill=\"#334155\" stroke=\"#475569\"/>
+    <!-- Center Orange Circle (r=22) -->
+    <circle cx=\"0\" cy=\"0\" r=\"22\" fill=\"#f97316\" stroke=\"#fb923c\" stroke-width=\"2\"/>
+    <text x=\"0\" y=\"5\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"14\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">B</text>
+  </g>
+</svg>",
+                "question": "Welcher der beiden inneren orangen Kreise (A oder B) besitzt den größeren Durchmesser?",
+                "hint": "Das menschliche Gehirn schätzt Größen immer im relativen Kontrast zur Umgebung ab.",
+                "solutionTitle": "Beide Kreise sind absolut gleich groß!",
+                "solutionExplanation": "Die Ebbinghaus-Täuschung (Titchener-Kreise): Kreis A wirkt optisch geschrumpft, weil er von riesigen Kreisen umgeben ist. Kreis B wirkt vergrößert durch die winzigen Nachbarkreise. Beide orangen Kreise haben exakt 22 Pixel Radius.",
+                "keywords": [
+                        "gleich",
+                        "beide gleich",
+                        "gleich gross",
+                        "gleich groß",
+                        "beide",
+                        "keiner",
+                        "identisch"
+                ]
         },
         {
-          id: 'riddle-8',
-          title: 'Das nasse Zimmer und die Scherben',
-          category: 'Detektiv',
-          difficulty: 'Einfach',
-          question: 'Romeo und Julia liegen regungslos auf dem Boden in einer Wasserlache. Überall liegen Glasscherben verstreut. Das Fenster steht weit offen und die Gardinen wehen im Wind. An den Körpern gibt es keinerlei Wunden oder Spuren von Gift. Wie sind die beiden gestorben?',
-          hint: 'Wer hat behauptet, dass Romeo und Julia Menschen sind?',
-          solutionTitle: 'Romeo und Julia waren Goldfische!',
-          solutionExplanation: 'Romeo und Julia waren Goldfische in einem Aquarium. Ein kräftiger Windstoß warf das Fischglas um, es zerschellte auf dem Fußboden und die Fische erstickten ohne Wasser.',
-          keywords: ['fisch', 'goldfisch', 'aquarium', 'goldfische', 'fische', 'fischglas']
+                "id": "riddle-8",
+                "title": "Die rotierende Zeiger-Sequenz",
+                "category": "Muster",
+                "difficulty": "Mittel",
+                "visualSvg": "<svg viewBox=\"0 0 420 140\" width=\"100%\" height=\"160\" xmlns=\"http://www.w3.org/2000/svg\">
+  <!-- Dial 1 (0° / 12:00) -->
+  <g transform=\"translate(45, 60)\">
+    <circle cx=\"0\" cy=\"0\" r=\"34\" fill=\"#1e293b\" stroke=\"#475569\" stroke-width=\"2\"/>
+    <line x1=\"0\" y1=\"0\" x2=\"0\" y2=\"-25\" stroke=\"#38bdf8\" stroke-width=\"3.5\" stroke-linecap=\"round\"/>
+    <circle cx=\"0\" cy=\"0\" r=\"3.5\" fill=\"#38bdf8\"/>
+    <text x=\"0\" y=\"52\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"12\" fill=\"#94a3b8\" text-anchor=\"middle\">12:00</text>
+  </g>
+  <!-- Dial 2 (+45° -> 45° / 1:30) -->
+  <g transform=\"translate(130, 60)\">
+    <circle cx=\"0\" cy=\"0\" r=\"34\" fill=\"#1e293b\" stroke=\"#475569\" stroke-width=\"2\"/>
+    <line x1=\"0\" y1=\"0\" x2=\"17.7\" y2=\"-17.7\" stroke=\"#38bdf8\" stroke-width=\"3.5\" stroke-linecap=\"round\"/>
+    <circle cx=\"0\" cy=\"0\" r=\"3.5\" fill=\"#38bdf8\"/>
+    <text x=\"0\" y=\"52\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"12\" fill=\"#94a3b8\" text-anchor=\"middle\">1:30</text>
+  </g>
+  <!-- Dial 3 (+90° -> 135° / 4:30) -->
+  <g transform=\"translate(215, 60)\">
+    <circle cx=\"0\" cy=\"0\" r=\"34\" fill=\"#1e293b\" stroke=\"#475569\" stroke-width=\"2\"/>
+    <line x1=\"0\" y1=\"0\" x2=\"17.7\" y2=\"17.7\" stroke=\"#38bdf8\" stroke-width=\"3.5\" stroke-linecap=\"round\"/>
+    <circle cx=\"0\" cy=\"0\" r=\"3.5\" fill=\"#38bdf8\"/>
+    <text x=\"0\" y=\"52\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"12\" fill=\"#94a3b8\" text-anchor=\"middle\">4:30</text>
+  </g>
+  <!-- Dial 4 (+135° -> 270° / 9:00) -->
+  <g transform=\"translate(300, 60)\">
+    <circle cx=\"0\" cy=\"0\" r=\"34\" fill=\"#1e293b\" stroke=\"#475569\" stroke-width=\"2\"/>
+    <line x1=\"0\" y1=\"0\" x2=\"-25\" y2=\"0\" stroke=\"#38bdf8\" stroke-width=\"3.5\" stroke-linecap=\"round\"/>
+    <circle cx=\"0\" cy=\"0\" r=\"3.5\" fill=\"#38bdf8\"/>
+    <text x=\"0\" y=\"52\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"12\" fill=\"#94a3b8\" text-anchor=\"middle\">9:00</text>
+  </g>
+  <!-- Dial 5 (Next? +180° -> 450° = 90° / 3:00) -->
+  <g transform=\"translate(385, 60)\">
+    <circle cx=\"0\" cy=\"0\" r=\"34\" fill=\"#2e1065\" stroke=\"#a855f7\" stroke-width=\"2.5\" stroke-dasharray=\"4 3\"/>
+    <text x=\"0\" y=\"8\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"28\" font-weight=\"900\" fill=\"#c084fc\" text-anchor=\"middle\">?</text>
+    <text x=\"0\" y=\"52\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"12\" fill=\"#c084fc\" text-anchor=\"middle\">Ziel</text>
+  </g>
+</svg>",
+                "question": "Auf welche Uhrzeit (oder wie viel Grad) zeigt der Zeiger der 5. Uhr, wenn das Muster fortgesetzt wird?",
+                "hint": "Die Drehung vergrößert sich in jedem Schritt um 45 Grad: +45°, dann +90°, dann +135° ... Wie viel Grad Drehung folgt nun?",
+                "solutionTitle": "3:00 Uhr (oder 90 Grad)",
+                "solutionExplanation": "Die Winkelschritte wachsen linear: +45° (1:30), +90° (4:30), +135° (9:00). Der nächste Schritt beträgt +180°: 270° + 180° = 450° ≡ 90°, was exakt 3:00 Uhr entspricht.",
+                "keywords": [
+                        "3:00",
+                        "3 uhr",
+                        "3",
+                        "drei uhr",
+                        "03:00",
+                        "90 grad",
+                        "90°"
+                ]
         },
         {
-          id: 'riddle-9',
-          title: 'Der Zeuge im Fahrstuhl',
-          category: 'Detektiv',
-          difficulty: 'Mittel',
-          question: 'Ein Mann wohnt im 17. Stock eines Hochhauses. An Regentagen oder wenn andere Personen mit im Fahrstuhl fahren, fährt er ganz nach oben in den 17. Stock. An sonnigen Tagen, wenn er allein ist, fährt er jedoch nur bis in den 10. Stock und läuft die restlichen 7 Stockwerke zu Fuß die Treppe hoch. Warum?',
-          hint: 'Was führt er an Regentagen mit sich, das er an sonnigen Tagen nicht dabei hat?',
-          solutionTitle: 'Der Mann ist kleinwüchsig (oder ein Kind)',
-          solutionExplanation: 'Der Mann kommt mit seinen Armen allein nur bis an den Knopf für den 10. Stock heran. An Regentagen hat er einen Regenschirm dabei, mit dessen Spitze er den Knopf für den 17. Stock drücken kann; oder andere Mitfahrer drücken den Knopf für ihn.',
-          keywords: ['klein', 'kleinwüchsig', 'regenschirm', 'kind', 'reicht nicht', 'zu klein', 'körpergröße', 'knopf']
+                "id": "riddle-9",
+                "title": "Das 3x3 Schachbrett-Raster",
+                "category": "Geometrie",
+                "difficulty": "Mittel",
+                "visualSvg": "<svg viewBox=\"0 0 300 260\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\">
+  <defs>
+    <pattern id=\"checkers\" width=\"40\" height=\"40\" patternUnits=\"userSpaceOnUse\">
+      <rect width=\"20\" height=\"20\" fill=\"rgba(56,189,248,0.08)\"/>
+      <rect x=\"20\" y=\"20\" width=\"20\" height=\"20\" fill=\"rgba(56,189,248,0.08)\"/>
+    </pattern>
+  </defs>
+  <!-- Outer Grid 180x180 (3x3 squares of 60x60) -->
+  <rect x=\"60\" y=\"25\" width=\"180\" height=\"180\" rx=\"4\" fill=\"url(#checkers)\" stroke=\"#38bdf8\" stroke-width=\"3\"/>
+  <line x1=\"120\" y1=\"25\" x2=\"120\" y2=\"205\" stroke=\"#38bdf8\" stroke-width=\"2.5\"/>
+  <line x1=\"180\" y1=\"25\" x2=\"180\" y2=\"205\" stroke=\"#38bdf8\" stroke-width=\"2.5\"/>
+  <line x1=\"60\" y1=\"85\" x2=\"240\" y2=\"85\" stroke=\"#38bdf8\" stroke-width=\"2.5\"/>
+  <line x1=\"60\" y1=\"145\" x2=\"240\" y2=\"145\" stroke=\"#38bdf8\" stroke-width=\"2.5\"/>
+  <text x=\"150\" y=\"235\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"14\" fill=\"#94a3b8\" text-anchor=\"middle\">Zähle 1×1, 2×2 und 3×3 Quadrate</text>
+</svg>",
+                "question": "Wie viele Quadrate aller Größen (1×1, 2×2, 3×3) befinden sich insgesamt in diesem 3×3-Gitter?",
+                "hint": "Vergiss nicht die vier 2×2-Quadrate und das große 3×3-Außenquadrat.",
+                "solutionTitle": "Genau 14 Quadrate",
+                "solutionExplanation": "In einem 3×3-Gitter gibt es: 9 kleine Quadrate (1×1) + 4 mittlere Quadrate (2×2) + 1 großes Quadrat (3×3). 9 + 4 + 1 = 14 Quadrate (Formel: 1² + 2² + 3² = 14).",
+                "keywords": [
+                        "14",
+                        "vierzehn",
+                        "14 quadrate"
+                ]
         },
         {
-          id: 'riddle-10',
-          title: 'Was wird nasser, je mehr es trocknet?',
-          category: 'Querdenker',
-          difficulty: 'Einfach',
-          question: 'Es ist ein alltäglicher Gegenstand im Badezimmer: Was wird umso nasser, je mehr es abtrocknet?',
-          hint: 'Du benutzt es nach jedem Duschen oder Händewaschen.',
-          solutionTitle: 'Ein Handtuch',
-          solutionExplanation: 'Ein Handtuch nimmt beim Abtrocknen von Personen oder Gegenständen die Feuchtigkeit auf und wird dadurch selbst immer nasser.',
-          keywords: ['handtuch', 'tuch', 'badetuch', 'geschirrtuch']
+                "id": "riddle-10",
+                "title": "Additive RGB-Farbmischung",
+                "category": "Illusion",
+                "difficulty": "Einfach",
+                "visualSvg": "<svg viewBox=\"0 0 340 250\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\">
+  <defs>
+    <!-- Additive Blend Circles -->
+    <filter id=\"screen-blend\">
+      <feBlend mode=\"screen\"/>
+    </filter>
+  </defs>
+  <!-- Red Circle (Top) -->
+  <circle cx=\"170\" cy=\"85\" r=\"60\" fill=\"#ef4444\" fill-opacity=\"0.75\"/>
+  <!-- Green Circle (Bottom-Left) -->
+  <circle cx=\"130\" cy=\"155\" r=\"60\" fill=\"#22c55e\" fill-opacity=\"0.75\"/>
+  <!-- Blue Circle (Bottom-Right) -->
+  <circle cx=\"210\" cy=\"155\" r=\"60\" fill=\"#3b82f6\" fill-opacity=\"0.75\"/>
+  
+  <!-- Labels -->
+  <text x=\"170\" y=\"50\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#fca5a5\" text-anchor=\"middle\">ROT</text>
+  <text x=\"85\" y=\"195\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#86efac\" text-anchor=\"middle\">GRÜN</text>
+  <text x=\"255\" y=\"195\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#93c5fd\" text-anchor=\"middle\">BLAU</text>
+  
+  <!-- Question Mark at the Center Overlap -->
+  <circle cx=\"170\" cy=\"132\" r=\"16\" fill=\"#0f172a\" stroke=\"#fff\" stroke-width=\"2\"/>
+  <text x=\"170\" y=\"139\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"18\" font-weight=\"900\" fill=\"#fff\" text-anchor=\"middle\">?</text>
+</svg>",
+                "question": "Welche Lichtfarbe entsteht im Zentrum (?), wenn alle drei Lichtquellen (Rot, Grün, Blau) aufeinandertreffen?",
+                "hint": "Hier geht es um die additive Lichtmischung von Bildschirmen (RGB), nicht um Farbkasten-Pigmente.",
+                "solutionTitle": "Weiß (Weißes Licht)",
+                "solutionExplanation": "Bei additiver Farbmischung (wie bei Pixeln oder Bühnen-Scheinwerfern) erzeugen alle drei Grundfarben bei voller Intensität pures Weiß. (Rot + Grün = Gelb, Grün + Blau = Cyan, Rot + Blau = Magenta, alle drei = Weiß).",
+                "keywords": [
+                        "weiss",
+                        "weiß",
+                        "white",
+                        "lichtweiss",
+                        "weißes licht"
+                ]
         },
         {
-          id: 'riddle-11',
-          title: 'Was hat einen Hals, aber keinen Kopf?',
-          category: 'Querdenker',
-          difficulty: 'Einfach',
-          question: 'Ich besitze einen Hals, habe aber keinen Kopf. Man findet mich oft in der Küche, im Restaurant oder bei festlichen Anlässen. Was bin ich?',
-          hint: 'Oft verschließt mich ein Korken oder ein Deckel.',
-          solutionTitle: 'Eine Flasche (oder ein Hemd / Gitarre)',
-          solutionExplanation: 'Eine Flasche hat einen Flaschenhals, aber keinen Kopf. Auch ein Hemd oder eine Gitarre besitzen einen Hals ohne Kopf.',
-          keywords: ['flasche', 'weinflasche', 'hemd', 'gitarre']
+                "id": "riddle-11",
+                "title": "Würfel-Netz Faltung",
+                "category": "Raumdenken",
+                "difficulty": "Mittel",
+                "visualSvg": "<svg viewBox=\"0 0 360 220\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\">
+  <style>
+    .net-box { fill: #1e293b; stroke: #38bdf8; stroke-width: 2; rx: 4; }
+    .net-sym { font-size: 26px; }
+  </style>
+  <!-- Top Face (Col 3, Row 1) -->
+  <rect x=\"155\" y=\"15\" width=\"50\" height=\"50\" class=\"net-box\"/>
+  <text x=\"180\" y=\"50\" text-anchor=\"middle\" class=\"net-sym\">🔺</text>
+
+  <!-- Horizontal Row (Col 1 to 4, Row 2) -->
+  <rect x=\"55\" y=\"65\" width=\"50\" height=\"50\" class=\"net-box\" stroke=\"#f59e0b\" stroke-width=\"3\"/>
+  <text x=\"80\" y=\"100\" text-anchor=\"middle\" class=\"net-sym\">⚪</text>
+
+  <rect x=\"105\" y=\"65\" width=\"50\" height=\"50\" class=\"net-box\"/>
+  <text x=\"130\" y=\"100\" text-anchor=\"middle\" class=\"net-sym\">⬛</text>
+
+  <rect x=\"155\" y=\"65\" width=\"50\" height=\"50\" class=\"net-box\"/>
+  <text x=\"180\" y=\"100\" text-anchor=\"middle\" class=\"net-sym\">⭐</text>
+
+  <rect x=\"205\" y=\"65\" width=\"50\" height=\"50\" class=\"net-box\"/>
+  <text x=\"230\" y=\"100\" text-anchor=\"middle\" class=\"net-sym\">🔷</text>
+
+  <!-- Bottom Face (Col 3, Row 3) -->
+  <rect x=\"155\" y=\"115\" width=\"50\" height=\"50\" class=\"net-box\"/>
+  <text x=\"180\" y=\"150\" text-anchor=\"middle\" class=\"net-sym\">⚫</text>
+
+  <text x=\"180\" y=\"195\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"14\" fill=\"#94a3b8\" text-anchor=\"middle\">Welches Symbol liegt ⚪ im gefalteten Würfel gegenüber?</text>
+</svg>",
+                "question": "Welches Symbol liegt dem weißen Kreis (⚪) genau gegenüber, wenn dieses Netz zu einem Würfel gefaltet wird?",
+                "hint": "In einem Band von Quadraten liegt immer jedes zweite Quadrat der Reihe gegenüber.",
+                "solutionTitle": "Der Stern (⭐)",
+                "solutionExplanation": "In der horizontalen Reihe liegt immer eine Fläche zwischen zwei gegenüberliegenden Seiten. Der Kreis (Position 1) und der Stern (Position 3) haben das schwarze Quadrat (Position 2) dazwischen und stehen sich im gefalteten 3D-Würfel daher genau gegenüber.",
+                "keywords": [
+                        "stern",
+                        "star",
+                        "⭐",
+                        "der stern"
+                ]
         },
         {
-          id: 'riddle-12',
-          title: 'Was kann man fangen, aber niemals werfen?',
-          category: 'Querdenker',
-          difficulty: 'Einfach',
-          question: 'Man kann es sich ganz leicht fangen, aber man kann es unmöglich werfen. Was ist gemeint?',
-          hint: 'Besonders im nasskalten Herbst und Winter fängt man es sich schnell ein.',
-          solutionTitle: 'Eine Erkältung (oder ein Schnupfen / Blick)',
-          solutionExplanation: 'Man fängt sich eine Erkältung oder einen Schnupfen ein, kann diese(n) aber nicht physisch werfen.',
-          keywords: ['erkältung', 'schnupfen', 'grippe', 'blick', 'fieber']
+                "id": "riddle-12",
+                "title": "Das verzweigte Röhrensystem",
+                "category": "Muster",
+                "difficulty": "Mittel",
+                "visualSvg": "<svg viewBox=\"0 0 380 230\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\">
+  <defs>
+    <linearGradient id=\"water\" x1=\"0%\" y1=\"0%\" x2=\"0%\" y2=\"100%\">
+      <stop offset=\"0%\" stop-color=\"#38bdf8\"/>
+      <stop offset=\"100%\" stop-color=\"#0284c7\"/>
+    </linearGradient>
+  </defs>
+  <!-- Water Tap -->
+  <rect x=\"175\" y=\"10\" width=\"30\" height=\"15\" fill=\"#94a3b8\" rx=\"2\"/>
+  <path d=\"M190,25 Q190,40 190,45\" stroke=\"#38bdf8\" stroke-width=\"4\" stroke-linecap=\"round\"/>
+  
+  <!-- Tank 1 (Top) -->
+  <rect x=\"140\" y=\"45\" width=\"100\" height=\"45\" fill=\"none\" stroke=\"#64748b\" stroke-width=\"2.5\"/>
+  <text x=\"190\" y=\"72\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"14\" font-weight=\"700\" fill=\"#94a3b8\" text-anchor=\"middle\">Tank 1</text>
+
+  <!-- Pipes from Tank 1 -->
+  <!-- Pipe Left to Tank 2: Blocked by valve -->
+  <path d=\"M140,75 L80,75 L80,120\" fill=\"none\" stroke=\"#64748b\" stroke-width=\"6\"/>
+  <circle cx=\"80\" cy=\"100\" r=\"8\" fill=\"#ef4444\"/>
+  <text x=\"80\" y=\"104\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"11\" font-weight=\"900\" fill=\"#fff\" text-anchor=\"middle\">✕</text>
+
+  <!-- Pipe Middle to Tank 3: Open & Low -->
+  <path d=\"M190,90 L190,130\" fill=\"none\" stroke=\"#38bdf8\" stroke-width=\"6\"/>
+
+  <!-- Pipe Right to Tank 4: High overflow -->
+  <path d=\"M240,55 L300,55 L300,120\" fill=\"none\" stroke=\"#64748b\" stroke-width=\"6\"/>
+
+  <!-- Tanks 2, 3, 4 at Bottom -->
+  <!-- Tank 2 -->
+  <rect x=\"45\" y=\"120\" width=\"70\" height=\"55\" fill=\"none\" stroke=\"#64748b\" stroke-width=\"2.5\"/>
+  <text x=\"80\" y=\"152\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"16\" font-weight=\"700\" fill=\"#94a3b8\" text-anchor=\"middle\">2</text>
+
+  <!-- Tank 3 -->
+  <rect x=\"155\" y=\"130\" width=\"70\" height=\"55\" fill=\"none\" stroke=\"#10b981\" stroke-width=\"2.5\"/>
+  <text x=\"190\" y=\"162\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"16\" font-weight=\"700\" fill=\"#10b981\" text-anchor=\"middle\">3</text>
+
+  <!-- Tank 4 -->
+  <rect x=\"265\" y=\"120\" width=\"70\" height=\"55\" fill=\"none\" stroke=\"#64748b\" stroke-width=\"2.5\"/>
+  <text x=\"300\" y=\"152\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"16\" font-weight=\"700\" fill=\"#94a3b8\" text-anchor=\"middle\">4</text>
+  
+  <text x=\"190\" y=\"215\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"14\" fill=\"#cbd5e1\" text-anchor=\"middle\">Welcher Behälter füllt sich als Allererster?</text>
+</svg>",
+                "question": "Welcher Behälter (2, 3 oder 4) füllt sich als Allererster vollständig mit Wasser?",
+                "hint": "Prüfe die Verbindungsrohre: Rohr 2 ist durch eine rote Sperre verschlossen, Rohr 4 zweigt zu weit oben ab.",
+                "solutionTitle": "Behälter 3",
+                "solutionExplanation": "Die Zuleitung zu Tank 2 ist verstopft (rotes ✕). Die Leitung zu Tank 4 liegt am oberen Rand und wird erst bei Überlauf erreicht. Die Röhre zu Tank 3 ist tief und komplett frei – Tank 3 füllt sich zuerst.",
+                "keywords": [
+                        "3",
+                        "drei",
+                        "behaelter 3",
+                        "behälter 3",
+                        "tank 3"
+                ]
         },
         {
-          id: 'riddle-13',
-          title: 'Je mehr man wegnimmt, desto größer wird es',
-          category: 'Querdenker',
-          difficulty: 'Einfach',
-          question: 'Je mehr Material du davon wegnimmst und herausschaufelst, desto größer wird es. Was ist es?',
-          hint: 'Kinder graben es am Strand in den Sand.',
-          solutionTitle: 'Ein Loch (oder eine Grube)',
-          solutionExplanation: 'Je mehr Erde oder Sand man aus einem Loch schaufelt, desto größer und tiefer wird das Loch.',
-          keywords: ['loch', 'grube', 'vertiefung']
+                "id": "riddle-13",
+                "title": "Die Ponzo-Perspektive",
+                "category": "Illusion",
+                "difficulty": "Einfach",
+                "visualSvg": "<svg viewBox=\"0 0 340 230\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\">
+  <defs>
+    <filter id=\"bar-glow\"><feGaussianBlur stdDeviation=\"2\" result=\"b\"/><feMerge><feMergeNode in=\"b\"/><feMergeNode in=\"SourceGraphic\"/></feMerge></filter>
+  </defs>
+  <!-- Converging Tracks -->
+  <line x1=\"140\" y1=\"20\" x2=\"40\" y2=\"210\" stroke=\"#475569\" stroke-width=\"4\"/>
+  <line x1=\"200\" y1=\"20\" x2=\"300\" y2=\"210\" stroke=\"#475569\" stroke-width=\"4\"/>
+  <!-- Cross Ties -->
+  <line x1=\"135\" y1=\"35\" x2=\"205\" y2=\"35\" stroke=\"#334155\" stroke-width=\"2\"/>
+  <line x1=\"125\" y1=\"65\" x2=\"215\" y2=\"65\" stroke=\"#334155\" stroke-width=\"2.5\"/>
+  <line x1=\"110\" y1=\"105\" x2=\"230\" y2=\"105\" stroke=\"#334155\" stroke-width=\"3\"/>
+  <line x1=\"90\" y1=\"150\" x2=\"250\" y2=\"150\" stroke=\"#334155\" stroke-width=\"3.5\"/>
+  <line x1=\"60\" y1=\"200\" x2=\"280\" y2=\"200\" stroke=\"#334155\" stroke-width=\"4\"/>
+
+  <!-- Upper Yellow Bar A (x=130 to 210, width 80) -->
+  <rect x=\"130\" y=\"58\" width=\"80\" height=\"12\" rx=\"3\" fill=\"#fbbf24\" stroke=\"#f59e0b\" filter=\"url(#bar-glow)\"/>
+  <text x=\"110\" y=\"68\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"14\" font-weight=\"700\" fill=\"#fbbf24\">A</text>
+
+  <!-- Lower Yellow Bar B (x=130 to 210, width 80) -->
+  <rect x=\"130\" y=\"170\" width=\"80\" height=\"12\" rx=\"3\" fill=\"#fbbf24\" stroke=\"#f59e0b\" filter=\"url(#bar-glow)\"/>
+  <text x=\"110\" y=\"180\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"14\" font-weight=\"700\" fill=\"#fbbf24\">B</text>
+</svg>",
+                "question": "Welcher der beiden gelben Balken (A = Oben oder B = Unten) ist in realer Linienbreite länger?",
+                "hint": "Die Schienen erzeugen eine Tiefenperspektive, die dein Gehirn täuscht.",
+                "solutionTitle": "Beide Balken sind exakt gleich lang!",
+                "solutionExplanation": "Die klassische Ponzo-Täuschung: Da das menschliche Sehzentrum die zusammenlaufenden Linien als Ferne interpretiert, vergrößert es Balken A unbewusst. Beide Balken sind auf den Pixel genau 80 Pixel breit.",
+                "keywords": [
+                        "gleich",
+                        "beide gleich",
+                        "gleich lang",
+                        "beide",
+                        "keiner",
+                        "identisch"
+                ]
         },
         {
-          id: 'riddle-14',
-          title: 'Acht Achten ergeben Tausend',
-          category: 'Zahlen',
-          difficulty: 'Mittel',
-          question: 'Wie kann man genau 8 Mal die Ziffer 8 ausschließlich mit dem Pluszeichen (+) so verknüpfen, dass als Ergebnis genau 1000 herauskommt?',
-          hint: 'Kombiniere mehrstellige Zahlen wie 888 und 88.',
-          solutionTitle: '888 + 88 + 8 + 8 + 8 = 1000',
-          solutionExplanation: '888 + 88 + 8 + 8 + 8 ergibt exakt 1000. Dabei wird die Ziffer 8 genau 8 Mal verwendet.',
-          keywords: ['888 + 88 + 8 + 8 + 8', '888', '88']
+                "id": "riddle-14",
+                "title": "Das magische Summen-Dreieck",
+                "category": "Geometrie",
+                "difficulty": "Schwer",
+                "visualSvg": "<svg viewBox=\"0 0 340 260\" width=\"100%\" height=\"240\" xmlns=\"http://www.w3.org/2000/svg\">
+  <defs>
+    <!-- Node Circle -->
+    <g id=\"num-node\">
+      <circle cx=\"0\" cy=\"0\" r=\"18\" fill=\"#1e293b\" stroke=\"#38bdf8\" stroke-width=\"2.5\"/>
+    </g>
+  </defs>
+  <!-- Triangle Outline -->
+  <polygon points=\"170,40 50,220 290,220\" fill=\"none\" stroke=\"#475569\" stroke-width=\"2.5\"/>
+  
+  <!-- 6 Nodes: Each side must sum to 10 using numbers 1 to 6 -->
+  <!-- Top Vertex: 1 -->
+  <g transform=\"translate(170, 40)\"><use href=\"#num-node\"/><text x=\"0\" y=\"5\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"16\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">1</text></g>
+  
+  <!-- Right Edge: 4 -->
+  <g transform=\"translate(230, 130)\"><use href=\"#num-node\"/><text x=\"0\" y=\"5\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"16\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">4</text></g>
+  
+  <!-- Bottom-Right Vertex: 5 (1 + 4 + 5 = 10) -->
+  <g transform=\"translate(290, 220)\"><use href=\"#num-node\"/><text x=\"0\" y=\"5\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"16\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">5</text></g>
+  
+  <!-- Bottom Edge: 2 (5 + 2 + ? = 10) -->
+  <g transform=\"translate(170, 220)\"><use href=\"#num-node\"/><text x=\"0\" y=\"5\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"16\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">2</text></g>
+  
+  <!-- Left Edge: 6 (1 + 6 + ? = 10) -->
+  <g transform=\"translate(110, 130)\"><use href=\"#num-node\"/><text x=\"0\" y=\"5\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"16\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">6</text></g>
+  
+  <!-- Bottom-Left Vertex: ? -->
+  <g transform=\"translate(50, 220)\">
+    <circle cx=\"0\" cy=\"0\" r=\"19\" fill=\"#2e1065\" stroke=\"#a855f7\" stroke-width=\"3\"/>
+    <text x=\"0\" y=\"6\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"18\" font-weight=\"900\" fill=\"#c084fc\" text-anchor=\"middle\">?</text>
+  </g>
+</svg>",
+                "question": "Welche Zahl (von 1 bis 6) gehört in die linke untere Ecke (?), damit jede Seite die Summe 10 ergibt?",
+                "hint": "Prüfe die linke Dreiecksseite: 1 + 6 + ? = 10.",
+                "solutionTitle": "Die Zahl 3",
+                "solutionExplanation": "Linke Kante: 1 + 6 + 3 = 10. Untere Kante: 3 + 2 + 5 = 10. Rechte Kante: 1 + 4 + 5 = 10. Jede der drei Seiten ergibt damit exakt die Zielsumme 10.",
+                "keywords": [
+                        "3",
+                        "drei"
+                ]
         },
         {
-          id: 'riddle-15',
-          title: 'Das 45-Minuten-Seil',
-          category: 'Logik',
-          difficulty: 'Schwer',
-          question: 'Du hast zwei identische Zündschnüre. Jede Schnur brennt von einem Ende zum anderen in genau 60 Minuten ab. Die Schnüre brennen jedoch ungleichmäßig schnell (z. B. die erste Hälfte in 10 Minuten, der Rest in 50 Minuten). Wie kannst du mit diesen zwei Schnüren und einem Feuerzeug exakt 45 Minuten stoppen?',
-          hint: 'Was passiert, wenn du eine Schnur an BEIDEN Enden gleichzeitig anzündest?',
-          solutionTitle: 'Schnur 1 an beiden Enden und Schnur 2 an einem Ende anzünden',
-          solutionExplanation: 'Zünde Schnur 1 an BEIDEN Enden und Schnur 2 an EINEM Ende gleichzeitig an. Nach genau 30 Minuten ist Schnur 1 komplett abgebrannt. In diesem Moment zündest du das zweite Ende von Schnur 2 an! Die verbleibende 30-Minuten-Strecke brennt nun in 15 Minuten ab: 30 + 15 = exakt 45 Minuten.',
-          keywords: ['beide enden', 'beide seiten', 'gleichzeitig anzünden', 'zwei enden', '30 minuten', 'beiden enden']
+                "id": "riddle-15",
+                "title": "Die Getriebe-Kette",
+                "category": "Muster",
+                "difficulty": "Einfach",
+                "visualSvg": "<svg viewBox=\"0 0 420 150\" width=\"100%\" height=\"160\" xmlns=\"http://www.w3.org/2000/svg\">
+  <defs>
+    <!-- Simple Gear -->
+    <g id=\"gear\">
+      <circle cx=\"0\" cy=\"0\" r=\"28\" fill=\"#1e293b\" stroke=\"#38bdf8\" stroke-width=\"2.5\"/>
+      <circle cx=\"0\" cy=\"0\" r=\"9\" fill=\"#0f172a\" stroke=\"#38bdf8\" stroke-width=\"2\"/>
+      <line x1=\"-34\" y1=\"0\" x2=\"34\" y2=\"0\" stroke=\"#38bdf8\" stroke-width=\"3\"/>
+      <line x1=\"0\" y1=\"-34\" x2=\"0\" y2=\"34\" stroke=\"#38bdf8\" stroke-width=\"3\"/>
+      <line x1=\"-24\" y1=\"-24\" x2=\"24\" y2=\"24\" stroke=\"#38bdf8\" stroke-width=\"3\"/>
+      <line x1=\"-24\" y1=\"24\" x2=\"24\" y2=\"-24\" stroke=\"#38bdf8\" stroke-width=\"3\"/>
+    </g>
+  </defs>
+  <!-- 5 Connected Gears: A, B, C, D, E -->
+  <g transform=\"translate(50, 75)\"><use href=\"#gear\"/><text x=\"0\" y=\"5\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">A</text></g>
+  <g transform=\"translate(125, 75)\"><use href=\"#gear\"/><text x=\"0\" y=\"5\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">B</text></g>
+  <g transform=\"translate(200, 75)\"><use href=\"#gear\"/><text x=\"0\" y=\"5\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">C</text></g>
+  <g transform=\"translate(275, 75)\"><use href=\"#gear\"/><text x=\"0\" y=\"5\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">D</text></g>
+  <g transform=\"translate(350, 75)\"><use href=\"#gear\"/><text x=\"0\" y=\"5\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">E</text></g>
+
+  <!-- Arrow on Gear A (Clockwise ↻) -->
+  <text x=\"50\" y=\"28\" font-size=\"20\" fill=\"#10b981\" text-anchor=\"middle\">↻</text>
+  <!-- Question on Gear E -->
+  <text x=\"350\" y=\"28\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"20\" font-weight=\"900\" fill=\"#f43f5e\" text-anchor=\"middle\">?</text>
+
+  <text x=\"210\" y=\"138\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" fill=\"#94a3b8\" text-anchor=\"middle\">Rad A dreht im Uhrzeigersinn (↻)</text>
+</svg>",
+                "question": "In welche Richtung dreht sich das letzte Zahnrad E (Uhrzeigersinn oder Gegen den Uhrzeigersinn)?",
+                "hint": "Zwei ineinandergreifende Zahnräder kehren ihre Drehrichtung um. Zähle die Schritte ungerade/gerade.",
+                "solutionTitle": "Im Uhrzeigersinn (CW)",
+                "solutionExplanation": "A dreht im Uhrzeigersinn -> B dreht gegen -> C im Uhrzeigersinn -> D dreht gegen -> E dreht wieder im Uhrzeigersinn. Bei einer ungeraden Kette (1, 3, 5) hat das letzte Rad stets dieselbe Drehrichtung wie das erste.",
+                "keywords": [
+                        "uhrzeigersinn",
+                        "im uhrzeigersinn",
+                        "rechts",
+                        "cw",
+                        "wie a"
+                ]
         },
         {
-          id: 'riddle-16',
-          title: 'Die Überfahrt: Wolf, Ziege und Kohlkopf',
-          category: 'Logik',
-          difficulty: 'Mittel',
-          question: 'Ein Bauer muss einen Wolf, eine Ziege und einen Kohlkopf mit einem kleinen Boot über einen Fluss bringen. Im Boot hat neben ihm nur EIN Objekt Platz. Bleiben Wolf und Ziege allein am Ufer, frisst der Wolf die Ziege. Bleiben Ziege und Kohlkopf allein, frisst die Ziege den Kohl. Welches Objekt muss der Bauer zwingend als ERSTES übersetzen?',
-          hint: 'Wolf frisst keinen Kohl. Welche Kombination kann friedlich allein am Ufer warten?',
-          solutionTitle: 'Die Ziege!',
-          solutionExplanation: 'Der Bauer muss als Erstes die Ziege übersetzen, da der Wolf keinen Kohl frisst. Danach bringt er den Wolf rüber, nimmt aber die Ziege wieder mit zurück, setzt den Kohl über und holt am Schluss die Ziege.',
-          keywords: ['ziege', 'die ziege', 'goat']
+                "id": "riddle-16",
+                "title": "Streichholz-Quadrate: Von 4 auf 2",
+                "category": "Streichholz",
+                "difficulty": "Mittel",
+                "visualSvg": "<svg viewBox=\"0 0 340 240\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\">
+  <defs>
+    <g id=\"h-m\">
+      <rect x=\"0\" y=\"2\" width=\"60\" height=\"8\" rx=\"2\" fill=\"#d97706\"/>
+      <circle cx=\"5\" cy=\"6\" r=\"5\" fill=\"#ef4444\"/>
+    </g>
+    <g id=\"v-m\">
+      <rect x=\"2\" y=\"0\" width=\"8\" height=\"60\" rx=\"2\" fill=\"#d97706\"/>
+      <circle cx=\"6\" cy=\"5\" r=\"5\" fill=\"#ef4444\"/>
+    </g>
+  </defs>
+  <!-- 2x2 Grid of 4 Squares (12 matchsticks) -->
+  <!-- Top Horizontal Row -->
+  <use href=\"#h-m\" x=\"100\" y=\"30\"/>
+  <use href=\"#h-m\" x=\"170\" y=\"30\"/>
+  <!-- Middle Horizontal Row -->
+  <use href=\"#h-m\" x=\"100\" y=\"100\"/>
+  <use href=\"#h-m\" x=\"170\" y=\"100\"/>
+  <!-- Bottom Horizontal Row -->
+  <use href=\"#h-m\" x=\"100\" y=\"170\"/>
+  <use href=\"#h-m\" x=\"170\" y=\"170\"/>
+
+  <!-- Left Vertical Column -->
+  <use href=\"#v-m\" x=\"90\" y=\"35\"/>
+  <use href=\"#v-m\" x=\"90\" y=\"105\"/>
+  <!-- Middle Vertical Column -->
+  <use href=\"#v-m\" x=\"160\" y=\"35\"/>
+  <use href=\"#v-m\" x=\"160\" y=\"105\"/>
+  <!-- Right Vertical Column -->
+  <use href=\"#v-m\" x=\"230\" y=\"35\"/>
+  <use href=\"#v-m\" x=\"230\" y=\"105\"/>
+
+  <text x=\"170\" y=\"215\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" fill=\"#cbd5e1\" text-anchor=\"middle\">4 Quadrate aus 12 Streichhölzern</text>
+</svg>",
+                "question": "Wie viele Streichhölzer musst du MINDESTENS entfernen, damit genau 2 Quadrate (ohne überstehende lose Enden) übrig bleiben?",
+                "hint": "Entferne zwei Außenhölzer einer Ecke.",
+                "solutionTitle": "Mindestens 2 Streichhölzer",
+                "solutionExplanation": "Wenn man 2 Hölzer einer Außenecke wegnimmt (z. B. oben und rechts des Eck-Quadrats), verschwindet dieses Quadrat vollständig und es bleiben genau 2 intakte Quadrate stehen.",
+                "keywords": [
+                        "2",
+                        "zwei",
+                        "2 streichhoelzer",
+                        "2 streichhölzer"
+                ]
         },
         {
-          id: 'riddle-17',
-          title: 'Rekursion ohne Basisfall',
-          category: 'Tech',
-          difficulty: 'Mittel',
-          question: 'Eine Funktion ruft sich in einem Programm fortlaufend selbst auf, ohne dass eine Abbruchbedingung existiert. Welcher fatale Laufzeitfehler (Runtime Error) wird ausgelöst, sobald der reservierte Call-Stack-Speicher voll ist?',
-          hint: 'Eine der berühmtesten Entwickler-Plattformen der Welt ist nach diesem Phänomen benannt!',
-          solutionTitle: 'Stack Overflow (Stapelüberlauf)',
-          solutionExplanation: 'Es kommt zu einem Stack Overflow (Maximum call stack size exceeded), da mit jedem rekursiven Funktionsaufruf ein neuer Stack-Frame angelegt wird, bis der zugewiesene Speicher erschöpft ist.',
-          keywords: ['stack overflow', 'stapelüberlauf', 'call stack', 'stack overflow error', 'maximum call stack']
+                "id": "riddle-17",
+                "title": "Das unmögliche Penrose-Dreieck",
+                "category": "Illusion",
+                "difficulty": "Mittel",
+                "visualSvg": "<svg viewBox=\"0 0 340 260\" width=\"100%\" height=\"240\" xmlns=\"http://www.w3.org/2000/svg\">
+  <!-- Penrose Impossible Triangle rendered with isometric polygon faces -->
+  <g transform=\"translate(170, 130) scale(1.15)\">
+    <!-- Face 1: Light Purple -->
+    <polygon points=\"-70,50 -20,50 -20,-10 30,-10 30,50 80,50 80,-70 -70,-70\" fill=\"#c084fc\" opacity=\"0.9\"/>
+    <!-- Face 2: Medium Purple -->
+    <polygon points=\"-70,50 -70,-70 -35,-50 -35,20 30,20 30,50\" fill=\"#9333ea\" opacity=\"0.9\"/>
+    <!-- Face 3: Dark Purple -->
+    <polygon points=\"80,-70 45,-50 -20,-50 -20,20 -35,20 -35,-70\" fill=\"#581c87\" opacity=\"0.9\"/>
+    <!-- Realistic Corner Connection -->
+    <polygon points=\"-70,50 80,50 65,25 -50,25\" fill=\"#a855f7\" opacity=\"0.85\"/>
+  </g>
+  <text x=\"170\" y=\"240\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" fill=\"#cbd5e1\" text-anchor=\"middle\">Optisch unmögliche 3D-Geometrie</text>
+</svg>",
+                "question": "Wie viele scheinbare 90-Grad-Winkel (rechte Winkel) scheint dieser unmögliche Körper optisch zu besitzen?",
+                "hint": "Betrachte jede der 3 Ecken des Balkendreiecks aus der jeweiligen lokalen Perspektive.",
+                "solutionTitle": "3 rechte Winkel",
+                "solutionExplanation": "Jede der drei Ecken des Penrose-Tribars wirkt lokal wie ein perfekter 90°-Winkel (drei rechte Winkel ergäben 270°, was in einem ebenen Dreieck mit 180° Winkelsumme geometrisch unmöglich ist).",
+                "keywords": [
+                        "3",
+                        "drei",
+                        "3 rechte winkel",
+                        "drei rechte winkel"
+                ]
         },
         {
-          id: 'riddle-18',
-          title: 'Der Schneedetektiv',
-          category: 'Detektiv',
-          difficulty: 'Mittel',
-          question: 'Auf einem verschneiten Hof liegt eine Karotte, fünf Kohlestücke und ein alter Schal mitten im nassen Gras. Weit und breit ist keine Person zu sehen. Niemand hat diese Gegenstände dort absichtlich hingeworfen. Was ist hier passiert?',
-          hint: 'Es war vor wenigen Tagen noch frostig kalt, heute sind es 12 Grad plus.',
-          solutionTitle: 'Ein Schneemann ist geschmolzen!',
-          solutionExplanation: 'Dort stand ein Schneemann mit Nase aus Karotte, Augen/Knöpfen aus Kohle und einem Schal. Durch das Tauwetter ist der Schnee geschmolzen und die Accessoires blieben auf dem Boden zurück.',
-          keywords: ['schneemann', 'geschmolzen', 'schneemann geschmolzen', 'tauwetter', 'schnee geschmolzen']
+                "id": "riddle-18",
+                "title": "Die kosmische Symbol-Waage",
+                "category": "Gleichung",
+                "difficulty": "Einfach",
+                "visualSvg": "<svg viewBox=\"0 0 380 230\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\">
+  <style>
+    .scale-bar { stroke: #64748b; stroke-width: 3; }
+    .scale-sym { font-size: 20px; }
+  </style>
+  <!-- Scale 1: 1 Diamond = 3 Coins -->
+  <g transform=\"translate(30, 20)\">
+    <line x1=\"20\" y1=\"35\" x2=\"140\" y2=\"35\" class=\"scale-bar\"/>
+    <polygon points=\"80,35 70,55 90,55\" fill=\"#475569\"/>
+    <text x=\"35\" y=\"30\" class=\"scale-sym\">💎</text>
+    <text x=\"75\" y=\"30\" font-size=\"14\" fill=\"#94a3b8\">=</text>
+    <text x=\"95\" y=\"30\" class=\"scale-sym\">🪙🪙🪙</text>
+  </g>
+
+  <!-- Scale 2: 1 Crown = 2 Diamonds -->
+  <g transform=\"translate(200, 20)\">
+    <line x1=\"20\" y1=\"35\" x2=\"140\" y2=\"35\" class=\"scale-bar\"/>
+    <polygon points=\"80,35 70,55 90,55\" fill=\"#475569\"/>
+    <text x=\"35\" y=\"30\" class=\"scale-sym\">👑</text>
+    <text x=\"75\" y=\"30\" font-size=\"14\" fill=\"#94a3b8\">=</text>
+    <text x=\"95\" y=\"30\" class=\"scale-sym\">💎💎</text>
+  </g>
+
+  <!-- Scale 3: 1 Crown = ? Coins -->
+  <g transform=\"translate(115, 110)\">
+    <rect x=\"0\" y=\"0\" width=\"160\" height=\"75\" rx=\"10\" fill=\"#1e293b\" stroke=\"#f59e0b\" stroke-width=\"2\"/>
+    <text x=\"30\" y=\"48\" font-size=\"28\">👑</text>
+    <text x=\"75\" y=\"48\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"20\" font-weight=\"700\" fill=\"#94a3b8\">=</text>
+    <text x=\"110\" y=\"48\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"28\" font-weight=\"900\" fill=\"#f59e0b\">?</text>
+    <text x=\"80\" y=\"68\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"11\" fill=\"#cbd5e1\" text-anchor=\"middle\">Wie viele Münzen (🪙)?</text>
+  </g>
+</svg>",
+                "question": "Wie viele Goldmünzen (🪙) werden benötigt, um 1 Krone (👑) auf der Ziel-Waage im Gleichgewicht zu halten?",
+                "hint": "Setze den Wert eines Diamanten in Münzen in die Gleichung der Krone ein: 1 💎 = 3 🪙.",
+                "solutionTitle": "Genau 6 Goldmünzen (🪙)",
+                "solutionExplanation": "1 Diamant wiegt 3 Münzen. 1 Krone wiegt 2 Diamanten. Da jeder Diamant 3 Münzen wiegt: 2 × 3 = 6 Goldmünzen.",
+                "keywords": [
+                        "6",
+                        "sechs",
+                        "6 muenzen",
+                        "6 münzen"
+                ]
         }
-      ];
+];
 
       this.customRiddles = this.loadCustomRiddles();
       this.solvedRiddles = new Set(this.loadSolved());
@@ -2515,6 +3162,7 @@
         countLabel: document.getElementById('riddle-active-counter'),
         statusIndicator: document.getElementById('riddle-status-indicator'),
         statusText: document.getElementById('riddle-status-text'),
+        visualBox: document.getElementById('riddle-visual-box'),
         questionText: document.getElementById('riddle-question-text'),
         answerInput: document.getElementById('riddle-answer-input'),
         btnSubmit: document.getElementById('btn-riddle-submit'),
@@ -2708,7 +3356,7 @@
 
       // 2. Active Riddle Meta Tags
       if (this.dom.catPill) {
-        const catIcons = { Logik: '💡 Logik', Zahlen: '🔢 Zahlen', Tech: '💻 Tech', Detektiv: '🕵️ Detektiv', Querdenker: '🧠 Querdenker' };
+        const catIcons = { Muster: '🧩 Muster', Geometrie: '📐 Geometrie', Gleichung: '⚖️ Gleichung', Illusion: '👁️ Illusion', Streichholz: '🪵 Streichholz', Raumdenken: '🎲 3D-Raum' };
         this.dom.catPill.textContent = catIcons[riddle.category] || riddle.category;
       }
       if (this.dom.diffPill) {
@@ -2727,7 +3375,10 @@
         }
       }
 
-      // 4. Question Text
+      // 4. Visual Graphic & Question Text
+      if (this.dom.visualBox) {
+        this.dom.visualBox.innerHTML = riddle.visualSvg || '';
+      }
       if (this.dom.questionText) {
         this.dom.questionText.textContent = riddle.question;
       }
@@ -2781,6 +3432,7 @@
     renderCollectionGrid() {
       if (!this.dom.cardsGrid) return;
       const list = this.filteredRiddles;
+      const catIcons = { Muster: '🧩 Muster', Geometrie: '📐 Geometrie', Gleichung: '⚖️ Gleichung', Illusion: '👁️ Illusion', Streichholz: '🪵 Streichholz', Raumdenken: '🎲 3D-Raum' };
 
       this.dom.cardsGrid.innerHTML = list.map((r, idx) => {
         const isSolved = this.solvedRiddles.has(r.id);
@@ -2788,7 +3440,7 @@
         return `
           <div class="riddle-mini-card ${isActive ? 'active' : ''} ${isSolved ? 'solved-card' : ''}" data-index="${idx}">
             <div class="riddle-mini-top">
-              <span class="riddle-cat-pill">${escapeHtml(r.category)}</span>
+              <span class="riddle-cat-pill">${catIcons[r.category] || escapeHtml(r.category)}</span>
               <span class="riddle-diff-pill diff-${r.difficulty.toLowerCase()}">${r.difficulty}</span>
             </div>
             <h4 class="riddle-mini-title">${escapeHtml(r.title || r.question.substring(0, 60) + '...')}</h4>
@@ -3239,9 +3891,113 @@
   // ==========================================================================
   // ORBITSUITE ROUTER & UNIFIED FRAMEWORK CONTROLLER
   // ==========================================================================
+
+  // ==========================================================================
+  // PWA (PROGRESSIVE WEB APP) MANAGER
+  // ==========================================================================
+  class OrbitPwaManager {
+    constructor(suite) {
+      this.suite = suite;
+      this.deferredPrompt = null;
+      this.btnInstallHeader = document.getElementById('btn-pwa-install');
+      this.btnInstallHub = document.getElementById('btn-pwa-hub-install');
+      this.hubBanner = document.getElementById('hub-pwa-banner');
+      
+      this.initServiceWorker();
+      this.initInstallPrompt();
+      this.initNetworkListeners();
+    }
+
+    initServiceWorker() {
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js')
+            .then(reg => {
+              console.log('[OrbitSuite PWA] Service Worker registered with scope:', reg.scope);
+              // Handle updatefound
+              reg.addEventListener('updatefound', () => {
+                const newWorker = reg.installing;
+                if (newWorker) {
+                  newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                      this.suite.showToast('OrbitSuite Update verfügbar! Aktualisiere beim nächsten Start 🚀');
+                    }
+                  });
+                }
+              });
+            })
+            .catch(err => {
+              console.warn('[OrbitSuite PWA] Service Worker registration failed:', err);
+            });
+        });
+      }
+    }
+
+    initInstallPrompt() {
+      // Check if already in standalone / installed mode
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+      if (isStandalone) {
+        console.log('[OrbitSuite PWA] Running in standalone native window mode.');
+        return;
+      }
+
+      window.addEventListener('beforeinstallprompt', (e) => {
+        // Prevent default mini-infobar on mobile Chrome
+        e.preventDefault();
+        this.deferredPrompt = e;
+        console.log('[OrbitSuite PWA] beforeinstallprompt captured.');
+
+        // Show install button and Hub banner
+        if (this.btnInstallHeader) this.btnInstallHeader.classList.remove('hidden');
+        if (this.hubBanner) this.hubBanner.classList.remove('hidden');
+      });
+
+      // Handle install click
+      const handleInstall = async () => {
+        if (!this.deferredPrompt) {
+          this.suite.showToast('Installationsaufforderung steht noch nicht bereit.');
+          return;
+        }
+        this.deferredPrompt.prompt();
+        const { outcome } = await this.deferredPrompt.userChoice;
+        console.log('[OrbitSuite PWA] User install choice:', outcome);
+        if (outcome === 'accepted') {
+          this.suite.showToast('OrbitSuite wird als App installiert! 📲');
+          this.hideInstallPrompts();
+        }
+        this.deferredPrompt = null;
+      };
+
+      if (this.btnInstallHeader) this.btnInstallHeader.addEventListener('click', handleInstall);
+      if (this.btnInstallHub) this.btnInstallHub.addEventListener('click', handleInstall);
+
+      window.addEventListener('appinstalled', () => {
+        console.log('[OrbitSuite PWA] OrbitSuite successfully installed.');
+        this.suite.showToast('OrbitSuite erfolgreich installiert! 🎉');
+        if (this.suite.sound) this.suite.sound.playSuccess();
+        this.hideInstallPrompts();
+      });
+    }
+
+    hideInstallPrompts() {
+      if (this.btnInstallHeader) this.btnInstallHeader.classList.add('hidden');
+      if (this.hubBanner) this.hubBanner.classList.add('hidden');
+    }
+
+    initNetworkListeners() {
+      window.addEventListener('offline', () => {
+        this.suite.showToast('📴 Offline-Modus: OrbitSuite läuft lokal nahtlos weiter.');
+      });
+      window.addEventListener('online', () => {
+        this.suite.showToast('🌐 Wieder online: Verbindung hergestellt.');
+      });
+    }
+  }
+
   class OrbitSuiteRouter {
     constructor() {
       this.sound = new SoundManager();
+      this.pwa = new OrbitPwaManager(this);
       this.confetti = new ConfettiManager('confetti-canvas');
       this.activeApp = 'hub'; // 'hub', 'tasks', 'notes', 'focus', 'habits', 'tools'
 
