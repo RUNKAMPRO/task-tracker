@@ -1353,9 +1353,11 @@
               </div>
             </div>
 
-            <div class="riddle-stats-badges">
+                        <div class="riddle-stats-badges">
               <span class="riddle-badge-item" id="riddle-badge-score">🏆 0 Gelöst</span>
               <span class="riddle-badge-item streak" id="riddle-badge-streak">🔥 0er Streak</span>
+              <span class="riddle-badge-item daily-streak" id="riddle-badge-daily-streak">⭐ 0 Tage Daily</span>
+              <span class="riddle-badge-item daily-timer" id="riddle-badge-countdown" title="Neues Rätsel täglich um 07:00 Uhr deutscher Zeit">⏳ 07:00 Drop: --:--:--</span>
             </div>
           </div>
 
@@ -1378,6 +1380,7 @@
           <div class="filter-group">
             <span class="filter-title">Kategorie:</span>
             <button class="filter-chip active riddle-filter-chip" data-category="all">Alle</button>
+            <button class="filter-chip riddle-filter-chip daily-chip" data-category="daily" id="chip-filter-daily">⭐ Tagesrätsel (07:00)</button>
             <button class="filter-chip riddle-filter-chip" data-category="Muster">🧩 Muster</button>
             <button class="filter-chip riddle-filter-chip" data-category="Geometrie">📐 Geometrie</button>
             <button class="filter-chip riddle-filter-chip" data-category="Gleichung">⚖️ Gleichung</button>
@@ -1398,6 +1401,29 @@
 
         <!-- Main Riddle Interactive Arena -->
         <main class="main-content">
+          <!-- Daily 07:00 German Time Riddle Banner -->
+          <div class="riddle-daily-banner" id="riddle-daily-banner">
+            <div class="daily-banner-glow"></div>
+            <div class="daily-banner-left">
+              <div class="daily-badge-row">
+                <span class="daily-pulse-tag"><span class="pulse-indicator"></span> 07:00 UHR TAGES-DROP</span>
+                <span class="daily-status-pill" id="daily-status-pill">Offen ⏳</span>
+              </div>
+              <h3 class="daily-banner-title" id="riddle-daily-date-title">Tagesrätsel des Tages</h3>
+              <p class="daily-banner-subtitle">Täglich pünktlich um 07:00 Uhr deutscher Zeit (Europe/Berlin) geht ein neues optisches Rätsel online.</p>
+            </div>
+            <div class="daily-banner-right">
+              <div class="daily-countdown-card">
+                <span class="countdown-eyebrow">NÄCHSTES RÄTSEL IN</span>
+                <div class="countdown-clock" id="riddle-daily-countdown">--:--:--</div>
+                <span class="countdown-target">Drop täglich um 07:00:00 Uhr MEZ/MESZ</span>
+              </div>
+              <button class="btn-primary btn-daily-jump" id="btn-switch-daily-riddle">
+                <span>⭐ Zum Tagesrätsel</span>
+              </button>
+            </div>
+          </div>
+
           <div class="riddle-arena-card">
             
             <div class="riddle-arena-header">
