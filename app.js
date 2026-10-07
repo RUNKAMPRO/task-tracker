@@ -4646,7 +4646,7 @@
 
       // Queens State
 
-      this.queensCurrentLevel = 'daily';
+      this.queensCurrentLevel = localStorage.getItem('orbitsuite_queens_current_level') || '1';
 
       this.queensUserGrid = Array(6).fill(null).map(() => Array(6).fill(null));
 
@@ -4662,7 +4662,7 @@
 
       // Tango State
 
-      this.tangoCurrentLevel = 'daily';
+      this.tangoCurrentLevel = localStorage.getItem('orbitsuite_tango_current_level') || '1';
 
       this.tangoUserGrid = Array(6).fill(null).map(() => Array(6).fill(null));
 
@@ -4674,7 +4674,7 @@
 
       // Pinpoint State
 
-      this.pinpointCurrentLevel = 'daily';
+      this.pinpointCurrentLevel = localStorage.getItem('orbitsuite_pinpoint_current_level') || '1';
 
       this.pinpointRevealedClues = 1;
 
@@ -4686,15 +4686,15 @@
       this.sudokuData = [{"id": "sudoku-1", "title": "Mini Sudoku #1", "givens": [[0, 2, 0, 5, 6, 0], [0, 5, 1, 3, 0, 2], [0, 6, 0, 1, 3, 4], [0, 0, 3, 0, 0, 5], [5, 0, 0, 0, 0, 0], [0, 1, 6, 0, 0, 0]], "solution": [[3, 2, 4, 5, 6, 1], [6, 5, 1, 3, 4, 2], [2, 6, 5, 1, 3, 4], [1, 4, 3, 6, 2, 5], [5, 3, 2, 4, 1, 6], [4, 1, 6, 2, 5, 3]]}, {"id": "sudoku-2", "title": "Mini Sudoku #2", "givens": [[3, 0, 0, 1, 0, 2], [0, 5, 0, 0, 4, 0], [0, 0, 0, 2, 0, 0], [0, 3, 0, 5, 0, 6], [4, 2, 0, 3, 6, 1], [0, 0, 3, 4, 0, 0]], "solution": [[3, 4, 6, 1, 5, 2], [1, 5, 2, 6, 4, 3], [5, 6, 1, 2, 3, 4], [2, 3, 4, 5, 1, 6], [4, 2, 5, 3, 6, 1], [6, 1, 3, 4, 2, 5]]}, {"id": "sudoku-3", "title": "Mini Sudoku #3", "givens": [[0, 4, 0, 0, 0, 5], [0, 5, 0, 0, 0, 0], [0, 0, 3, 0, 5, 6], [0, 6, 0, 4, 0, 1], [1, 0, 4, 0, 6, 0], [6, 3, 5, 0, 0, 4]], "solution": [[2, 4, 6, 3, 1, 5], [3, 5, 1, 6, 4, 2], [4, 1, 3, 2, 5, 6], [5, 6, 2, 4, 3, 1], [1, 2, 4, 5, 6, 3], [6, 3, 5, 1, 2, 4]]}, {"id": "sudoku-4", "title": "Mini Sudoku #4", "givens": [[0, 0, 0, 1, 3, 0], [3, 2, 1, 0, 6, 4], [6, 0, 2, 0, 1, 5], [0, 0, 0, 0, 0, 0], [0, 0, 0, 3, 5, 0], [5, 6, 0, 0, 4, 0]], "solution": [[4, 5, 6, 1, 3, 2], [3, 2, 1, 5, 6, 4], [6, 3, 2, 4, 1, 5], [1, 4, 5, 6, 2, 3], [2, 1, 4, 3, 5, 6], [5, 6, 3, 2, 4, 1]]}, {"id": "sudoku-5", "title": "Mini Sudoku #5", "givens": [[3, 4, 6, 0, 0, 0], [0, 5, 1, 0, 3, 6], [0, 0, 0, 0, 0, 0], [0, 0, 2, 5, 6, 0], [0, 0, 0, 3, 0, 1], [1, 0, 5, 6, 0, 4]], "solution": [[3, 4, 6, 2, 1, 5], [2, 5, 1, 4, 3, 6], [5, 6, 3, 1, 4, 2], [4, 1, 2, 5, 6, 3], [6, 2, 4, 3, 5, 1], [1, 3, 5, 6, 2, 4]]}, {"id": "sudoku-6", "title": "Mini Sudoku #6", "givens": [[0, 1, 0, 2, 0, 0], [2, 5, 0, 0, 0, 0], [4, 0, 1, 0, 2, 5], [5, 0, 2, 0, 0, 6], [3, 0, 0, 0, 6, 2], [0, 0, 6, 0, 3, 0]], "solution": [[6, 1, 4, 2, 5, 3], [2, 5, 3, 6, 4, 1], [4, 6, 1, 3, 2, 5], [5, 3, 2, 4, 1, 6], [3, 4, 5, 1, 6, 2], [1, 2, 6, 5, 3, 4]]}, {"id": "sudoku-7", "title": "Mini Sudoku #7", "givens": [[0, 0, 6, 4, 0, 2], [4, 1, 0, 0, 3, 6], [5, 0, 0, 0, 0, 3], [1, 6, 0, 0, 0, 5], [0, 4, 0, 3, 0, 1], [0, 0, 0, 0, 0, 4]], "solution": [[3, 5, 6, 4, 1, 2], [4, 1, 2, 5, 3, 6], [5, 2, 4, 1, 6, 3], [1, 6, 3, 2, 4, 5], [6, 4, 5, 3, 2, 1], [2, 3, 1, 6, 5, 4]]}, {"id": "sudoku-8", "title": "Mini Sudoku #8", "givens": [[1, 0, 0, 0, 0, 6], [2, 5, 6, 0, 0, 0], [0, 1, 0, 2, 5, 3], [3, 0, 5, 6, 1, 0], [0, 0, 2, 0, 0, 5], [0, 0, 0, 3, 0, 0]], "solution": [[1, 4, 3, 5, 2, 6], [2, 5, 6, 4, 3, 1], [6, 1, 4, 2, 5, 3], [3, 2, 5, 6, 1, 4], [4, 3, 2, 1, 6, 5], [5, 6, 1, 3, 4, 2]]}, {"id": "sudoku-9", "title": "Mini Sudoku #9", "givens": [[0, 6, 5, 1, 0, 0], [0, 0, 3, 6, 5, 2], [0, 2, 4, 0, 6, 0], [6, 0, 1, 0, 4, 0], [0, 3, 2, 0, 0, 0], [0, 4, 0, 0, 0, 0]], "solution": [[2, 6, 5, 1, 3, 4], [4, 1, 3, 6, 5, 2], [3, 2, 4, 5, 6, 1], [6, 5, 1, 2, 4, 3], [5, 3, 2, 4, 1, 6], [1, 4, 6, 3, 2, 5]]}, {"id": "sudoku-10", "title": "Mini Sudoku #10", "givens": [[0, 0, 0, 3, 1, 0], [3, 0, 0, 0, 2, 0], [0, 3, 2, 0, 0, 4], [4, 5, 0, 1, 0, 0], [0, 1, 5, 0, 0, 3], [2, 0, 3, 5, 0, 0]], "solution": [[5, 2, 4, 3, 1, 6], [3, 6, 1, 4, 2, 5], [1, 3, 2, 6, 5, 4], [4, 5, 6, 1, 3, 2], [6, 1, 5, 2, 4, 3], [2, 4, 3, 5, 6, 1]]}, {"id": "sudoku-11", "title": "Mini Sudoku #11", "givens": [[1, 0, 0, 0, 0, 5], [5, 4, 0, 3, 2, 1], [0, 0, 0, 0, 1, 0], [3, 5, 0, 0, 6, 0], [4, 0, 2, 1, 0, 0], [0, 0, 0, 0, 3, 2]], "solution": [[1, 2, 3, 6, 4, 5], [5, 4, 6, 3, 2, 1], [2, 6, 4, 5, 1, 3], [3, 5, 1, 2, 6, 4], [4, 3, 2, 1, 5, 6], [6, 1, 5, 4, 3, 2]]}, {"id": "sudoku-12", "title": "Mini Sudoku #12", "givens": [[0, 2, 0, 0, 0, 0], [1, 0, 4, 0, 6, 0], [2, 0, 0, 6, 0, 5], [6, 0, 0, 3, 0, 2], [0, 0, 0, 1, 2, 0], [4, 1, 0, 5, 3, 0]], "solution": [[3, 2, 6, 4, 5, 1], [1, 5, 4, 2, 6, 3], [2, 3, 1, 6, 4, 5], [6, 4, 5, 3, 1, 2], [5, 6, 3, 1, 2, 4], [4, 1, 2, 5, 3, 6]]}, {"id": "sudoku-13", "title": "Mini Sudoku #13", "givens": [[1, 0, 2, 5, 0, 0], [6, 5, 4, 1, 0, 0], [0, 6, 0, 2, 0, 0], [2, 0, 3, 0, 5, 0], [0, 0, 0, 0, 0, 1], [0, 0, 1, 0, 4, 5]], "solution": [[1, 3, 2, 5, 6, 4], [6, 5, 4, 1, 3, 2], [4, 6, 5, 2, 1, 3], [2, 1, 3, 4, 5, 6], [5, 4, 6, 3, 2, 1], [3, 2, 1, 6, 4, 5]]}, {"id": "sudoku-14", "title": "Mini Sudoku #14", "givens": [[0, 2, 0, 0, 0, 0], [0, 0, 0, 6, 1, 0], [0, 5, 0, 2, 0, 0], [4, 6, 2, 0, 0, 1], [6, 4, 0, 0, 0, 3], [2, 0, 0, 5, 4, 6]], "solution": [[1, 2, 6, 4, 3, 5], [5, 3, 4, 6, 1, 2], [3, 5, 1, 2, 6, 4], [4, 6, 2, 3, 5, 1], [6, 4, 5, 1, 2, 3], [2, 1, 3, 5, 4, 6]]}];
 
       // Crossclimb State
-      this.crossclimbCurrentLevel = 'daily';
+      this.crossclimbCurrentLevel = localStorage.getItem('orbitsuite_crossclimb_current_level') || '1';
       this.crossclimbRungs = [];
 
       // Zip State
-      this.zipCurrentLevel = 'daily';
+      this.zipCurrentLevel = localStorage.getItem('orbitsuite_zip_current_level') || '1';
       this.zipPath = [];
 
       // Sudoku State
-      this.sudokuCurrentLevel = 'daily';
+      this.sudokuCurrentLevel = localStorage.getItem('orbitsuite_sudoku_current_level') || '1';
       this.sudokuUserGrid = Array(6).fill(0).map(() => Array(6).fill(0));
       this.sudokuSelectedCell = null;
       this.sudokuTime = 0;
@@ -4716,6 +4716,7 @@ this.zipNextExpectedCp = 2;
         badgeDailyStreak: document.getElementById('riddle-badge-daily-streak'),
 
         badgeCountdown: document.getElementById('riddle-badge-countdown'),
+        badgeInfo: document.getElementById('riddle-badge-info'),
 
         dailyBanner: document.getElementById('riddle-daily-banner'),
 
@@ -4748,6 +4749,10 @@ this.zipNextExpectedCp = 2;
         // Queens DOM
 
         queensLevelSelect: document.getElementById('queens-level-select'),
+        btnQueensPrev: document.getElementById('btn-queens-prev'),
+        btnQueensNext: document.getElementById('btn-queens-next'),
+        btnQueensRandom: document.getElementById('btn-queens-random'),
+        btnQueensBannerNext: document.getElementById('btn-queens-banner-next'),
 
         queensMovesBadge: document.getElementById('queens-moves-badge'),
 
@@ -4774,6 +4779,10 @@ this.zipNextExpectedCp = 2;
         // Tango DOM
 
         tangoLevelSelect: document.getElementById('tango-level-select'),
+        btnTangoPrev: document.getElementById('btn-tango-prev'),
+        btnTangoNext: document.getElementById('btn-tango-next'),
+        btnTangoRandom: document.getElementById('btn-tango-random'),
+        btnTangoBannerNext: document.getElementById('btn-tango-banner-next'),
 
         tangoTimerBadge: document.getElementById('tango-timer-badge'),
 
@@ -4794,6 +4803,10 @@ this.zipNextExpectedCp = 2;
         // Pinpoint DOM
 
         pinpointLevelSelect: document.getElementById('pinpoint-level-select'),
+        btnPinpointPrev: document.getElementById('btn-pinpoint-prev'),
+        btnPinpointNext: document.getElementById('btn-pinpoint-next'),
+        btnPinpointRandom: document.getElementById('btn-pinpoint-random'),
+        btnPinpointBannerNext: document.getElementById('btn-pinpoint-banner-next'),
 
         pinpointAttemptsBadge: document.getElementById('pinpoint-attempts-badge'),
 
@@ -4816,6 +4829,10 @@ this.zipNextExpectedCp = 2;
         btnPinpointReset: document.getElementById('btn-pinpoint-reset'),
         // Crossclimb DOM
         crossclimbLevelSelect: document.getElementById('crossclimb-level-select'),
+        btnCrossclimbPrev: document.getElementById('btn-crossclimb-prev'),
+        btnCrossclimbNext: document.getElementById('btn-crossclimb-next'),
+        btnCrossclimbRandom: document.getElementById('btn-crossclimb-random'),
+        btnCrossclimbBannerNext: document.getElementById('btn-crossclimb-banner-next'),
         crossclimbStatusBadge: document.getElementById('crossclimb-status-badge'),
         crossclimbLadderList: document.getElementById('crossclimb-ladder-list'),
         crossclimbFeedback: document.getElementById('crossclimb-feedback'),
@@ -4827,6 +4844,10 @@ this.zipNextExpectedCp = 2;
 
         // Zip DOM
         zipLevelSelect: document.getElementById('zip-level-select'),
+        btnZipPrev: document.getElementById('btn-zip-prev'),
+        btnZipNext: document.getElementById('btn-zip-next'),
+        btnZipRandom: document.getElementById('btn-zip-random'),
+        btnZipBannerNext: document.getElementById('btn-zip-banner-next'),
         zipProgressBadge: document.getElementById('zip-progress-badge'),
         zipGrid: document.getElementById('zip-grid'),
         zipFeedback: document.getElementById('zip-feedback'),
@@ -4838,6 +4859,10 @@ this.zipNextExpectedCp = 2;
 
         // Sudoku DOM
         sudokuLevelSelect: document.getElementById('sudoku-level-select'),
+        btnSudokuPrev: document.getElementById('btn-sudoku-prev'),
+        btnSudokuNext: document.getElementById('btn-sudoku-next'),
+        btnSudokuRandom: document.getElementById('btn-sudoku-random'),
+        btnSudokuBannerNext: document.getElementById('btn-sudoku-banner-next'),
         sudokuTimerBadge: document.getElementById('sudoku-timer-badge'),
         sudokuGrid: document.getElementById('sudoku-grid'),
         sudokuNumpad: document.getElementById('sudoku-numpad'),
@@ -5362,14 +5387,14 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
         // 1. Update countdown displays
 
-        if (this.dom.queensCountdown) this.dom.queensCountdown.textContent = cycle.formattedCountdown;
+        // if (this.dom.queensCountdown) this.dom.queensCountdown.textContent = cycle.formattedCountdown;
 
-        if (this.dom.tangoCountdown) this.dom.tangoCountdown.textContent = cycle.formattedCountdown;
+        // if (this.dom.tangoCountdown) this.dom.tangoCountdown.textContent = cycle.formattedCountdown;
 
-        if (this.dom.pinpointCountdown) this.dom.pinpointCountdown.textContent = cycle.formattedCountdown;
-        if (this.dom.crossclimbCountdown) this.dom.crossclimbCountdown.textContent = cycle.formattedCountdown;
-        if (this.dom.zipCountdown) this.dom.zipCountdown.textContent = cycle.formattedCountdown;
-        if (this.dom.sudokuCountdown) this.dom.sudokuCountdown.textContent = cycle.formattedCountdown;
+        // if (this.dom.pinpointCountdown) this.dom.pinpointCountdown.textContent = cycle.formattedCountdown;
+        // if (this.dom.crossclimbCountdown) this.dom.crossclimbCountdown.textContent = cycle.formattedCountdown;
+        // if (this.dom.zipCountdown) this.dom.zipCountdown.textContent = cycle.formattedCountdown;
+        // if (this.dom.sudokuCountdown) this.dom.sudokuCountdown.textContent = cycle.formattedCountdown;
 
 
         if (this.dom.dailyCountdown) {
@@ -5468,6 +5493,194 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
     // ==========================================
 
+    // ==========================================
+    // UNIFIED LEVEL & SOLVED SYSTEM (UNLIMITED PLAY)
+    // ==========================================
+    getSolvedSet(game) {
+      try {
+        return new Set(JSON.parse(localStorage.getItem(`orbitsuite_${game}_solved_levels`) || '[]'));
+      } catch (e) {
+        return new Set();
+      }
+    }
+
+    isLevelSolved(game, lvl) {
+      return this.getSolvedSet(game).has(Number(lvl));
+    }
+
+    markLevelSolved(game, lvl) {
+      const set = this.getSolvedSet(game);
+      set.add(Number(lvl));
+      localStorage.setItem(`orbitsuite_${game}_solved_levels`, JSON.stringify(Array.from(set)));
+      this.populateLevelSelect(game);
+      this.updateGameBanner(game);
+      this.updateTotalStats();
+      if (this.suite && this.suite.hubApp) {
+        this.suite.hubApp.render();
+      }
+    }
+
+    getSolvedCount(game) {
+      return this.getSolvedSet(game).size;
+    }
+
+    getDataLength(game) {
+      if (game === 'queens') return this.queensData ? this.queensData.length : 14;
+      if (game === 'tango') return this.tangoData ? this.tangoData.length : 14;
+      if (game === 'pinpoint') return this.pinpointData ? this.pinpointData.length : 14;
+      if (game === 'crossclimb') return this.crossclimbData ? this.crossclimbData.length : 14;
+      if (game === 'zip') return this.zipData ? this.zipData.length : 14;
+      if (game === 'sudoku') return this.sudokuData ? this.sudokuData.length : 14;
+      return 14;
+    }
+
+    getCurrentLevel(game) {
+      const val = parseInt(this[`${game}CurrentLevel`], 10);
+      const max = this.getDataLength(game);
+      if (isNaN(val) || val < 1) return 1;
+      return Math.min(val, max);
+    }
+
+    setGameLevel(game, lvl) {
+      const max = this.getDataLength(game);
+      const target = Math.max(1, Math.min(Number(lvl), max));
+      this[`${game}CurrentLevel`] = String(target);
+      localStorage.setItem(`orbitsuite_${game}_current_level`, String(target));
+
+      if (this.dom[`${game}LevelSelect`]) {
+        this.dom[`${game}LevelSelect`].value = String(target);
+      }
+
+      if (game === 'queens') {
+        this.resetQueensBoard(true);
+        this.startQueensTimer();
+      } else if (game === 'tango') {
+        this.resetTangoBoard();
+        this.startTangoTimer();
+      } else if (game === 'pinpoint') {
+        this.resetPinpoint();
+      } else if (game === 'crossclimb') {
+        this.resetCrossclimb();
+      } else if (game === 'zip') {
+        this.resetZip();
+      } else if (game === 'sudoku') {
+        this.resetSudoku();
+        this.startSudokuTimer();
+      }
+      this.updateGameBanner(game);
+    }
+
+    nextGameLevel(game) {
+      const cur = this.getCurrentLevel(game);
+      const max = this.getDataLength(game);
+      const next = cur >= max ? 1 : cur + 1;
+      this.setGameLevel(game, next);
+      this.suite.showToast(`Level #${next} von ${max} geladen! 🚀`);
+    }
+
+    prevGameLevel(game) {
+      const cur = this.getCurrentLevel(game);
+      const max = this.getDataLength(game);
+      const prev = cur <= 1 ? max : cur - 1;
+      this.setGameLevel(game, prev);
+      this.suite.showToast(`Level #${prev} von ${max} geladen! 🚀`);
+    }
+
+    randomGameLevel(game) {
+      const max = this.getDataLength(game);
+      const cur = this.getCurrentLevel(game);
+      const solved = this.getSolvedSet(game);
+      const candidates = [];
+      for (let i = 1; i <= max; i++) {
+        if (i !== cur && !solved.has(i)) candidates.push(i);
+      }
+      if (candidates.length === 0) {
+        for (let i = 1; i <= max; i++) {
+          if (i !== cur) candidates.push(i);
+        }
+      }
+      const target = candidates.length > 0 ? candidates[Math.floor(Math.random() * candidates.length)] : 1;
+      this.setGameLevel(game, target);
+      this.suite.showToast(`Zufalls-Level #${target} aktiviert! 🎲`);
+    }
+
+    populateLevelSelect(game) {
+      const selectEl = this.dom[`${game}LevelSelect`];
+      if (!selectEl) return;
+      const max = this.getDataLength(game);
+      const cur = this.getCurrentLevel(game);
+      selectEl.innerHTML = '';
+      for (let i = 1; i <= max; i++) {
+        const opt = document.createElement('option');
+        opt.value = String(i);
+        const isSolved = this.isLevelSolved(game, i);
+        let label = `Board #${i}`;
+        if (game === 'pinpoint') label = `Rätsel #${i}`;
+        if (game === 'crossclimb') label = `Leiter #${i}`;
+        if (game === 'zip') label = `Pfad #${i}`;
+        if (game === 'sudoku') label = `Sudoku #${i}`;
+        opt.textContent = `${label} (Level ${i})${isSolved ? ' ✓ (Gelöst)' : ''}`;
+        selectEl.appendChild(opt);
+      }
+      selectEl.value = String(cur);
+    }
+
+    updateGameBanner(game) {
+      const cur = this.getCurrentLevel(game);
+      const max = this.getDataLength(game);
+      const isSolved = this.isLevelSolved(game, cur);
+      const solvedCount = this.getSolvedCount(game);
+
+      const statusEl = this.dom[`${game}StatusPill`];
+      if (statusEl) {
+        statusEl.textContent = isSolved ? 'Gelöst ✓' : 'Offen ⏳';
+        statusEl.classList.toggle('solved', isSolved);
+      }
+
+      const countEl = this.dom[`${game}Countdown`];
+      if (countEl) {
+        countEl.textContent = `${solvedCount} / ${max}`;
+      }
+
+      const titleEl = this.dom[`${game}DateTitle`];
+      if (titleEl) {
+        if (game === 'queens') titleEl.textContent = `👑 Queens: Board #${cur} (6×6)`;
+        else if (game === 'tango') titleEl.textContent = `☀️🌙 Tango: Board #${cur} (6×6)`;
+        else if (game === 'pinpoint') titleEl.textContent = `🎯 Pinpoint: Rätsel #${cur}`;
+        else if (game === 'crossclimb') titleEl.textContent = `🪜 Crossclimb: Leiter #${cur}`;
+        else if (game === 'zip') titleEl.textContent = `⚡ Zip: Pfad #${cur} (5×5)`;
+        else if (game === 'sudoku') titleEl.textContent = `🔢 Mini Sudoku: Board #${cur} (6×6)`;
+      }
+
+      const lvlNumEl = document.getElementById(`${game}-banner-level-num`);
+      if (lvlNumEl) lvlNumEl.textContent = String(cur);
+
+      const navBadgeEl = document.getElementById(`${game}-nav-badge`);
+      if (navBadgeEl) {
+        navBadgeEl.textContent = `${solvedCount}/${max}`;
+      }
+    }
+
+    updateTotalStats() {
+      const games = ['queens', 'tango', 'crossclimb', 'pinpoint', 'zip', 'sudoku'];
+      let totalSolved = 0;
+      let totalAvailable = 0;
+      games.forEach(g => {
+        const solved = this.getSolvedCount(g);
+        const total = this.getDataLength(g);
+        totalSolved += solved;
+        totalAvailable += total;
+        const navBadge = document.getElementById(`${g}-nav-badge`);
+        if (navBadge) {
+          navBadge.textContent = `${solved}/${total}`;
+        }
+      });
+
+      if (this.dom.badgeScore) {
+        this.dom.badgeScore.textContent = `🏆 ${totalSolved}/${totalAvailable} Gelöst`;
+      }
+    }
+
     // LINKEDIN GAMES CONTROLLER
 
     // ==========================================
@@ -5565,40 +5778,14 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
 
     getActiveQueensBoard() {
-
-      if (this.queensCurrentLevel === 'daily') {
-
-        return this.getQueensDailyBoard();
-
-      }
-
-      const lvl = parseInt(this.queensCurrentLevel, 10);
-
+      const lvl = this.getCurrentLevel('queens');
       return this.queensData[lvl - 1] || this.queensData[0];
-
     }
 
 
 
     initQueens() {
-
-      // Populate level dropdown once
-
-      if (this.dom.queensLevelSelect && this.dom.queensLevelSelect.options.length <= 1) {
-
-        this.queensData.forEach((b, i) => {
-
-          const opt = document.createElement('option');
-
-          opt.value = String(i + 1);
-
-          opt.textContent = `Board Level ${i + 1} (6x6)`;
-
-          this.dom.queensLevelSelect.appendChild(opt);
-
-        });
-
-      }
+      this.populateLevelSelect('queens');
 
 
 
@@ -5922,37 +6109,25 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
 
 
-        const cycle = this.getGermanDailyCycle();
-
-        if (this.queensCurrentLevel === 'daily') {
-
-          const solvedSet = new Set(JSON.parse(localStorage.getItem('orbitsuite_queens_daily_solved') || '[]'));
-
-          solvedSet.add(cycle.cycleKey);
-
-          localStorage.setItem('orbitsuite_queens_daily_solved', JSON.stringify(Array.from(solvedSet)));
-
-        }
-
-
+        const lvl = this.getCurrentLevel('queens');
+        this.markLevelSolved('queens', lvl);
 
         if (this.dom.queensFeedback) {
-
           const m = Math.floor(this.queensTime / 60);
-
           const s = this.queensTime % 60;
-
           this.dom.queensFeedback.className = 'game-inline-feedback success show';
-
-          this.dom.queensFeedback.textContent = `👑 Perfekt gelöst in ${this.queensMoves} Zügen (${m}m ${s}s)!`;
-
+          this.dom.queensFeedback.innerHTML = `
+            <span>👑 Board #${lvl} fehlerfrei gelöst in ${this.queensMoves} Zügen (${m}m ${s}s)!</span>
+            <button class="btn-inline-next" id="btn-queens-next-win">Nächstes Board ▶</button>
+          `;
+          const nextBtn = document.getElementById('btn-queens-next-win');
+          if (nextBtn) {
+            nextBtn.addEventListener('click', () => this.nextGameLevel('queens'));
+          }
         }
 
-
-
-        this.suite.showToast('🎉 Queens Board fehlerfrei gemeistert!');
-
-        this.renderQueensBanner();
+        this.suite.showToast(`👑 Queens Board #${lvl} fehlerfrei gemeistert!`);
+        this.updateGameBanner('queens');
 
       } else {
 
@@ -5971,35 +6146,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
 
     renderQueensBanner() {
-
-      const cycle = this.getGermanDailyCycle();
-
-      const solvedSet = new Set(JSON.parse(localStorage.getItem('orbitsuite_queens_daily_solved') || '[]'));
-
-      const isDailySolved = solvedSet.has(cycle.cycleKey);
-
-
-
-      if (this.dom.queensDateTitle) {
-
-        this.dom.queensDateTitle.textContent = `👑 Queens Tages-Board für ${cycle.displayDate}`;
-
-      }
-
-      if (this.dom.queensStatusPill) {
-
-        this.dom.queensStatusPill.textContent = isDailySolved ? 'Gelöst ✓' : 'Offen ⏳';
-
-        this.dom.queensStatusPill.classList.toggle('solved', isDailySolved);
-
-      }
-
-      if (this.dom.queensCountdown) {
-
-        this.dom.queensCountdown.textContent = cycle.formattedCountdown;
-
-      }
-
+      this.updateGameBanner('queens');
     }
 
 
@@ -6117,38 +6264,14 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
 
     getActiveTangoPuzzle() {
-
-      if (this.tangoCurrentLevel === 'daily') {
-
-        return this.getTangoDailyPuzzle();
-
-      }
-
-      const lvl = parseInt(this.tangoCurrentLevel, 10);
-
+      const lvl = this.getCurrentLevel('tango');
       return this.tangoData[lvl - 1] || this.tangoData[0];
-
     }
 
 
 
     initTango() {
-
-      if (this.dom.tangoLevelSelect && this.dom.tangoLevelSelect.options.length <= 1) {
-
-        this.tangoData.forEach((b, i) => {
-
-          const opt = document.createElement('option');
-
-          opt.value = String(i + 1);
-
-          opt.textContent = `Tango Board #${i + 1} (6x6)`;
-
-          this.dom.tangoLevelSelect.appendChild(opt);
-
-        });
-
-      }
+      this.populateLevelSelect('tango');
 
 
 
@@ -6386,37 +6509,25 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
 
 
-        const cycle = this.getGermanDailyCycle();
-
-        if (this.tangoCurrentLevel === 'daily') {
-
-          const solvedSet = new Set(JSON.parse(localStorage.getItem('orbitsuite_tango_daily_solved') || '[]'));
-
-          solvedSet.add(cycle.cycleKey);
-
-          localStorage.setItem('orbitsuite_tango_daily_solved', JSON.stringify(Array.from(solvedSet)));
-
-        }
-
-
+        const lvl = this.getCurrentLevel('tango');
+        this.markLevelSolved('tango', lvl);
 
         if (this.dom.tangoFeedback) {
-
           const m = Math.floor(this.tangoTime / 60);
-
           const s = this.tangoTime % 60;
-
           this.dom.tangoFeedback.className = 'game-inline-feedback success show';
-
-          this.dom.tangoFeedback.textContent = `☀️🌙 Tango meisterhaft gelöst (${m}m ${s}s)!`;
-
+          this.dom.tangoFeedback.innerHTML = `
+            <span>☀️🌙 Board #${lvl} meisterhaft gelöst (${m}m ${s}s)!</span>
+            <button class="btn-inline-next" id="btn-tango-next-win">Nächstes Board ▶</button>
+          `;
+          const nextBtn = document.getElementById('btn-tango-next-win');
+          if (nextBtn) {
+            nextBtn.addEventListener('click', () => this.nextGameLevel('tango'));
+          }
         }
 
-
-
-        this.suite.showToast('🎉 Tango Board erfolgreich abgeschlossen!');
-
-        this.renderTangoBanner();
+        this.suite.showToast(`☀️🌙 Tango Board #${lvl} erfolgreich gelöst!`);
+        this.updateGameBanner('tango');
 
       } else {
 
@@ -6435,35 +6546,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
 
     renderTangoBanner() {
-
-      const cycle = this.getGermanDailyCycle();
-
-      const solvedSet = new Set(JSON.parse(localStorage.getItem('orbitsuite_tango_daily_solved') || '[]'));
-
-      const isDailySolved = solvedSet.has(cycle.cycleKey);
-
-
-
-      if (this.dom.tangoDateTitle) {
-
-        this.dom.tangoDateTitle.textContent = `☀️🌙 Tango Tages-Board für ${cycle.displayDate}`;
-
-      }
-
-      if (this.dom.tangoStatusPill) {
-
-        this.dom.tangoStatusPill.textContent = isDailySolved ? 'Gelöst ✓' : 'Offen ⏳';
-
-        this.dom.tangoStatusPill.classList.toggle('solved', isDailySolved);
-
-      }
-
-      if (this.dom.tangoCountdown) {
-
-        this.dom.tangoCountdown.textContent = cycle.formattedCountdown;
-
-      }
-
+      this.updateGameBanner('tango');
     }
 
 
@@ -6607,38 +6690,14 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
 
     getActivePinpointChallenge() {
-
-      if (this.pinpointCurrentLevel === 'daily') {
-
-        return this.getPinpointDailyChallenge();
-
-      }
-
-      const lvl = parseInt(this.pinpointCurrentLevel, 10);
-
+      const lvl = this.getCurrentLevel('pinpoint');
       return this.pinpointData[lvl - 1] || this.pinpointData[0];
-
     }
 
 
 
     initPinpoint() {
-
-      if (this.dom.pinpointLevelSelect && this.dom.pinpointLevelSelect.options.length <= 1) {
-
-        this.pinpointData.forEach((p, i) => {
-
-          const opt = document.createElement('option');
-
-          opt.value = String(i + 1);
-
-          opt.textContent = `Pinpoint Challenge #${i + 1}`;
-
-          this.dom.pinpointLevelSelect.appendChild(opt);
-
-        });
-
-      }
+      this.populateLevelSelect('pinpoint');
 
 
 
@@ -6752,33 +6811,24 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
 
 
-        const cycle = this.getGermanDailyCycle();
-
-        if (this.pinpointCurrentLevel === 'daily') {
-
-          const solvedSet = new Set(JSON.parse(localStorage.getItem('orbitsuite_pinpoint_daily_solved') || '[]'));
-
-          solvedSet.add(cycle.cycleKey);
-
-          localStorage.setItem('orbitsuite_pinpoint_daily_solved', JSON.stringify(Array.from(solvedSet)));
-
-        }
-
-
+        const lvl = this.getCurrentLevel('pinpoint');
+        this.markLevelSolved('pinpoint', lvl);
 
         if (this.dom.pinpointFeedback) {
-
           this.dom.pinpointFeedback.className = 'game-inline-feedback success show';
-
-          this.dom.pinpointFeedback.textContent = `🎯 Volltreffer! Die Kategorie lautet "${challenge.category}"!`;
-
+          this.dom.pinpointFeedback.innerHTML = `
+            <span>🎯 Volltreffer! Die Kategorie lautet "${challenge.category}"!</span>
+            <button class="btn-inline-next" id="btn-pinpoint-next-win">Nächstes Rätsel ▶</button>
+          `;
+          const nextBtn = document.getElementById('btn-pinpoint-next-win');
+          if (nextBtn) {
+            nextBtn.addEventListener('click', () => this.nextGameLevel('pinpoint'));
+          }
         }
 
-
-
-        this.suite.showToast(`⭐ Pinpoint gelöst: ${challenge.category}!`);
-
+        this.suite.showToast(`🎯 Pinpoint #${lvl} gelöst: ${challenge.category}!`);
         this.renderPinpoint();
+        this.updateGameBanner('pinpoint');
 
       } else {
 
@@ -6841,35 +6891,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
 
     renderPinpointBanner() {
-
-      const cycle = this.getGermanDailyCycle();
-
-      const solvedSet = new Set(JSON.parse(localStorage.getItem('orbitsuite_pinpoint_daily_solved') || '[]'));
-
-      const isDailySolved = solvedSet.has(cycle.cycleKey);
-
-
-
-      if (this.dom.pinpointDateTitle) {
-
-        this.dom.pinpointDateTitle.textContent = `🎯 Pinpoint Tages-Rätsel für ${cycle.displayDate}`;
-
-      }
-
-      if (this.dom.pinpointStatusPill) {
-
-        this.dom.pinpointStatusPill.textContent = isDailySolved ? 'Gelöst ✓' : 'Offen ⏳';
-
-        this.dom.pinpointStatusPill.classList.toggle('solved', isDailySolved);
-
-      }
-
-      if (this.dom.pinpointCountdown) {
-
-        this.dom.pinpointCountdown.textContent = cycle.formattedCountdown;
-
-      }
-
+      this.updateGameBanner('pinpoint');
     }
 
 
@@ -6933,22 +6955,12 @@ btnRandom: document.getElementById('btn-riddle-random'),
     }
 
     getActiveCrossclimb() {
-      if (this.crossclimbCurrentLevel === 'daily') {
-        return this.getCrossclimbDaily();
-      }
-      const lvl = parseInt(this.crossclimbCurrentLevel, 10);
+      const lvl = this.getCurrentLevel('crossclimb');
       return this.crossclimbData[lvl - 1] || this.crossclimbData[0];
     }
 
     initCrossclimb() {
-      if (this.dom.crossclimbLevelSelect && this.dom.crossclimbLevelSelect.options.length <= 1) {
-        this.crossclimbData.forEach((c, i) => {
-          const opt = document.createElement('option');
-          opt.value = String(i + 1);
-          opt.textContent = `Crossclimb #${i + 1}`;
-          this.dom.crossclimbLevelSelect.appendChild(opt);
-        });
-      }
+      this.populateLevelSelect('crossclimb');
       this.resetCrossclimb();
     }
 
@@ -7028,37 +7040,27 @@ btnRandom: document.getElementById('btn-riddle-random'),
       this.suite.sound.playSuccess();
       this.suite.confetti.fire();
 
-      const cycle = this.getGermanDailyCycle();
-      if (this.crossclimbCurrentLevel === 'daily') {
-        const solvedSet = new Set(JSON.parse(localStorage.getItem('orbitsuite_crossclimb_daily_solved') || '[]'));
-        solvedSet.add(cycle.cycleKey);
-        localStorage.setItem('orbitsuite_crossclimb_daily_solved', JSON.stringify(Array.from(solvedSet)));
-      }
+      const lvl = this.getCurrentLevel('crossclimb');
+      this.markLevelSolved('crossclimb', lvl);
 
       if (this.dom.crossclimbFeedback) {
         this.dom.crossclimbFeedback.className = 'game-inline-feedback success show';
-        this.dom.crossclimbFeedback.textContent = '🎉 Genial! Die Wortleiter steht perfekt von Sprosse zu Sprosse!';
+        this.dom.crossclimbFeedback.innerHTML = `
+          <span>🪜 Genial! Die Wortleiter steht perfekt von Sprosse zu Sprosse!</span>
+          <button class="btn-inline-next" id="btn-crossclimb-next-win">Nächste Leiter ▶</button>
+        `;
+        const nextBtn = document.getElementById('btn-crossclimb-next-win');
+        if (nextBtn) {
+          nextBtn.addEventListener('click', () => this.nextGameLevel('crossclimb'));
+        }
       }
 
-      this.suite.showToast('🪜 Crossclimb fehlerfrei erklommen!');
-      this.renderCrossclimbBanner();
+      this.suite.showToast(`🪜 Crossclimb Leiter #${lvl} fehlerfrei erklommen!`);
+      this.updateGameBanner('crossclimb');
     }
 
     renderCrossclimbBanner() {
-      const cycle = this.getGermanDailyCycle();
-      const solvedSet = new Set(JSON.parse(localStorage.getItem('orbitsuite_crossclimb_daily_solved') || '[]'));
-      const isDailySolved = solvedSet.has(cycle.cycleKey);
-
-      if (this.dom.crossclimbDateTitle) {
-        this.dom.crossclimbDateTitle.textContent = `🪜 Crossclimb Tages-Leiter für ${cycle.displayDate}`;
-      }
-      if (this.dom.crossclimbStatusPill) {
-        this.dom.crossclimbStatusPill.textContent = isDailySolved ? 'Gelöst ✓' : 'Offen ⏳';
-        this.dom.crossclimbStatusPill.classList.toggle('solved', isDailySolved);
-      }
-      if (this.dom.crossclimbCountdown) {
-        this.dom.crossclimbCountdown.textContent = cycle.formattedCountdown;
-      }
+      this.updateGameBanner('crossclimb');
     }
 
     renderCrossclimb() {
@@ -7123,22 +7125,12 @@ btnRandom: document.getElementById('btn-riddle-random'),
     }
 
     getActiveZip() {
-      if (this.zipCurrentLevel === 'daily') {
-        return this.getZipDaily();
-      }
-      const lvl = parseInt(this.zipCurrentLevel, 10);
+      const lvl = this.getCurrentLevel('zip');
       return this.zipData[lvl - 1] || this.zipData[0];
     }
 
     initZip() {
-      if (this.dom.zipLevelSelect && this.dom.zipLevelSelect.options.length <= 1) {
-        this.zipData.forEach((z, i) => {
-          const opt = document.createElement('option');
-          opt.value = String(i + 1);
-          opt.textContent = `Zip Pfad #${i + 1} (5×5)`;
-          this.dom.zipLevelSelect.appendChild(opt);
-        });
-      }
+      this.populateLevelSelect('zip');
       this.resetZip();
     }
 
@@ -7242,38 +7234,28 @@ btnRandom: document.getElementById('btn-riddle-random'),
         this.suite.sound.playSuccess();
         this.suite.confetti.fire();
 
-        const cycle = this.getGermanDailyCycle();
-        if (this.zipCurrentLevel === 'daily') {
-          const solvedSet = new Set(JSON.parse(localStorage.getItem('orbitsuite_zip_daily_solved') || '[]'));
-          solvedSet.add(cycle.cycleKey);
-          localStorage.setItem('orbitsuite_zip_daily_solved', JSON.stringify(Array.from(solvedSet)));
-        }
+        const lvl = this.getCurrentLevel('zip');
+        this.markLevelSolved('zip', lvl);
 
         if (this.dom.zipFeedback) {
           this.dom.zipFeedback.className = 'game-inline-feedback success show';
-          this.dom.zipFeedback.textContent = '⚡ Genial gelöst! Alle 25 Felder und Checkpoints 1 bis 7 lückenlos verbunden!';
+          this.dom.zipFeedback.innerHTML = `
+            <span>⚡ Genial gelöst! Pfad #${lvl} lückenlos verbunden!</span>
+            <button class="btn-inline-next" id="btn-zip-next-win">Nächster Pfad ▶</button>
+          `;
+          const nextBtn = document.getElementById('btn-zip-next-win');
+          if (nextBtn) {
+            nextBtn.addEventListener('click', () => this.nextGameLevel('zip'));
+          }
         }
 
-        this.suite.showToast('⚡ Zip Pfad erfolgreich vervollständigt!');
-        this.renderZipBanner();
+        this.suite.showToast(`⚡ Zip Pfad #${lvl} erfolgreich vervollständigt!`);
+        this.updateGameBanner('zip');
       }
     }
 
     renderZipBanner() {
-      const cycle = this.getGermanDailyCycle();
-      const solvedSet = new Set(JSON.parse(localStorage.getItem('orbitsuite_zip_daily_solved') || '[]'));
-      const isDailySolved = solvedSet.has(cycle.cycleKey);
-
-      if (this.dom.zipDateTitle) {
-        this.dom.zipDateTitle.textContent = `⚡ Zip Tages-Pfad für ${cycle.displayDate}`;
-      }
-      if (this.dom.zipStatusPill) {
-        this.dom.zipStatusPill.textContent = isDailySolved ? 'Gelöst ✓' : 'Offen ⏳';
-        this.dom.zipStatusPill.classList.toggle('solved', isDailySolved);
-      }
-      if (this.dom.zipCountdown) {
-        this.dom.zipCountdown.textContent = cycle.formattedCountdown;
-      }
+      this.updateGameBanner('zip');
     }
 
     renderZip() {
@@ -7337,22 +7319,12 @@ btnRandom: document.getElementById('btn-riddle-random'),
     }
 
     getActiveSudoku() {
-      if (this.sudokuCurrentLevel === 'daily') {
-        return this.getSudokuDaily();
-      }
-      const lvl = parseInt(this.sudokuCurrentLevel, 10);
+      const lvl = this.getCurrentLevel('sudoku');
       return this.sudokuData[lvl - 1] || this.sudokuData[0];
     }
 
     initSudoku() {
-      if (this.dom.sudokuLevelSelect && this.dom.sudokuLevelSelect.options.length <= 1) {
-        this.sudokuData.forEach((s, i) => {
-          const opt = document.createElement('option');
-          opt.value = String(i + 1);
-          opt.textContent = `Mini Sudoku #${i + 1} (6×6)`;
-          this.dom.sudokuLevelSelect.appendChild(opt);
-        });
-      }
+      this.populateLevelSelect('sudoku');
       this.resetSudoku();
       this.startSudokuTimer();
     }
@@ -7486,22 +7458,25 @@ btnRandom: document.getElementById('btn-riddle-random'),
         this.suite.sound.playSuccess();
         this.suite.confetti.fire();
 
-        const cycle = this.getGermanDailyCycle();
-        if (this.sudokuCurrentLevel === 'daily') {
-          const solvedSet = new Set(JSON.parse(localStorage.getItem('orbitsuite_sudoku_daily_solved') || '[]'));
-          solvedSet.add(cycle.cycleKey);
-          localStorage.setItem('orbitsuite_sudoku_daily_solved', JSON.stringify(Array.from(solvedSet)));
-        }
+        const lvl = this.getCurrentLevel('sudoku');
+        this.markLevelSolved('sudoku', lvl);
 
         if (this.dom.sudokuFeedback) {
           const m = Math.floor(this.sudokuTime / 60);
           const s = this.sudokuTime % 60;
           this.dom.sudokuFeedback.className = 'game-inline-feedback success show';
-          this.dom.sudokuFeedback.textContent = `🔢 Mini Sudoku bravourös gelöst (${m}m ${s}s)!`;
+          this.dom.sudokuFeedback.innerHTML = `
+            <span>🔢 Mini Sudoku #${lvl} bravourös gelöst (${m}m ${s}s)!</span>
+            <button class="btn-inline-next" id="btn-sudoku-next-win">Nächstes Sudoku ▶</button>
+          `;
+          const nextBtn = document.getElementById('btn-sudoku-next-win');
+          if (nextBtn) {
+            nextBtn.addEventListener('click', () => this.nextGameLevel('sudoku'));
+          }
         }
 
-        this.suite.showToast('🎉 Mini Sudoku komplett fehlerfrei gelöst!');
-        this.renderSudokuBanner();
+        this.suite.showToast(`🎉 Mini Sudoku #${lvl} fehlerfrei gelöst!`);
+        this.updateGameBanner('sudoku');
       } else {
         if (this.dom.sudokuFeedback) {
           this.dom.sudokuFeedback.className = 'game-inline-feedback';
@@ -7511,20 +7486,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
     }
 
     renderSudokuBanner() {
-      const cycle = this.getGermanDailyCycle();
-      const solvedSet = new Set(JSON.parse(localStorage.getItem('orbitsuite_sudoku_daily_solved') || '[]'));
-      const isDailySolved = solvedSet.has(cycle.cycleKey);
-
-      if (this.dom.sudokuDateTitle) {
-        this.dom.sudokuDateTitle.textContent = `🔢 Mini Sudoku Tages-Rätsel für ${cycle.displayDate}`;
-      }
-      if (this.dom.sudokuStatusPill) {
-        this.dom.sudokuStatusPill.textContent = isDailySolved ? 'Gelöst ✓' : 'Offen ⏳';
-        this.dom.sudokuStatusPill.classList.toggle('solved', isDailySolved);
-      }
-      if (this.dom.sudokuCountdown) {
-        this.dom.sudokuCountdown.textContent = cycle.formattedCountdown;
-      }
+      this.updateGameBanner('sudoku');
     }
 
     renderSudoku() {
@@ -7563,11 +7525,12 @@ btnRandom: document.getElementById('btn-riddle-random'),
     }
 init() {
       this.bindEvents();
-      this.startDailyTimer();
+      this.updateTotalStats();
       this.switchGameMode('queens');
     }
 
     render() {
+      this.updateTotalStats();
       if (this.activeGameMode === 'queens') this.renderQueens();
       else if (this.activeGameMode === 'tango') this.renderTango();
       else if (this.activeGameMode === 'crossclimb') this.renderCrossclimb();
@@ -7595,6 +7558,24 @@ init() {
 
       }
 
+      // Interactive Level Navigation Bindings for all games
+      ['queens', 'tango', 'pinpoint', 'crossclimb', 'zip', 'sudoku'].forEach(g => {
+        const cap = g.charAt(0).toUpperCase() + g.slice(1);
+        if (this.dom[`btn${cap}Prev`]) {
+          this.dom[`btn${cap}Prev`].addEventListener('click', () => this.prevGameLevel(g));
+        }
+        if (this.dom[`btn${cap}Next`]) {
+          this.dom[`btn${cap}Next`].addEventListener('click', () => this.nextGameLevel(g));
+        }
+        if (this.dom[`btn${cap}Random`]) {
+          this.dom[`btn${cap}Random`].addEventListener('click', () => this.randomGameLevel(g));
+        }
+        if (this.dom[`btn${cap}BannerNext`]) {
+          this.dom[`btn${cap}BannerNext`].addEventListener('click', () => this.nextGameLevel(g));
+        }
+      });
+
+
 
 
       // Queens Bindings
@@ -7602,14 +7583,8 @@ init() {
       if (this.dom.queensLevelSelect) {
 
         this.dom.queensLevelSelect.addEventListener('change', (e) => {
-
-          this.queensCurrentLevel = e.target.value;
-
-          this.resetQueensBoard(true);
-
-          this.startQueensTimer();
-
-        });
+        this.setGameLevel('queens', e.target.value);
+      });
 
       }
 
@@ -7644,14 +7619,8 @@ init() {
       if (this.dom.tangoLevelSelect) {
 
         this.dom.tangoLevelSelect.addEventListener('change', (e) => {
-
-          this.tangoCurrentLevel = e.target.value;
-
-          this.resetTangoBoard();
-
-          this.startTangoTimer();
-
-        });
+        this.setGameLevel('tango', e.target.value);
+      });
 
       }
 
@@ -7674,12 +7643,8 @@ init() {
       if (this.dom.pinpointLevelSelect) {
 
         this.dom.pinpointLevelSelect.addEventListener('change', (e) => {
-
-          this.pinpointCurrentLevel = e.target.value;
-
-          this.resetPinpoint();
-
-        });
+        this.setGameLevel('pinpoint', e.target.value);
+      });
 
       }
 
@@ -7714,9 +7679,8 @@ init() {
       // Crossclimb Bindings
       if (this.dom.crossclimbLevelSelect) {
         this.dom.crossclimbLevelSelect.addEventListener('change', (e) => {
-          this.crossclimbCurrentLevel = e.target.value;
-          this.resetCrossclimb();
-        });
+        this.setGameLevel('crossclimb', e.target.value);
+      });
       }
       if (this.dom.btnCrossclimbCheck) {
         this.dom.btnCrossclimbCheck.addEventListener('click', () => this.checkCrossclimb());
@@ -7728,9 +7692,8 @@ init() {
       // Zip Bindings
       if (this.dom.zipLevelSelect) {
         this.dom.zipLevelSelect.addEventListener('change', (e) => {
-          this.zipCurrentLevel = e.target.value;
-          this.resetZip();
-        });
+        this.setGameLevel('zip', e.target.value);
+      });
       }
       if (this.dom.btnZipUndo) {
         this.dom.btnZipUndo.addEventListener('click', () => this.undoZipStep());
@@ -7742,10 +7705,8 @@ init() {
       // Sudoku Bindings
       if (this.dom.sudokuLevelSelect) {
         this.dom.sudokuLevelSelect.addEventListener('change', (e) => {
-          this.sudokuCurrentLevel = e.target.value;
-          this.resetSudoku();
-          this.startSudokuTimer();
-        });
+        this.setGameLevel('sudoku', e.target.value);
+      });
       }
       if (this.dom.btnSudokuReset) {
         this.dom.btnSudokuReset.addEventListener('click', () => {
@@ -8007,15 +7968,12 @@ init() {
       }
 
       if (this.dom.statRiddles) {
-        const cycle = riddle ? riddle.getGermanDailyCycle() : null;
-        let solvedDailyCount = 0;
-        if (cycle) {
-          ['queens', 'tango', 'crossclimb', 'pinpoint', 'zip', 'sudoku'].forEach(g => {
-            const solvedSet = new Set(JSON.parse(localStorage.getItem(`orbitsuite_${g}_daily_solved`) || '[]'));
-            if (solvedSet.has(cycle.cycleKey)) solvedDailyCount++;
-          });
-        }
-        this.dom.statRiddles.textContent = `${solvedDailyCount}/6`;
+        let totalSolved = 0;
+        ['queens', 'tango', 'crossclimb', 'pinpoint', 'zip', 'sudoku'].forEach(g => {
+          const solvedSet = new Set(JSON.parse(localStorage.getItem(`orbitsuite_${g}_solved_levels`) || '[]'));
+          totalSolved += solvedSet.size;
+        });
+        this.dom.statRiddles.textContent = `${totalSolved}/84 Rätsel`;
       }
 
       // App Card summaries
@@ -8045,16 +8003,12 @@ init() {
       }
 
       if (this.dom.cardRiddleSummary) {
-        const cycle = riddle ? riddle.getGermanDailyCycle() : null;
-        let solvedDailyCount = 0;
-        if (cycle) {
-          ['queens', 'tango', 'crossclimb', 'pinpoint', 'zip', 'sudoku'].forEach(g => {
-            const solvedSet = new Set(JSON.parse(localStorage.getItem(`orbitsuite_${g}_daily_solved`) || '[]'));
-            if (solvedSet.has(cycle.cycleKey)) solvedDailyCount++;
-          });
-        }
-        const dropText = cycle ? `07:00 Drop in ${cycle.hours}h ${cycle.minutes}m` : '';
-        this.dom.cardRiddleSummary.textContent = `${solvedDailyCount}/6 LinkedIn Games gelöst • ${dropText}`;
+        let totalSolved = 0;
+        ['queens', 'tango', 'crossclimb', 'pinpoint', 'zip', 'sudoku'].forEach(g => {
+          const solvedSet = new Set(JSON.parse(localStorage.getItem(`orbitsuite_${g}_solved_levels`) || '[]'));
+          totalSolved += solvedSet.size;
+        });
+        this.dom.cardRiddleSummary.textContent = `${totalSolved}/84 Rätsel gemeistert • Freies Spielen`;
       }
 
       // Live Activity Lists
