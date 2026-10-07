@@ -6021,10 +6021,14 @@ btnRandom: document.getElementById('btn-riddle-random'),
       const highestUnlocked = this.getHighestUnlockedLevel(game);
       const totalLevels = this.getPathLength(game);
 
-      // Update toolbar level badge
+      // Update toolbar level badge (no difficulty in campaign view)
       const tbBadge = document.getElementById(`${game}-toolbar-level-badge`);
       if (tbBadge) {
-        tbBadge.textContent = `Level #${cur} • ${diffInfo.icon} ${diffInfo.label}`;
+        if (viewMode === 'path') {
+          tbBadge.textContent = `Level #${cur}`;
+        } else {
+          tbBadge.textContent = `Level #${cur} • ${diffInfo.icon} ${diffInfo.label}`;
+        }
       }
 
       // Linear levels array: 1 .. totalLevels
@@ -6047,7 +6051,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
         <div class="level-hub-header">
           <div class="level-hub-title-group">
             <span class="level-hub-title">🎯 Level-Wahl</span>
-            <span class="level-hub-pill">${diffInfo.icon} Level #${cur} (${diffInfo.label}) aktiv</span>
+            <span class="level-hub-pill">Level #${cur} aktiv</span>
           </div>
           <div class="level-mode-switcher">
             <button class="level-mode-tab ${viewMode === 'path' ? 'active' : ''}" data-hub-mode="path" title="Linearer Pfad ohne Stufen-Unterteilung">
@@ -6079,9 +6083,9 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
             if (isUnlocked) {
               return `
-                <button class="trail-node ${isSolved ? 'solved' : ''} ${isActive ? 'active' : 'unlocked'} diff-tint-${diff.tier}"
+                <button class="trail-node ${isSolved ? 'solved' : ''} ${isActive ? 'active' : 'unlocked'}"
                         data-select-level="${lvl}"
-                        title="Level #${lvl} (${diff.label}) ${isSolved ? '• Gelöst ✓' : '• Freigeschaltet'}">
+                        title="Level #${lvl} ${isSolved ? '• Gelöst ✓' : '• Freigeschaltet'}">
                   <span class="node-number">${lvl}</span>
                   ${isSolved ? '<span class="node-status-badge">✓</span>' : (isActive ? '<span class="node-status-badge active-dot">👑</span>' : '')}
                 </button>
@@ -6090,9 +6094,9 @@ btnRandom: document.getElementById('btn-riddle-random'),
             } else {
               // Nicht freigeschaltet: Zahl durch Schloss ersetzen!
               return `
-                <button class="trail-node locked diff-tint-${diff.tier}"
+                <button class="trail-node locked"
                         data-locked-level="${lvl}"
-                        title="Level #${lvl} (${diff.label}) • 🔒 Gesperrt (Schließe Level #${lvl - 1} ab)">
+                        title="Level #${lvl} • 🔒 Gesperrt (Schließe Level #${lvl - 1} ab)">
                   <span class="node-lock" aria-label="Gesperrt">🔒</span>
                 </button>
                 ${connector}
@@ -6384,11 +6388,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
       const prevDiff = this.getLevelDifficulty(cur);
       const nextDiff = this.getLevelDifficulty(next);
       this.setGameLevel(game, next);
-      if (prevDiff.tier !== nextDiff.tier) {
-        this.suite.showToast(`🎉 Stufe aufgestiegen! Weiter geht's mit ${nextDiff.icon} ${nextDiff.label}!`);
-      } else {
-        this.suite.showToast(`Level #${next} geladen! 🚀`);
-      }
+      this.suite.showToast(`Level #${next} geladen! 🚀`);
     }
 
     prevGameLevel(game) {
@@ -6431,7 +6431,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
         if (game === 'zip') label = `Pfad #${i}`;
         if (game === 'sudoku') label = `Sudoku #${i}`;
         if (isUnlocked) {
-          opt.textContent = `${label} (${diff.icon} ${diff.label})${isSolved ? ' ✓ (Gelöst)' : ''}`;
+          opt.textContent = `${label}${isSolved ? ' ✓ (Gelöst)' : ''}`;
         } else {
           opt.textContent = `🔒 ${label} (Gesperrt)`;
           opt.disabled = true;
@@ -6460,16 +6460,21 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
       const titleEl = this.dom[`${game}DateTitle`];
       if (titleEl) {
-        if (game === 'queens') titleEl.textContent = `🤑 Queens: Board #${cur} (6×6 • ${diff.icon} ${diff.label})`;
-        else if (game === 'tango') titleEl.textContent = `☀️🌙 Tango: Board #${cur} (6×6 • ${diff.icon} ${diff.label})`;
-        else if (game === 'pinpoint') titleEl.textContent = `🎯 Pinpoint: Rätsel #${cur} (${diff.icon} ${diff.label})`;
-        else if (game === 'crossclimb') titleEl.textContent = `🪜 Crossclimb: Leiter #${cur} (${diff.icon} ${diff.label})`;
-        else if (game === 'zip') titleEl.textContent = `⚡ Zip: Pfad #${cur} (5×5 • ${diff.icon} ${diff.label})`;
-        else if (game === 'sudoku') titleEl.textContent = `🔢 Mini Sudoku: Board #${cur} (6×6 • ${diff.icon} ${diff.label})`;
+        if (game === 'queens') titleEl.textContent = `👑 Queens: Board #${cur} (6×6)`;
+        else if (game === 'tango') titleEl.textContent = `☀️🌙 Tango: Board #${cur} (6×6)`;
+        else if (game === 'pinpoint') titleEl.textContent = `🎯 Pinpoint: Rätsel #${cur}`;
+        else if (game === 'crossclimb') titleEl.textContent = `🪜 Crossclimb: Leiter #${cur}`;
+        else if (game === 'zip') titleEl.textContent = `⚡ Zip: Pfad #${cur} (5×5)`;
+        else if (game === 'sudoku') titleEl.textContent = `🔢 Mini Sudoku: Board #${cur} (6×6)`;
       }
 
       const lvlNumEl = document.getElementById(`${game}-banner-level-num`);
-      if (lvlNumEl) lvlNumEl.textContent = `${cur} (${diff.icon} ${diff.label})`;
+      if (lvlNumEl) lvlNumEl.textContent = String(cur);
+
+      const tbBadge = document.getElementById(`${game}-toolbar-level-badge`);
+      if (tbBadge) {
+        tbBadge.textContent = `Level #${cur}`;
+      }
 
       const navBadgeEl = document.getElementById(`${game}-nav-badge`);
       if (navBadgeEl) {
@@ -6930,87 +6935,127 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
 
     renderQueens() {
-
       this.renderQueensBanner();
-
       if (!this.dom.queensGrid) return;
 
-
-
       const board = this.getActiveQueensBoard();
-
       const size = board.size;
-
       const { clashes } = this.getQueensClashes();
-
       const gridEl = this.dom.queensGrid;
-
       gridEl.innerHTML = '';
-
       gridEl.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
-
       gridEl.style.gridTemplateRows = `repeat(${size}, 1fr)`;
 
+      // Setup Click & Drag for X
+      gridEl.onpointerdown = (e) => {
+        if (e.button !== 0) return;
+        const cell = e.target.closest('.queens-cell');
+        if (!cell) return;
+        const r = parseInt(cell.dataset.r, 10);
+        const c = parseInt(cell.dataset.c, 10);
+        if (isNaN(r) || isNaN(c)) return;
 
-
-      for (let r = 0; r < size; r++) {
-
-        for (let c = 0; c < size; c++) {
-
-          const cell = document.createElement('div');
-
-          const reg = board.regions[r][c];
-
-          cell.className = `queens-cell reg-${reg}`;
-
-
-
-          // Heavy region borders between different colored regions
-
-          if (r === 0 || board.regions[r - 1][c] !== reg) cell.classList.add('border-top');
-
-          if (c === size - 1 || board.regions[r][c + 1] !== reg) cell.classList.add('border-right');
-
-          if (r === size - 1 || board.regions[r + 1][c] !== reg) cell.classList.add('border-bottom');
-
-          if (c === 0 || board.regions[r][c - 1] !== reg) cell.classList.add('border-left');
-
-
-
-          const val = this.queensUserGrid[r][c];
-
-          if (val === 'Q') cell.classList.add('cell-queen');
-
-          else if (val === 'X') cell.classList.add('cell-cross');
-
-
-
-          if (clashes.has(`${r},${c}`)) {
-
-            cell.classList.add('cell-clash');
-
-          }
-
-
-
-          cell.addEventListener('click', () => this.handleQueensCellClick(r, c, false));
-
-          cell.addEventListener('contextmenu', (e) => {
-
-            e.preventDefault();
-
-            this.handleQueensCellClick(r, c, true);
-
-          });
-
-
-
-          gridEl.appendChild(cell);
-
+        if (!this.queensTimerStarted) {
+          this.startQueensTimer();
+          this.queensTimerStarted = true;
         }
 
+        this.queensIsDraggingX = true;
+        this.queensDragChanged = false;
+        gridEl.classList.add('dragging-x');
+
+        // If clicking on an empty cell, immediately paint X and allow dragging
+        if (this.queensUserGrid[r][c] === null) {
+          this.queensUserGrid[r][c] = 'X';
+          this.queensManualX.add(`${r},${c}`);
+          this.queensHistory.push({ r, c, prevVal: null, newVal: 'X' });
+          this.queensMoves += 1;
+          this.queensDragChanged = true;
+          cell.classList.add('cell-cross');
+          if (this.dom.queensMovesBadge) {
+            this.dom.queensMovesBadge.textContent = `Züge: ${this.queensMoves}`;
+          }
+        }
+      };
+
+      gridEl.onpointermove = (e) => {
+        if (!this.queensIsDraggingX) return;
+        const target = document.elementFromPoint(e.clientX, e.clientY);
+        const cell = target?.closest('.queens-cell');
+        if (!cell) return;
+        const r = parseInt(cell.dataset.r, 10);
+        const c = parseInt(cell.dataset.c, 10);
+        if (isNaN(r) || isNaN(c)) return;
+
+        if (this.queensUserGrid[r][c] === null) {
+          this.queensUserGrid[r][c] = 'X';
+          this.queensManualX.add(`${r},${c}`);
+          this.queensHistory.push({ r, c, prevVal: null, newVal: 'X' });
+          this.queensMoves += 1;
+          this.queensDragChanged = true;
+          cell.classList.add('cell-cross');
+          if (this.dom.queensMovesBadge) {
+            this.dom.queensMovesBadge.textContent = `Züge: ${this.queensMoves}`;
+          }
+        }
+      };
+
+      const stopQueensDrag = () => {
+        if (!this.queensIsDraggingX) return;
+        this.queensIsDraggingX = false;
+        gridEl.classList.remove('dragging-x');
+        if (this.queensDragChanged) {
+          this.queensSuppressClick = true;
+          setTimeout(() => { this.queensSuppressClick = false; }, 100);
+          this.suite.sound.playClick();
+          if (this.queensAutoXEnabled) {
+            this.autoXQueens();
+          }
+          this.renderQueens();
+          this.checkQueensStatus();
+        }
+      };
+
+      if (!this.queensWindowPointerUpBound) {
+        window.addEventListener('pointerup', stopQueensDrag);
+        window.addEventListener('pointercancel', stopQueensDrag);
+        this.queensWindowPointerUpBound = true;
       }
 
+      for (let r = 0; r < size; r++) {
+        for (let c = 0; c < size; c++) {
+          const cell = document.createElement('div');
+          const reg = board.regions[r][c];
+          cell.className = `queens-cell reg-${reg}`;
+          cell.dataset.r = r;
+          cell.dataset.c = c;
+
+          // Heavy region borders between different colored regions
+          if (r === 0 || board.regions[r - 1][c] !== reg) cell.classList.add('border-top');
+          if (c === size - 1 || board.regions[r][c + 1] !== reg) cell.classList.add('border-right');
+          if (r === size - 1 || board.regions[r + 1][c] !== reg) cell.classList.add('border-bottom');
+          if (c === 0 || board.regions[r][c - 1] !== reg) cell.classList.add('border-left');
+
+          const val = this.queensUserGrid[r][c];
+          if (val === 'Q') cell.classList.add('cell-queen');
+          else if (val === 'X') cell.classList.add('cell-cross');
+
+          if (clashes.has(`${r},${c}`)) {
+            cell.classList.add('cell-clash');
+          }
+
+          cell.addEventListener('click', () => {
+            if (this.queensSuppressClick) return;
+            this.handleQueensCellClick(r, c, false);
+          });
+          cell.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            this.handleQueensCellClick(r, c, true);
+          });
+
+          gridEl.appendChild(cell);
+        }
+      }
     }
 
 
@@ -7508,12 +7553,13 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
 
     submitPinpointGuess() {
-
       if (this.pinpointIsSolved || !this.dom.pinpointGuessInput) return;
-
       const guess = this.dom.pinpointGuessInput.value.trim().toLowerCase();
-
       if (!guess) return;
+
+      // Sofortiges Leeren des Eingabefeldes nach dem Guess!
+      this.dom.pinpointGuessInput.value = '';
+      this.dom.pinpointGuessInput.focus();
 
 
 
@@ -7707,17 +7753,82 @@ btnRandom: document.getElementById('btn-riddle-random'),
       this.resetCrossclimb();
     }
 
+    crossclimbWordDiff(w1, w2) {
+      if (!w1 || !w2 || w1.length !== w2.length) return 99;
+      let diff = 0;
+      for (let i = 0; i < w1.length; i++) {
+        if (w1[i] !== w2[i]) diff++;
+      }
+      return diff;
+    }
+
+    getCrossclimbCompoundClue(challenge) {
+      if (challenge.compoundClue) return challenge.compoundClue;
+      const top = challenge.words[0];
+      const bot = challenge.words[challenge.words.length - 1];
+      const map = {
+        'KALT+BILD': 'Frostige Momentaufnahme / Winterliches Kunstwerk (KALT + BILD)',
+        'SAND+RIND': 'Feiner Strand trifft Weidetier (SAND + RIND)',
+        'BOOT+PEST': 'Seefahrt und historische Seuche (BOOT + PEST)',
+        'GOLD+HELM': 'Glänzender Kopfschutz für echte Helden (GOLD + HELM)',
+        'WIND+DANK': 'Anerkennung und Dankbarkeit im Sturm (WIND + DANK)',
+        'BALL+HELM': 'Sicherheitsausrüstung beim Ballsport (BALL + HELM)',
+        'KIND+BUNT': 'Farbenfrohe Welt der Kleinsten (KIND + BUNT)',
+        'HAUS+FAHL': 'Düstere Behausung im fahlen Mondlicht (HAUS + FAHL)',
+        'ZEIT+WORT': 'Grammatischer Fachbegriff für ein Verb (ZEIT + WORT)',
+        'BUCH+NACH': 'Nachschlagen im Wissenswerk (BUCH + NACH)',
+        'MEER+HIER': 'Das offene Meer direkt an diesem Ort (MEER + HIER)',
+        'TORF+BORN': 'Moorland und sprudelnde Naturquelle (TORF + BORN)',
+        'WEIN+FERN': 'Edler Tropfen aus fernen Ländern (WEIN + FERN)',
+        'LUFT+REST': 'Die verbleibende Atemreserve in der Flasche (LUFT + REST)'
+      };
+      const key = `${top}+${bot}`;
+      return map[key] || `Decke und Boden bilden zusammen das Begriffspaar "${top} + ${bot}"`;
+    }
+
     resetCrossclimb() {
       const challenge = this.getActiveCrossclimb();
-      // Scramble rungs order for the player to sort
-      const items = challenge.words.map((w, idx) => ({
-        targetWord: w,
-        clue: challenge.clues[idx],
+      const words = challenge.words;
+      const clues = challenge.clues;
+      const lastIdx = words.length - 1;
+
+      this.crossclimbDecke = {
+        targetWord: words[0].toUpperCase(),
+        clue: clues[0],
         currentWord: '',
-        origIndex: idx
-      }));
-      // Deterministic slight shuffle
-      this.crossclimbRungs = [items[2], items[0], items[4], items[1], items[3]];
+        isSolved: false
+      };
+      this.crossclimbBoden = {
+        targetWord: words[lastIdx].toUpperCase(),
+        clue: clues[lastIdx],
+        currentWord: '',
+        isSolved: false
+      };
+
+      const middle = [];
+      for (let i = 1; i < lastIdx; i++) {
+        middle.push({
+          targetWord: words[i].toUpperCase(),
+          clue: clues[i],
+          currentWord: '',
+          isSolved: false,
+          origIndex: i
+        });
+      }
+
+      // Shuffle rungs deterministically
+      if (middle.length === 3) {
+        this.crossclimbRungs = [middle[1], middle[2], middle[0]];
+      } else if (middle.length === 4) {
+        this.crossclimbRungs = [middle[2], middle[0], middle[3], middle[1]];
+      } else {
+        this.crossclimbRungs = middle.slice().reverse();
+      }
+
+      this.crossclimbStep = 1; // 1: Erraten, 2: Sortieren, 3: Decke & Boden
+      this.crossclimbLadderDirection = 'forward';
+      this.crossclimbCompoundClue = this.getCrossclimbCompoundClue(challenge);
+
       if (this.dom.crossclimbFeedback) {
         this.dom.crossclimbFeedback.className = 'game-inline-feedback';
         this.dom.crossclimbFeedback.textContent = '';
@@ -7725,81 +7836,115 @@ btnRandom: document.getElementById('btn-riddle-random'),
       this.renderCrossclimb();
     }
 
-    moveCrossclimbRung(idx, dir) {
-      const targetIdx = idx + dir;
-      if (targetIdx < 0 || targetIdx >= this.crossclimbRungs.length) return;
-      const tmp = this.crossclimbRungs[idx];
-      this.crossclimbRungs[idx] = this.crossclimbRungs[targetIdx];
-      this.crossclimbRungs[targetIdx] = tmp;
+    moveCrossclimbRung(fromIdx, toIdx) {
+      if (toIdx < 0 || toIdx >= this.crossclimbRungs.length) return;
+      const item = this.crossclimbRungs.splice(fromIdx, 1)[0];
+      this.crossclimbRungs.splice(toIdx, 0, item);
       this.suite.sound.playClick();
+      this.checkCrossclimbLadderOrder();
       this.renderCrossclimb();
     }
 
-    checkCrossclimb() {
+    reverseCrossclimbRungs() {
+      this.crossclimbRungs.reverse();
+      this.crossclimbLadderDirection = this.crossclimbLadderDirection === 'forward' ? 'reverse' : 'forward';
+      this.suite.sound.playClick();
+      this.renderCrossclimb();
+      this.checkCrossclimbWin();
+    }
+
+    checkCrossclimbLadderOrder() {
+      if (this.crossclimbStep < 2) return;
       const rungs = this.crossclimbRungs;
-      let allWordsCorrect = true;
-      let validLadder = true;
-
-      for (let i = 0; i < rungs.length; i++) {
-        const inputVal = (rungs[i].currentWord || '').trim().toUpperCase();
-        if (inputVal !== rungs[i].targetWord) {
-          allWordsCorrect = false;
-        }
-      }
-
-      if (!allWordsCorrect) {
-        this.suite.sound.playError();
-        if (this.dom.crossclimbFeedback) {
-          this.dom.crossclimbFeedback.className = 'game-inline-feedback error show';
-          this.dom.crossclimbFeedback.textContent = 'Trage zuerst für alle 5 Hinweise das passende 4-Buchstaben-Wort ein!';
-        }
-        return;
-      }
-
-      // Check ladder distance of 1 between all adjacent rungs
+      let isChain = true;
       for (let i = 0; i < rungs.length - 1; i++) {
-        const w1 = rungs[i].targetWord;
-        const w2 = rungs[i+1].targetWord;
-        let diff = 0;
-        for (let j = 0; j < w1.length; j++) {
-          if (w1[j] !== w2[j]) diff++;
-        }
-        if (diff !== 1) {
-          validLadder = false;
+        if (this.crossclimbWordDiff(rungs[i].targetWord, rungs[i + 1].targetWord) !== 1) {
+          isChain = false;
           break;
         }
       }
 
-      if (!validLadder) {
-        this.suite.sound.playError();
+      if (isChain) {
+        const topRung = rungs[0].targetWord;
+        const botRung = rungs[rungs.length - 1].targetWord;
+        const deckeWord = this.crossclimbDecke.targetWord;
+        const bodenWord = this.crossclimbBoden.targetWord;
+
+        const forwardMatch = (this.crossclimbWordDiff(deckeWord, topRung) === 1) && (this.crossclimbWordDiff(botRung, bodenWord) === 1);
+        const reverseMatch = (this.crossclimbWordDiff(bodenWord, topRung) === 1) && (this.crossclimbWordDiff(botRung, deckeWord) === 1);
+
+        if (reverseMatch && !forwardMatch) {
+          this.crossclimbLadderDirection = 'reverse';
+        } else {
+          this.crossclimbLadderDirection = 'forward';
+        }
+
+        if (this.crossclimbStep < 3) {
+          this.crossclimbStep = 3;
+          this.suite.sound.playSuccess();
+          this.suite.showToast('🪜 Leiter perfekt geordnet! Schritt 3: Decke & Boden lüften!');
+        }
+      }
+    }
+
+    checkCrossclimbWin() {
+      if (this.crossclimbStep === 3 &&
+          this.crossclimbDecke.currentWord === this.crossclimbDecke.targetWord &&
+          this.crossclimbBoden.currentWord === this.crossclimbBoden.targetWord) {
+
+        this.suite.sound.playSuccess();
+        this.suite.confetti.fire();
+
+        const lvl = this.getCurrentLevel('crossclimb');
+        this.markLevelSolved('crossclimb', lvl);
+
         if (this.dom.crossclimbFeedback) {
-          this.dom.crossclimbFeedback.className = 'game-inline-feedback error show';
-          this.dom.crossclimbFeedback.textContent = 'Fast! Die Wörter stimmen, aber die Reihenfolge bildet noch keine 1-Buchstaben-Kette. Nutze ▲ / ▼!';
+          this.dom.crossclimbFeedback.className = 'game-inline-feedback success show';
+          this.dom.crossclimbFeedback.innerHTML = `
+            <span>🎉 Genial! Decke ("${this.crossclimbDecke.targetWord}") und Boden ("${this.crossclimbBoden.targetWord}") lückenlos verbunden!</span>
+            <button class="btn-inline-next" id="btn-crossclimb-next-win">Nächste Leiter ▶</button>
+          `;
+          const nextBtn = document.getElementById('btn-crossclimb-next-win');
+          if (nextBtn) {
+            nextBtn.addEventListener('click', () => this.nextGameLevel('crossclimb'));
+          }
         }
-        return;
+
+        this.suite.showToast(`🪜 Crossclimb Leiter #${lvl} fehlerfrei erklommen!`);
+        this.updateGameBanner('crossclimb');
       }
+    }
 
-      // Ladder Complete!
-      this.suite.sound.playSuccess();
-      this.suite.confetti.fire();
-
-      const lvl = this.getCurrentLevel('crossclimb');
-      this.markLevelSolved('crossclimb', lvl);
-
-      if (this.dom.crossclimbFeedback) {
-        this.dom.crossclimbFeedback.className = 'game-inline-feedback success show';
-        this.dom.crossclimbFeedback.innerHTML = `
-          <span>🪜 Genial! Die Wortleiter steht perfekt von Sprosse zu Sprosse!</span>
-          <button class="btn-inline-next" id="btn-crossclimb-next-win">Nächste Leiter ▶</button>
-        `;
-        const nextBtn = document.getElementById('btn-crossclimb-next-win');
-        if (nextBtn) {
-          nextBtn.addEventListener('click', () => this.nextGameLevel('crossclimb'));
+    checkCrossclimb() {
+      if (this.crossclimbStep === 1) {
+        const solved = this.crossclimbRungs.filter(r => r.isSolved || r.currentWord === r.targetWord).length;
+        if (solved < this.crossclimbRungs.length) {
+          this.suite.sound.playError();
+          if (this.dom.crossclimbFeedback) {
+            this.dom.crossclimbFeedback.className = 'game-inline-feedback error show';
+            this.dom.crossclimbFeedback.textContent = `Schritt 1: Errate zuerst alle ${this.crossclimbRungs.length} Leiterwörter (${solved}/${this.crossclimbRungs.length} erraten)!`;
+          }
+        }
+      } else if (this.crossclimbStep === 2) {
+        this.checkCrossclimbLadderOrder();
+        if (this.crossclimbStep < 3) {
+          this.suite.sound.playError();
+          if (this.dom.crossclimbFeedback) {
+            this.dom.crossclimbFeedback.className = 'game-inline-feedback error show';
+            this.dom.crossclimbFeedback.textContent = 'Schritt 2: Die Sprossen bilden noch keine lückenlose 1-Buchstaben-Kette. Nutze Drag & Drop oder ▲ / ▼!';
+          }
+        }
+      } else {
+        this.checkCrossclimbWin();
+        if (this.crossclimbDecke.currentWord !== this.crossclimbDecke.targetWord ||
+            this.crossclimbBoden.currentWord !== this.crossclimbBoden.targetWord) {
+          this.suite.sound.playError();
+          if (this.dom.crossclimbFeedback) {
+            this.dom.crossclimbFeedback.className = 'game-inline-feedback error show';
+            this.dom.crossclimbFeedback.textContent = 'Schritt 3: Trage noch das passende Wort für Decke und Boden ein!';
+          }
         }
       }
-
-      this.suite.showToast(`🪜 Crossclimb Leiter #${lvl} fehlerfrei erklommen!`);
-      this.updateGameBanner('crossclimb');
     }
 
     renderCrossclimbBanner() {
@@ -7812,23 +7957,76 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
       const listEl = this.dom.crossclimbLadderList;
       listEl.innerHTML = '';
-      let solvedCount = 0;
 
+      // 1. Step Progress Tracker
+      const tracker = document.createElement('div');
+      tracker.className = 'crossclimb-step-tracker';
+      tracker.innerHTML = `
+        <div class="step-indicator-pill ${this.crossclimbStep === 1 ? 'active' : 'completed'}">
+          ${this.crossclimbStep > 1 ? '✓' : '1.'} 🔍 Sprossen erraten
+        </div>
+        <div class="step-indicator-pill ${this.crossclimbStep === 2 ? 'active' : (this.crossclimbStep > 2 ? 'completed' : '')}">
+          ${this.crossclimbStep > 2 ? '✓' : '2.'} ↕️ Sortieren (Drag & Drop)
+        </div>
+        <div class="step-indicator-pill ${this.crossclimbStep === 3 ? 'active' : ''}">
+          3. 🔓 Decke & Boden lüften
+        </div>
+      `;
+      listEl.appendChild(tracker);
+
+      // 2. DECKE (Top Rung)
+      const deckeCard = document.createElement('div');
+      const isDeckeUnlocked = this.crossclimbStep === 3;
+      const isDeckeCorrect = this.crossclimbDecke.currentWord === this.crossclimbDecke.targetWord;
+      deckeCard.className = `crossclimb-end-card decke ${isDeckeUnlocked ? 'unlocked' : 'locked'} ${isDeckeCorrect ? 'valid-rung' : ''}`;
+      deckeCard.innerHTML = `
+        <div class="rung-left">
+          <div class="rung-number-pill">${isDeckeUnlocked ? '🏠' : '🔒'}</div>
+          <div class="rung-clue-container">
+            <span class="end-card-tag">DECKE (Oben)</span>
+            <div class="rung-clue-text">${isDeckeUnlocked ? this.crossclimbDecke.clue : 'Wird nach Sortierung der Leiter freigeschaltet'}</div>
+          </div>
+        </div>
+        ${isDeckeUnlocked ? `
+          <input type="text" class="rung-word-input decke-input" maxlength="4" value="${this.crossclimbDecke.currentWord}" placeholder="____" />
+        ` : `
+          <span class="rung-locked-badge">🔒 Gesperrt</span>
+        `}
+      `;
+      if (isDeckeUnlocked) {
+        const input = deckeCard.querySelector('.decke-input');
+        input.addEventListener('input', (e) => {
+          this.crossclimbDecke.currentWord = e.target.value.toUpperCase();
+          if (this.crossclimbDecke.currentWord === this.crossclimbDecke.targetWord) {
+            this.suite.sound.playPop();
+          }
+          this.checkCrossclimbWin();
+          this.renderCrossclimb();
+        });
+      }
+      listEl.appendChild(deckeCard);
+
+      // 3. MIDDLE LADDER RUNGS (Drag and Drop Sortable)
       this.crossclimbRungs.forEach((rung, idx) => {
         const card = document.createElement('div');
         const isMatch = (rung.currentWord || '').trim().toUpperCase() === rung.targetWord;
-        if (isMatch) solvedCount++;
+        if (isMatch) rung.isSolved = true;
 
-        card.className = `crossclimb-rung-card ${isMatch ? 'valid-rung' : ''}`;
+        const isDraggable = this.crossclimbStep >= 2;
+        card.className = `crossclimb-rung-card ${rung.isSolved ? 'valid-rung' : ''} ${isDraggable ? 'draggable' : ''}`;
+        card.dataset.rungIndex = idx;
+        if (isDraggable) card.setAttribute('draggable', 'true');
+
         card.innerHTML = `
+          ${isDraggable ? '<div class="rung-drag-handle" title="Ziehen zum Verschieben">⠿</div>' : ''}
           <div class="rung-left">
             <div class="rung-number-pill">${idx + 1}</div>
             <div class="rung-clue-text">${rung.clue}</div>
           </div>
-          <input type="text" class="rung-word-input" maxlength="4" value="${rung.currentWord || ''}" placeholder="____" />
+          <input type="text" class="rung-word-input" maxlength="4" value="${rung.currentWord || ''}" placeholder="____" ${rung.isSolved && this.crossclimbStep >= 2 ? 'readonly' : ''} />
           <div class="rung-reorder-btns">
-            <button class="btn-rung-move" ${idx === 0 ? 'disabled' : ''} data-dir="-1">▲</button>
-            <button class="btn-rung-move" ${idx === this.crossclimbRungs.length - 1 ? 'disabled' : ''} data-dir="1">▼</button>
+            <button class="btn-rung-move" ${idx === 0 || this.crossclimbStep < 2 ? 'disabled' : ''} data-dir="-1" title="Nach oben">▲</button>
+            <button class="btn-rung-move" ${idx === this.crossclimbRungs.length - 1 || this.crossclimbStep < 2 ? 'disabled' : ''} data-dir="1" title="Nach unten">▼</button>
           </div>
         `;
 
@@ -7836,21 +8034,120 @@ btnRandom: document.getElementById('btn-riddle-random'),
         input.addEventListener('input', (e) => {
           rung.currentWord = e.target.value.toUpperCase();
           if (rung.currentWord === rung.targetWord) {
+            rung.isSolved = true;
             this.suite.sound.playPop();
+          }
+          if (this.crossclimbRungs.every(r => r.isSolved || r.currentWord === r.targetWord)) {
+            if (this.crossclimbStep === 1) {
+              this.crossclimbStep = 2;
+              this.suite.sound.playSuccess();
+              this.suite.showToast('🎉 Alle Leiterwörter erraten! Schritt 2 freigeschaltet: Sortiere die Sprossen per Drag & Drop!');
+              this.checkCrossclimbLadderOrder();
+            }
           }
           this.renderCrossclimb();
         });
 
+        // Up / Down Buttons
         const btnUp = card.querySelector('[data-dir="-1"]');
         const btnDown = card.querySelector('[data-dir="1"]');
-        if (btnUp) btnUp.addEventListener('click', () => this.moveCrossclimbRung(idx, -1));
-        if (btnDown) btnDown.addEventListener('click', () => this.moveCrossclimbRung(idx, 1));
+        if (btnUp) btnUp.addEventListener('click', () => this.moveCrossclimbRung(idx, idx - 1));
+        if (btnDown) btnDown.addEventListener('click', () => this.moveCrossclimbRung(idx, idx + 1));
+
+        // Drag and Drop Events
+        if (isDraggable) {
+          card.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', String(idx));
+            card.classList.add('dragging');
+          });
+          card.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            card.classList.add('drag-over');
+          });
+          card.addEventListener('dragleave', () => {
+            card.classList.remove('drag-over');
+          });
+          card.addEventListener('drop', (e) => {
+            e.preventDefault();
+            card.classList.remove('drag-over');
+            const srcIdx = parseInt(e.dataTransfer.getData('text/plain'), 10);
+            if (!isNaN(srcIdx) && srcIdx !== idx) {
+              this.moveCrossclimbRung(srcIdx, idx);
+            }
+          });
+          card.addEventListener('dragend', () => {
+            card.classList.remove('dragging');
+            listEl.querySelectorAll('.crossclimb-rung-card').forEach(c => c.classList.remove('drag-over'));
+          });
+        }
 
         listEl.appendChild(card);
       });
 
+      // 4. BODEN (Bottom Rung)
+      const bodenCard = document.createElement('div');
+      const isBodenUnlocked = this.crossclimbStep === 3;
+      const isBodenCorrect = this.crossclimbBoden.currentWord === this.crossclimbBoden.targetWord;
+      bodenCard.className = `crossclimb-end-card boden ${isBodenUnlocked ? 'unlocked' : 'locked'} ${isBodenCorrect ? 'valid-rung' : ''}`;
+      bodenCard.innerHTML = `
+        <div class="rung-left">
+          <div class="rung-number-pill">${isBodenUnlocked ? '⚓' : '🔒'}</div>
+          <div class="rung-clue-container">
+            <span class="end-card-tag">BODEN (Unten)</span>
+            <div class="rung-clue-text">${isBodenUnlocked ? this.crossclimbBoden.clue : 'Wird nach Sortierung der Leiter freigeschaltet'}</div>
+          </div>
+        </div>
+        ${isBodenUnlocked ? `
+          <input type="text" class="rung-word-input boden-input" maxlength="4" value="${this.crossclimbBoden.currentWord}" placeholder="____" />
+        ` : `
+          <span class="rung-locked-badge">🔒 Gesperrt</span>
+        `}
+      `;
+      if (isBodenUnlocked) {
+        const input = bodenCard.querySelector('.boden-input');
+        input.addEventListener('input', (e) => {
+          this.crossclimbBoden.currentWord = e.target.value.toUpperCase();
+          if (this.crossclimbBoden.currentWord === this.crossclimbBoden.targetWord) {
+            this.suite.sound.playPop();
+          }
+          this.checkCrossclimbWin();
+          this.renderCrossclimb();
+        });
+      }
+      listEl.appendChild(bodenCard);
+
+      // 5. STEP 3 DIRECTION NOTICE & COMPOUND CLUE
+      if (this.crossclimbStep === 3) {
+        if (this.crossclimbLadderDirection === 'reverse') {
+          const revNotice = document.createElement('div');
+          revNotice.className = 'crossclimb-direction-notice alert-warning';
+          revNotice.innerHTML = `
+            <div>
+              🔄 <strong>Hinweis zur Reihenfolge:</strong> Deine Leiter ist aktuell rückwärts (z.B. 4, 3, 2, 1) sortiert.
+              Da Decke und Boden zusammen ein Begriffspaar ergeben, beachte die vertauschte Leserichtung!
+            </div>
+            <button class="btn-reverse-ladder" id="btn-crossclimb-reverse-dir">Leiter umdrehen ↕️</button>
+          `;
+          listEl.appendChild(revNotice);
+          const revBtn = revNotice.querySelector('#btn-crossclimb-reverse-dir');
+          if (revBtn) revBtn.addEventListener('click', () => this.reverseCrossclimbRungs());
+        }
+
+        const tipCard = document.createElement('div');
+        tipCard.className = 'crossclimb-compound-card';
+        tipCard.innerHTML = `💡 <strong>Tipp für Decke & Boden:</strong> ${this.crossclimbCompoundClue}`;
+        listEl.appendChild(tipCard);
+      }
+
       if (this.dom.crossclimbStatusBadge) {
-        this.dom.crossclimbStatusBadge.textContent = `Sprossen: ${solvedCount}/5 gelöst`;
+        const solved = this.crossclimbRungs.filter(r => r.isSolved).length;
+        if (this.crossclimbStep === 1) {
+          this.dom.crossclimbStatusBadge.textContent = `Schritt 1: ${solved}/${this.crossclimbRungs.length} erraten`;
+        } else if (this.crossclimbStep === 2) {
+          this.dom.crossclimbStatusBadge.textContent = 'Schritt 2: Leiter anordnen';
+        } else {
+          this.dom.crossclimbStatusBadge.textContent = 'Schritt 3: Decke & Boden';
+        }
       }
     }
 
@@ -8008,8 +8305,10 @@ btnRandom: document.getElementById('btn-riddle-random'),
       const size = puzzle.size;
       const gridEl = this.dom.zipGrid;
       gridEl.innerHTML = '';
-      gridEl.style.gridTemplateColumns = `repeat(${size}, 62px)`;
-      gridEl.style.gridTemplateRows = `repeat(${size}, 62px)`;
+      const cellSize = 62;
+      const gap = 8;
+      gridEl.style.gridTemplateColumns = `repeat(${size}, ${cellSize}px)`;
+      gridEl.style.gridTemplateRows = `repeat(${size}, ${cellSize}px)`;
 
       const pathMap = new Map();
       this.zipPath.forEach((p, idx) => {
@@ -8017,6 +8316,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
       });
       const tip = this.zipPath[this.zipPath.length - 1];
 
+      // 1. Render cells
       for (let r = 0; r < size; r++) {
         for (let c = 0; c < size; c++) {
           const cell = document.createElement('div');
@@ -8025,12 +8325,12 @@ btnRandom: document.getElementById('btn-riddle-random'),
           const cp = puzzle.checkpoints[`${r},${c}`];
 
           cell.className = `zip-cell ${isVisited ? 'visited' : ''} ${isTip ? 'current-tip' : ''} ${cp ? 'checkpoint' : ''}`;
+          cell.dataset.r = r;
+          cell.dataset.c = c;
 
           if (cp) {
-            // Checkpoint shows clean sequential number 1, 2, 3, 4, 5, 6, 7
             cell.textContent = cp.num;
           } else if (isVisited) {
-            // Path cell shows sleek glowing dot
             cell.innerHTML = '<div class="zip-cell-dot"></div>';
           } else {
             cell.textContent = '';
@@ -8039,6 +8339,85 @@ btnRandom: document.getElementById('btn-riddle-random'),
           cell.addEventListener('click', () => this.handleZipCellClick(r, c));
           gridEl.appendChild(cell);
         }
+      }
+
+      // 2. Render SVG connecting line over the visited path
+      if (this.zipPath.length > 0) {
+        const totalSize = size * cellSize + (size - 1) * gap;
+        const svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svgEl.setAttribute('class', 'zip-path-svg');
+        svgEl.setAttribute('viewBox', `0 0 ${totalSize} ${totalSize}`);
+
+        const points = this.zipPath.map(p => {
+          const cx = p.c * (cellSize + gap) + cellSize / 2;
+          const cy = p.r * (cellSize + gap) + cellSize / 2;
+          return `${cx},${cy}`;
+        }).join(' ');
+
+        const tipCx = tip.c * (cellSize + gap) + cellSize / 2;
+        const tipCy = tip.r * (cellSize + gap) + cellSize / 2;
+
+        svgEl.innerHTML = `
+          <polyline class="zip-svg-line" points="${points}" />
+          <circle class="zip-svg-tip-head" cx="${tipCx}" cy="${tipCy}" r="8" />
+        `;
+        gridEl.appendChild(svgEl);
+      }
+
+      // 3. Pointer drag navigation (drawing line with mouse/touch drag!)
+      gridEl.onpointerdown = (e) => {
+        const cell = e.target.closest('.zip-cell');
+        if (!cell) return;
+        const r = parseInt(cell.dataset.r, 10);
+        const c = parseInt(cell.dataset.c, 10);
+        if (isNaN(r) || isNaN(c)) return;
+
+        this.zipIsDragging = true;
+        const path = this.zipPath;
+        if (path.length > 1 && path[path.length - 2].r === r && path[path.length - 2].c === c) {
+          this.undoZipStep();
+        } else if (!path.some(p => p.r === r && p.c === c)) {
+          const last = path[path.length - 1];
+          if (Math.abs(last.r - r) + Math.abs(last.c - c) === 1) {
+            this.handleZipCellClick(r, c);
+          }
+        }
+      };
+
+      gridEl.onpointermove = (e) => {
+        if (!this.zipIsDragging) return;
+        const target = document.elementFromPoint(e.clientX, e.clientY);
+        const cell = target?.closest('.zip-cell');
+        if (!cell) return;
+        const r = parseInt(cell.dataset.r, 10);
+        const c = parseInt(cell.dataset.c, 10);
+        if (isNaN(r) || isNaN(c)) return;
+
+        const path = this.zipPath;
+        const last = path[path.length - 1];
+        if (r === last.r && c === last.c) return;
+
+        // Backtrack when dragging over previous step
+        if (path.length > 1 && path[path.length - 2].r === r && path[path.length - 2].c === c) {
+          this.undoZipStep();
+          return;
+        }
+
+        // Advance step if orthogonally adjacent and unvisited
+        if (!path.some(p => p.r === r && p.c === c)) {
+          if (Math.abs(last.r - r) + Math.abs(last.c - c) === 1) {
+            this.handleZipCellClick(r, c);
+          }
+        }
+      };
+
+      const stopZipDrag = () => {
+        this.zipIsDragging = false;
+      };
+      if (!this.zipWindowPointerUpBound) {
+        window.addEventListener('pointerup', stopZipDrag);
+        window.addEventListener('pointercancel', stopZipDrag);
+        this.zipWindowPointerUpBound = true;
       }
 
       if (this.dom.zipProgressBadge) {
