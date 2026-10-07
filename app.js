@@ -4196,6 +4196,16 @@
 
         tab.addEventListener('click', () => {
 
+          if (tab.dataset.tool === 'jump-riddle' || tab.id === 'btn-tools-jump-riddle') {
+
+            this.suite.switchApp('riddle');
+
+            this.suite.sound.playPop();
+
+            return;
+
+          }
+
           this.dom.subnavTabs.forEach(t => t.classList.remove('active'));
 
           tab.classList.add('active');
@@ -4207,6 +4217,22 @@
         });
 
       });
+
+      const jumpRiddleBtn = document.getElementById('btn-tools-jump-riddle');
+
+      if (jumpRiddleBtn) {
+
+        jumpRiddleBtn.addEventListener('click', (e) => {
+
+          e.preventDefault();
+
+          this.suite.switchApp('riddle');
+
+          this.suite.sound.playPop();
+
+        });
+
+      }
 
 
 
@@ -4458,9 +4484,11 @@
 
       if (!raw) {
 
+        if (this.dom.jsonOutput) this.dom.jsonOutput.value = '';
+
         this.dom.jsonValStatus.className = 'json-validation-badge';
 
-        this.dom.jsonValStatus.textContent = 'Bereit';
+        this.dom.jsonValStatus.textContent = 'Bereit (Live-Sync aktiv)';
 
         return;
 
@@ -4468,17 +4496,23 @@
 
       try {
 
-        JSON.parse(raw);
+        const parsed = JSON.parse(raw);
+
+        if (this.dom.jsonOutput) {
+
+          this.dom.jsonOutput.value = JSON.stringify(parsed, null, 2);
+
+        }
 
         this.dom.jsonValStatus.className = 'json-validation-badge valid';
 
-        this.dom.jsonValStatus.textContent = 'Gültiges JSON';
+        this.dom.jsonValStatus.textContent = 'Gültiges JSON (Live-Sync)';
 
       } catch (e) {
 
         this.dom.jsonValStatus.className = 'json-validation-badge invalid';
 
-        this.dom.jsonValStatus.textContent = 'Ungültig';
+        this.dom.jsonValStatus.textContent = 'Ungültig: ' + e.message;
 
       }
 
@@ -4655,15 +4689,15 @@ class OrbitRiddleGenerator {
     const size = customSize || (level <= 5 ? 6 : (level <= 10 ? 8 : 10));
 
     let queens = null;
-    for (let attempt = 0; attempt < 1000; attempt++) {
-      const cols = [0, 1, 2, 3, 4, 5];
+    for (let attempt = 0; attempt < 1500; attempt++) {
+      const cols = Array.from({ length: size }, (_, i) => i);
       for (let i = size - 1; i > 0; i--) {
         const j = Math.floor(rng() * (i + 1));
         [cols[i], cols[j]] = [cols[j], cols[i]];
       }
       let ok = true;
       for (let r = 0; r < size - 1; r++) {
-        if (Math.abs(cols[r] - cols[r + 1]) <= 1) {
+        if (cols[r] === undefined || cols[r + 1] === undefined || Math.abs(cols[r] - cols[r + 1]) <= 1) {
           ok = false;
           break;
         }
@@ -4673,7 +4707,17 @@ class OrbitRiddleGenerator {
         break;
       }
     }
-    if (!queens) queens = [[0, 3], [1, 0], [2, 2], [3, 4], [4, 1], [5, 5]];
+    if (!queens) {
+      // Safe fallback pattern with no adjacent touching for any size (even N >= 6)
+      const evens = [];
+      const odds = [];
+      for (let i = 0; i < size; i++) {
+        if (i % 2 === 1) odds.push(i);
+        else evens.push(i);
+      }
+      const pattern = [...odds, ...evens];
+      queens = pattern.map((c, r) => [r, c]);
+    }
 
     const grid = Array(size).fill(null).map(() => Array(size).fill(-1));
     const regionCells = {};
@@ -4845,7 +4889,22 @@ class OrbitRiddleGenerator {
       const j = Math.floor(rng() * (i + 1));
       [digits[i], digits[j]] = [digits[j], digits[i]];
     }
-    const map = {};
+          const map = {
+        'KALT+BIND': 'Frostiges Bündnis / Fest gefroren (KALT + BIND)',
+        'SAND+WIND': 'Wüstensturm an der Küste (SAND + WIND)',
+        'BOOT+FEST': 'Sicher verankertes Schiff am Hafen (BOOT + FEST)',
+        'GOLD+FELL': 'Das sagenhafte Goldene Vlies (GOLD + FELL)',
+        'WIND+DENK': 'Klarer Kopf bei stürmischem Wetter (WIND + DENK)',
+        'BALL+HERD': 'Sportliche Pause am warmen Küchenherd (BALL + HERD)',
+        'KIND+BANK': 'Sparschwein & Taschengeldkonto für die Kleinen (KIND + BANK)',
+        'HAUS+ZAHL': 'Die genaue Anschrift in der Straße (HAUS + ZAHL)',
+        'ZEIT+WIRT': 'Historische Taverne durch die Epochen (ZEIT + WIRT)',
+        'BUCH+NOCH': 'Noch ein weiteres Kapitel vorm Einschlafen lesen (BUCH + NOCH)',
+        'MEER+VIER': 'Die vier Weltmeere und Ozeane (MEER + VIER)',
+        'TORF+BORD': 'Moorlandschaft & Schiffsreling (TORF + BORD)',
+        'WEIN+KERN': 'Edler Rebensaft & Traubenkern (WEIN + KERN)',
+        'LUFT+NEST': 'Hoch oben im Baum schwebendes Vogelheim (LUFT + NEST)'
+      };
     for (let i = 1; i <= 6; i++) map[i] = digits[i - 1];
 
     let grid = base.map(row => row.map(val => map[val]));
@@ -4988,61 +5047,101 @@ class OrbitRiddleGenerator {
 
     const extraPool = [
       {
-        title: "Crossclimb: Korn bis Bord",
-        words: ["KORN", "BORN", "BORT", "BORD", "MORD"],
-        clues: [
-          "Getreidesame auf dem Feld",
-          "Altes Wort für Quelle oder Brunnen",
-          "Kante eines Bootes oder Schiffes",
-          "An Bord eines Flugzeugs oder Schiffs",
-          "Vorsätzliche Tötung im Strafrecht"
-        ]
+            "title": "Crossclimb: Korn bis Nord",
+            "words": [
+                  "KORN",
+                  "BORN",
+                  "BORT",
+                  "BORD",
+                  "MORD",
+                  "NORD"
+            ],
+            "clues": [
+                  "Getreidesame auf dem Feld",
+                  "Altes Wort für Quelle oder Brunnen",
+                  "Kante eines Bootes oder Schiffes",
+                  "An Bord eines Flugzeugs oder Schiffs",
+                  "Vorsätzliche Tötung im Strafrecht",
+                  "Himmelsrichtung nach oben auf der Landkarte"
+            ]
       },
       {
-        title: "Crossclimb: Wand bis Band",
-        words: ["WAND", "WIND", "WILD", "BILD", "BAND"],
-        clues: [
-          "Begrenzung eines Zimmers",
-          "Spürbare Luftbewegung im Freien",
-          "Freilebende Tiere des Waldes",
-          "Foto oder Gemälde an der Wand",
-          "Musikgruppe oder Stoffstreifen"
-        ]
+            "title": "Crossclimb: Wand bis Band",
+            "words": [
+                  "WAND",
+                  "WIND",
+                  "WILD",
+                  "BILD",
+                  "BALD",
+                  "BAND"
+            ],
+            "clues": [
+                  "Begrenzung eines Zimmers",
+                  "Spürbare Luftbewegung im Freien",
+                  "Freilebende Tiere des Waldes",
+                  "Foto oder Gemälde an der Wand",
+                  "In naher Zukunft, schon sehr früh",
+                  "Musikgruppe oder flexibles Stoffband"
+            ]
       },
       {
-        title: "Crossclimb: Geld bis Held",
-        words: ["GELD", "GOLD", "HOLD", "HELD", "HERD"],
-        clues: [
-          "Zahlungsmittel in Münzen und Scheinen",
-          "Glänzendes gelbes Edelmetall",
-          "Altertümlich für anmutig oder geneigt",
-          "Mutige Hauptfigur in einer Geschichte",
-          "Kochstelle in der modernen Küche"
-        ]
+            "title": "Crossclimb: Mast bis Rost",
+            "words": [
+                  "MAST",
+                  "RAST",
+                  "REST",
+                  "PEST",
+                  "POST",
+                  "ROST"
+            ],
+            "clues": [
+                  "Hohe senkrechte Stange für Segel oder Antennen",
+                  "Erholsame Pause auf der Wanderung",
+                  "Der verbleibende Teil nach dem Essen",
+                  "Gefürchtete historische Seuche",
+                  "Behörde für Briefe und Paketsendungen",
+                  "Oxidationsschicht auf altem Eisen"
+            ]
       },
       {
-        title: "Crossclimb: Bach bis Dach",
-        words: ["BACH", "BUCH", "TUCH", "TEICH", "DACH"],
-        clues: [
-          "Kleiner natürlicher Wasserlauf",
-          "Gebundenes Werk aus bedrucktem Papier",
-          "Stück Stoff zum Abtrocknen oder Putzen",
-          "Kleines stehendes Gewässer im Garten",
-          "Oberste Abdeckung eines Hauses"
-        ]
+            "title": "Crossclimb: Bahn bis Zorn",
+            "words": [
+                  "BAHN",
+                  "BOHN",
+                  "BORN",
+                  "KORN",
+                  "ZORN",
+                  "VORN"
+            ],
+            "clues": [
+                  "Gleisanlage für Züge oder Fahrbahn",
+                  "Dialekt/Altwort für Bohne",
+                  "Frische sprudelnde Wasserquelle",
+                  "Getreidekörner auf dem Halm",
+                  "Heftige Wut und Verärgerung",
+                  "An der vorderen Front, Gegenteil von hinten"
+            ]
       },
       {
-        title: "Crossclimb: Stern bis Stein",
-        words: ["STERN", "STEIR", "STEIN", "BEIN", "WEIN"],
-        clues: [
-          "Leuchtender Himmelskörper bei Nacht",
-          "Kurzform für Bewohner der Steiermark",
-          "Harter mineralischer Brocken",
-          "Körperteil zum Gehen und Laufen",
-          "Vergorener Saft aus Weintrauben"
-        ]
+            "title": "Crossclimb: Bein bis Wirt",
+            "words": [
+                  "BEIN",
+                  "WEIN",
+                  "WEIT",
+                  "WERT",
+                  "WORT",
+                  "WIRT"
+            ],
+            "clues": [
+                  "Gliedmaße zum Stehen und Gehen",
+                  "Alkoholisches Getränk aus Weintrauben",
+                  "Große Entfernung, Gegenteil von nah",
+                  "Bedeutung oder materieller Preis",
+                  "Bestandteil eines gesprochenen Satzes",
+                  "Inhaber einer Gastwirtschaft"
+            ]
       }
-    ];
+];
 
     const all = [...staticPool, ...extraPool];
     const idx = (level - 1) % all.length;
@@ -5063,41 +5162,101 @@ class OrbitRiddleGenerator {
 
     const extraPool = [
       {
-        category: "Programmiersprachen",
-        clues: ["Python", "JavaScript", "Rust", "TypeScript", "C++"],
-        keywords: ["programmiersprachen", "code", "coding", "software", "sprachen"]
+            "title": "Crossclimb: Korn bis Nord",
+            "words": [
+                  "KORN",
+                  "BORN",
+                  "BORT",
+                  "BORD",
+                  "MORD",
+                  "NORD"
+            ],
+            "clues": [
+                  "Getreidesame auf dem Feld",
+                  "Altes Wort für Quelle oder Brunnen",
+                  "Kante eines Bootes oder Schiffes",
+                  "An Bord eines Flugzeugs oder Schiffs",
+                  "Vorsätzliche Tötung im Strafrecht",
+                  "Himmelsrichtung nach oben auf der Landkarte"
+            ]
       },
       {
-        category: "Planeten unseres Sonnensystems",
-        clues: ["Merkur", "Venus", "Mars", "Jupiter", "Saturn"],
-        keywords: ["planeten", "sonnensystem", "weltall", "astronomie", "himmelskörper"]
+            "title": "Crossclimb: Wand bis Band",
+            "words": [
+                  "WAND",
+                  "WIND",
+                  "WILD",
+                  "BILD",
+                  "BALD",
+                  "BAND"
+            ],
+            "clues": [
+                  "Begrenzung eines Zimmers",
+                  "Spürbare Luftbewegung im Freien",
+                  "Freilebende Tiere des Waldes",
+                  "Foto oder Gemälde an der Wand",
+                  "In naher Zukunft, schon sehr früh",
+                  "Musikgruppe oder flexibles Stoffband"
+            ]
       },
       {
-        category: "Edelsteine & Mineralien",
-        clues: ["Rubin", "Saphir", "Smaragd", "Diamant", "Amethyst"],
-        keywords: ["edelsteine", "steine", "schmuck", "mineralien", "kristalle"]
+            "title": "Crossclimb: Mast bis Rost",
+            "words": [
+                  "MAST",
+                  "RAST",
+                  "REST",
+                  "PEST",
+                  "POST",
+                  "ROST"
+            ],
+            "clues": [
+                  "Hohe senkrechte Stange für Segel oder Antennen",
+                  "Erholsame Pause auf der Wanderung",
+                  "Der verbleibende Teil nach dem Essen",
+                  "Gefürchtete historische Seuche",
+                  "Behörde für Briefe und Paketsendungen",
+                  "Oxidationsschicht auf altem Eisen"
+            ]
       },
       {
-        category: "Streichinstrumente",
-        clues: ["Geige", "Bratsche", "Cello", "Kontrabass", "Viola"],
-        keywords: ["streichinstrumente", "instrumente", "orchester", "streicher", "musik"]
+            "title": "Crossclimb: Bahn bis Zorn",
+            "words": [
+                  "BAHN",
+                  "BOHN",
+                  "BORN",
+                  "KORN",
+                  "ZORN",
+                  "VORN"
+            ],
+            "clues": [
+                  "Gleisanlage für Züge oder Fahrbahn",
+                  "Dialekt/Altwort für Bohne",
+                  "Frische sprudelnde Wasserquelle",
+                  "Getreidekörner auf dem Halm",
+                  "Heftige Wut und Verärgerung",
+                  "An der vorderen Front, Gegenteil von hinten"
+            ]
       },
       {
-        category: "Deutsche Großstädte",
-        clues: ["Hamburg", "München", "Köln", "Frankfurt", "Berlin"],
-        keywords: ["städte", "deutschland", "deutsche städte", "großstädte", "metropolen"]
-      },
-      {
-        category: "Dinge mit Flügeln",
-        clues: ["Schmetterling", "Flugzeug", "Fledermaus", "Engel", "Windmühle"],
-        keywords: ["flügel", "dinge mit flügeln", "hat flügel", "kann fliegen"]
-      },
-      {
-        category: "Sitzmöbel",
-        clues: ["Hocker", "Sessel", "Sofa", "Schaukelstuhl", "Bürostuhl"],
-        keywords: ["sitzmöbel", "stühle", "sitzen", "möbel"]
+            "title": "Crossclimb: Bein bis Wirt",
+            "words": [
+                  "BEIN",
+                  "WEIN",
+                  "WEIT",
+                  "WERT",
+                  "WORT",
+                  "WIRT"
+            ],
+            "clues": [
+                  "Gliedmaße zum Stehen und Gehen",
+                  "Alkoholisches Getränk aus Weintrauben",
+                  "Große Entfernung, Gegenteil von nah",
+                  "Bedeutung oder materieller Preis",
+                  "Bestandteil eines gesprochenen Satzes",
+                  "Inhaber einer Gastwirtschaft"
+            ]
       }
-    ];
+];
 
     const all = [...staticPool, ...extraPool];
     const idx = (level - 1) % all.length;
@@ -5191,7 +5350,7 @@ class OrbitRiddleApp {
       this.pinpointAttemptsLeft = 5;
 
       this.pinpointIsSolved = false;
-      this.crossclimbData = [{"id": "crossclimb-1", "title": "Crossclimb #1: Kalt bis Bild", "words": ["KALT", "WALT", "WALD", "WILD", "BILD"], "clues": ["Niedrige Temperatur, Gegenteil von warm", "Vorname des berühmten Micky-Maus-Erfinders Disney", "Ort voller Bäume, Moos und Waldtieren", "In freier Natur lebend, nicht zahm", "Gemälde, Foto oder grafische Abbildung"]}, {"id": "crossclimb-2", "title": "Crossclimb #2: Sand bis Rind", "words": ["SAND", "HAND", "HUND", "RUND", "RIND"], "clues": ["Feinkörniges Gestein an Meeresstränden und in Wüsten", "Körperteil am Ende des Arms mit fünf Fingern", "Der treueste vierbeinige Freund des Menschen", "Geometrische Kreis- oder Kugelform ohne Ecken", "Großes Nutztier auf der Weide, das Milch gibt"]}, {"id": "crossclimb-3", "title": "Crossclimb #3: Boot bis Pest", "words": ["BOOT", "ROOT", "ROST", "POST", "PEST"], "clues": ["Kleines Wasserfahrzeug zum Rudern oder Segeln", "Höchste Administrator-Rechte in Unix/Linux-Systemen", "Rötlich-braunes Oxidationsprodukt auf feuchtem Eisen", "Briefe, Pakete oder die zuständige Zustellorganisation", "Historische europäische Seuche im finsteren Mittelalter"]}, {"id": "crossclimb-4", "title": "Crossclimb #4: Gold bis Helm", "words": ["GOLD", "GELD", "FELD", "HELD", "HELM"], "clues": ["Glänzendes gelbes Edelmetall mit hoher Dichte", "Gesetzliches Zahlungsmittel in Form von Münzen und Scheinen", "Große landwirtschaftliche Ackerfläche für Weizen oder Mais", "Mutige Hauptfigur in Geschichten, die andere rettet", "Fester Schutz für den Kopf beim Fahrrad- oder Skifahren"]}, {"id": "crossclimb-5", "title": "Crossclimb #5: Wind bis Dank", "words": ["WIND", "WAND", "BAND", "BANK", "DANK"], "clues": ["Spürbare Luftbewegung in der Atmosphäre", "Vertikale gemauerte Begrenzung eines Zimmers", "Gruppe von Musikern oder ein flexibles Stoffband", "Sitzgelegenheit im Park oder Institut für Finanzen", "Ausdruck der Anerkennung und Verbundenheit"]}, {"id": "crossclimb-6", "title": "Crossclimb #6: Ball bis Helm", "words": ["BALL", "FALL", "FELL", "HELL", "HELM"], "clues": ["Rundes Sportgerät zum Kicken, Werfen oder Schlagen", "Das Herabgleiten nach unten oder ein kniffliger Kriminalfall", "Dichtes Haarkleid von Säugetieren wie Füchsen oder Bären", "Voller Licht, das Gegenteil von finster", "Kopfbedeckung zum Schutz auf Baustellen"]}, {"id": "crossclimb-7", "title": "Crossclimb #7: Kind bis Bunt", "words": ["KIND", "RIND", "RUND", "BUND", "BUNT"], "clues": ["Junger Mensch in den ersten Lebensjahren", "Wiederkäuer mit Hörnern auf der Alm", "Kreisförmig geschwungen ohne Kanten", "Zusammenschluss, Föderation oder Hosenbund", "Farbenfroh mit vielen leuchtenden Tönen"]}, {"id": "crossclimb-8", "title": "Crossclimb #8: Haus bis Fahl", "words": ["HAUS", "MAUS", "MAUL", "FAUL", "FAHL"], "clues": ["Festes Gebäude mit Dach zum Wohnen", "Kleines Nagetier mit langem Schwanz oder PC-Zeiger", "Mundöffnung von Raubtieren oder Hunden", "Träge ohne Antrieb, das Gegenteil von fleißig", "Blass, kraftlos oder von fahlem Mondlicht erhellt"]}, {"id": "crossclimb-9", "title": "Crossclimb #9: Zeit bis Wort", "words": ["ZEIT", "ZELT", "WELT", "WERT", "WORT"], "clues": ["Fortlaufende Dimension aus Vergangenheit, Gegenwart und Zukunft", "Tragbare Stoffunterkunft zum Campen in der Natur", "Unser Planet Erde mit allen Kontinenten und Meeren", "Kostbarkeit, Bedeutung oder bezifferter Preis", "Sinnhafte sprachliche Einheit aus mehreren Buchstaben"]}, {"id": "crossclimb-10", "title": "Crossclimb #10: Buch bis Nach", "words": ["BUCH", "BACH", "DACH", "FACH", "NACH"], "clues": ["Gebundenes Werk mit beschriebenen oder bedruckten Seiten", "Natürlicher kleiner Wasserlauf im Gebirge oder Wald", "Oberste schützende Abdeckung eines Gebäudes gegen Regen", "Unterrichtsgebiet in der Schule oder Ablagefach im Schrank", "Zeitlich oder räumlich folgend, Gegenteil von vor"]}, {"id": "crossclimb-11", "title": "Crossclimb #11: Meer bis Hier", "words": ["MEER", "HEER", "TEER", "TIER", "HIER"], "clues": ["Riesige Salzwassermasse der Weltmeere", "Große militärische Truppe von Soldaten zu Lande", "Zähflüssiger schwarzer Stoff für den Straßenbau", "Lebewesen mit eigenem Bewusstsein und Instinkten", "Genau an diesem gegenwärtigen Standort"]}, {"id": "crossclimb-12", "title": "Crossclimb #12: Torf bis Born", "words": ["TORF", "DORF", "DORN", "KORN", "BORN"], "clues": ["Brennbares getrocknetes Moormaterial", "Ländliche Siedlungsgemeinschaft, kleiner als eine Stadt", "Spitzer stechender Auswuchs am Stängel einer Rose", "Reife Samenkörner von Getreide auf dem Halm", "Poetisches altes Wort für eine sprudelnde Quelle"]}, {"id": "crossclimb-13", "title": "Crossclimb #13: Wein bis Fern", "words": ["WEIN", "BEIN", "DEIN", "FEIN", "FERN"], "clues": ["Fermentiertes alkoholisches Getränk aus Weintrauben", "Gliedmaße zum Stehen, Gehen und Laufen", "Possessivpronomen der zweiten Person Singular", "Zart, elegant, hochwertig oder von feiner Struktur", "In weiter Distanz am fernen Horizont"]}, {"id": "crossclimb-14", "title": "Crossclimb #14: Luft bis Rest", "words": ["LUFT", "LUST", "LAST", "RAST", "REST"], "clues": ["Unsichtbares Gasgemisch aus Stickstoff und Sauerstoff zum Atmen", "Innere Freude, Verlangen und Begeisterung", "Schweres Gewicht, das getragen werden muss", "Erholsame Pause während einer anstrengenden Wanderung", "Der verbleibende Teil, der am Schluss noch übrig ist"]}];
+      this.crossclimbData = [{"id": "crossclimb-1", "title": "Crossclimb #1: Kalt bis Bind", "words": ["KALT", "WALT", "WALD", "WILD", "BILD", "BIND"], "clues": ["Niedrige Temperatur, Gegenteil von warm", "Vorname des berühmten Micky-Maus-Erfinders Disney", "Ort voller Bäume, Moos und Waldtieren", "In freier Natur lebend, nicht zahm", "Gemälde, Foto oder grafische Abbildung", "Befehlsform von binden (etwas fest verknüpfen)"]}, {"id": "crossclimb-2", "title": "Crossclimb #2: Sand bis Wind", "words": ["SAND", "HAND", "HUND", "WUND", "WAND", "WIND"], "clues": ["Feinkörniges Gestein an Meeresstränden und in Wüsten", "Körperteil am Ende des Arms mit fünf Fingern", "Der treueste vierbeinige Freund des Menschen", "Aufgeschürft oder schmerzhaft gereizt", "Vertikale Begrenzung eines Zimmers im Haus", "Spürbare Luftbewegung in der Atmosphäre"]}, {"id": "crossclimb-3", "title": "Crossclimb #3: Boot bis Fest", "words": ["BOOT", "ROOT", "ROST", "POST", "PEST", "FEST"], "clues": ["Kleines Wasserfahrzeug zum Rudern oder Segeln", "Höchste Administrator-Rechte in Unix/Linux-Systemen", "Rötlich-braunes Oxidationsprodukt auf feuchtem Eisen", "Briefe, Pakete oder die zuständige Zustellorganisation", "Historische europäische Seuche im finsteren Mittelalter", "Feierlicher Anlass oder stabil und unbeweglich"]}, {"id": "crossclimb-4", "title": "Crossclimb #4: Gold bis Fell", "words": ["GOLD", "GELD", "FELD", "HELD", "HELL", "FELL"], "clues": ["Glänzendes gelbes Edelmetall mit hoher Dichte", "Gesetzliches Zahlungsmittel in Form von Münzen und Scheinen", "Große landwirtschaftliche Ackerfläche für Getreide", "Mutige Hauptfigur in Geschichten, die andere rettet", "Voller Licht, das Gegenteil von dunkel", "Dichtes Haarkleid von Säugetieren wie Bären"]}, {"id": "crossclimb-4", "title": "Crossclimb #5: Wind bis Denk", "words": ["WIND", "WAND", "BAND", "BANK", "DANK", "DENK"], "clues": ["Spürbare Luftströmung im Freien", "Vertikale gemauerte Begrenzung eines Zimmers", "Gruppe von Musikern oder ein flexibles Stoffband", "Sitzgelegenheit im Park oder Institut für Finanzen", "Ausdruck der Anerkennung und Verbundenheit", "Imperativ: Nutze deinen Verstand und überlege!"]}, {"id": "crossclimb-6", "title": "Crossclimb #6: Ball bis Herd", "words": ["BALL", "FALL", "FELL", "HELL", "HELD", "HERD"], "clues": ["Rundes Sportgerät zum Kicken, Werfen oder Schlagen", "Das Herabgleiten oder ein kniffliger Kriminalfall", "Pelzige Behaarung von Tieren", "Von Licht durchflutet, nicht finster", "Tapfere Person, die Großes vollbringt", "Koch- und Backgerät in der Küche"]}, {"id": "crossclimb-7", "title": "Crossclimb #7: Kind bis Bank", "words": ["KIND", "RIND", "RUND", "BUND", "BAND", "BANK"], "clues": ["Junger Mensch in den ersten Lebensjahren", "Wiederkäuer mit Hörnern auf der Alm", "Kreisförmig geschwungen ohne Ecken", "Zusammenschluss, Föderation oder Hosenbund", "Buchband oder elastisches Band", "Kreditinstitut oder lange hölzerne Sitzbank"]}, {"id": "crossclimb-8", "title": "Crossclimb #8: Haus bis Zahl", "words": ["HAUS", "MAUS", "MAUL", "FAUL", "FAHL", "ZAHL"], "clues": ["Festes Gebäude mit Dach zum Wohnen", "Kleines Nagetier mit langem Schwanz oder PC-Zeiger", "Mundöffnung von Raubtieren oder Hunden", "Träge ohne Antrieb, Gegenteil von fleißig", "Blass, kraftlos oder von fahlgrauer Farbe", "Mathematischer Wert oder Ziffer von 0 bis 9"]}, {"id": "crossclimb-9", "title": "Crossclimb #9: Zeit bis Wirt", "words": ["ZEIT", "ZELT", "WELT", "WERT", "WORT", "WIRT"], "clues": ["Fortlaufende Dimension aus Vergangenheit, Gegenwart und Zukunft", "Tragbare Stoffunterkunft zum Campen in der Natur", "Unser Planet Erde mit allen Kontinenten und Meeren", "Kostbarkeit, Bedeutung oder bezifferter Preis", "Sinnhafte sprachliche Einheit aus mehreren Buchstaben", "Gastgeber in einer Gaststätte oder Gastwirtschaft"]}, {"id": "crossclimb-10", "title": "Crossclimb #10: Buch bis Noch", "words": ["BUCH", "BACH", "DACH", "FACH", "NACH", "NOCH"], "clues": ["Gebundenes Werk mit bedruckten Seiten", "Natürlicher kleiner Wasserlauf im Gebirge", "Oberste schützende Abdeckung eines Gebäudes", "Schulfach oder Schublade", "Zeitlich folgend, Gegenteil von vor", "Bis zu diesem Zeitpunkt andauernd"]}, {"id": "crossclimb-11", "title": "Crossclimb #11: Meer bis Vier", "words": ["MEER", "HEER", "TEER", "TIER", "BIER", "VIER"], "clues": ["Riesige Salzwassermasse der Weltmeere", "Große militärische Truppe von Soldaten", "Zähflüssiger schwarzer Stoff für den Straßenbau", "Lebewesen mit eigenem Bewusstsein und Instinkten", "Aus Hopfen und Malz gebrautes Traditionsgetränk", "Die Zahl nach der Drei (2 + 2)"]}, {"id": "crossclimb-12", "title": "Crossclimb #12: Torf bis Bord", "words": ["TORF", "DORF", "DORN", "KORN", "BORN", "BORD"], "clues": ["Brennbares getrocknetes Moormaterial", "Ländliche Siedlung, kleiner als eine Stadt", "Spitzer Auswuchs am Stängel einer Rose", "Reife Samenkörner von Getreide auf dem Halm", "Poetisches altes Wort für eine sprudelnde Quelle", "Kante eines Schiffes oder Regalbrett"]}, {"id": "crossclimb-13", "title": "Crossclimb #13: Wein bis Kern", "words": ["WEIN", "BEIN", "DEIN", "FEIN", "FERN", "KERN"], "clues": ["Fermentiertes aromatisches Getränk aus Weintrauben", "Gliedmaße zum Stehen, Gehen und Laufen", "Possessivpronomen der zweiten Person Singular", "Zart, elegant, hochwertig oder von feiner Körnung", "In weiter Distanz am Horizont", "Innerer harter Samen im Obst oder Atomkern"]}, {"id": "crossclimb-14", "title": "Crossclimb #14: Luft bis Nest", "words": ["LUFT", "LUST", "LAST", "RAST", "REST", "NEST"], "clues": ["Unsichtbares Gasgemisch zum Atmen", "Innere Freude, Verlangen und Begeisterung", "Schweres Gewicht, das getragen werden muss", "Erholsame Pause während einer Wanderung", "Der verbleibende Teil, der am Schluss übrig ist", "Von Vögeln gebautes gemütliches Heim für Eier und Küken"]}];
       this.zipData = [{"id": "zip-1", "title": "Zip Tages-Pfad #1", "size": 5, "maxCheckpoint": 7, "checkpoints": {"3,1": {"num": 1, "requiredStep": 1}, "4,2": {"num": 2, "requiredStep": 5}, "2,4": {"num": 3, "requiredStep": 9}, "0,2": {"num": 4, "requiredStep": 13}, "2,0": {"num": 5, "requiredStep": 17}, "1,3": {"num": 6, "requiredStep": 21}, "2,2": {"num": 7, "requiredStep": 25}}, "pathSolution": [{"r": 3, "c": 1, "step": 1}, {"r": 3, "c": 0, "step": 2}, {"r": 4, "c": 0, "step": 3}, {"r": 4, "c": 1, "step": 4}, {"r": 4, "c": 2, "step": 5}, {"r": 4, "c": 3, "step": 6}, {"r": 4, "c": 4, "step": 7}, {"r": 3, "c": 4, "step": 8}, {"r": 2, "c": 4, "step": 9}, {"r": 1, "c": 4, "step": 10}, {"r": 0, "c": 4, "step": 11}, {"r": 0, "c": 3, "step": 12}, {"r": 0, "c": 2, "step": 13}, {"r": 0, "c": 1, "step": 14}, {"r": 0, "c": 0, "step": 15}, {"r": 1, "c": 0, "step": 16}, {"r": 2, "c": 0, "step": 17}, {"r": 2, "c": 1, "step": 18}, {"r": 1, "c": 1, "step": 19}, {"r": 1, "c": 2, "step": 20}, {"r": 1, "c": 3, "step": 21}, {"r": 2, "c": 3, "step": 22}, {"r": 3, "c": 3, "step": 23}, {"r": 3, "c": 2, "step": 24}, {"r": 2, "c": 2, "step": 25}]}, {"id": "zip-2", "title": "Zip Tages-Pfad #2", "size": 5, "maxCheckpoint": 7, "checkpoints": {"2,0": {"num": 1, "requiredStep": 1}, "1,1": {"num": 2, "requiredStep": 5}, "0,2": {"num": 3, "requiredStep": 9}, "1,3": {"num": 4, "requiredStep": 13}, "4,4": {"num": 5, "requiredStep": 17}, "4,2": {"num": 6, "requiredStep": 21}, "4,0": {"num": 7, "requiredStep": 25}}, "pathSolution": [{"r": 2, "c": 0, "step": 1}, {"r": 1, "c": 0, "step": 2}, {"r": 0, "c": 0, "step": 3}, {"r": 0, "c": 1, "step": 4}, {"r": 1, "c": 1, "step": 5}, {"r": 2, "c": 1, "step": 6}, {"r": 2, "c": 2, "step": 7}, {"r": 1, "c": 2, "step": 8}, {"r": 0, "c": 2, "step": 9}, {"r": 0, "c": 3, "step": 10}, {"r": 0, "c": 4, "step": 11}, {"r": 1, "c": 4, "step": 12}, {"r": 1, "c": 3, "step": 13}, {"r": 2, "c": 3, "step": 14}, {"r": 2, "c": 4, "step": 15}, {"r": 3, "c": 4, "step": 16}, {"r": 4, "c": 4, "step": 17}, {"r": 4, "c": 3, "step": 18}, {"r": 3, "c": 3, "step": 19}, {"r": 3, "c": 2, "step": 20}, {"r": 4, "c": 2, "step": 21}, {"r": 4, "c": 1, "step": 22}, {"r": 3, "c": 1, "step": 23}, {"r": 3, "c": 0, "step": 24}, {"r": 4, "c": 0, "step": 25}]}, {"id": "zip-3", "title": "Zip Tages-Pfad #3", "size": 5, "maxCheckpoint": 7, "checkpoints": {"0,0": {"num": 1, "requiredStep": 1}, "4,0": {"num": 2, "requiredStep": 5}, "1,1": {"num": 3, "requiredStep": 9}, "2,2": {"num": 4, "requiredStep": 13}, "4,4": {"num": 5, "requiredStep": 17}, "2,4": {"num": 6, "requiredStep": 21}, "0,4": {"num": 7, "requiredStep": 25}}, "pathSolution": [{"r": 0, "c": 0, "step": 1}, {"r": 1, "c": 0, "step": 2}, {"r": 2, "c": 0, "step": 3}, {"r": 3, "c": 0, "step": 4}, {"r": 4, "c": 0, "step": 5}, {"r": 4, "c": 1, "step": 6}, {"r": 3, "c": 1, "step": 7}, {"r": 2, "c": 1, "step": 8}, {"r": 1, "c": 1, "step": 9}, {"r": 0, "c": 1, "step": 10}, {"r": 0, "c": 2, "step": 11}, {"r": 1, "c": 2, "step": 12}, {"r": 2, "c": 2, "step": 13}, {"r": 3, "c": 2, "step": 14}, {"r": 4, "c": 2, "step": 15}, {"r": 4, "c": 3, "step": 16}, {"r": 4, "c": 4, "step": 17}, {"r": 3, "c": 4, "step": 18}, {"r": 3, "c": 3, "step": 19}, {"r": 2, "c": 3, "step": 20}, {"r": 2, "c": 4, "step": 21}, {"r": 1, "c": 4, "step": 22}, {"r": 1, "c": 3, "step": 23}, {"r": 0, "c": 3, "step": 24}, {"r": 0, "c": 4, "step": 25}]}, {"id": "zip-4", "title": "Zip Tages-Pfad #4", "size": 5, "maxCheckpoint": 7, "checkpoints": {"2,0": {"num": 1, "requiredStep": 1}, "1,1": {"num": 2, "requiredStep": 5}, "4,0": {"num": 3, "requiredStep": 9}, "4,4": {"num": 4, "requiredStep": 13}, "2,2": {"num": 5, "requiredStep": 17}, "0,4": {"num": 6, "requiredStep": 21}, "1,3": {"num": 7, "requiredStep": 25}}, "pathSolution": [{"r": 2, "c": 0, "step": 1}, {"r": 1, "c": 0, "step": 2}, {"r": 0, "c": 0, "step": 3}, {"r": 0, "c": 1, "step": 4}, {"r": 1, "c": 1, "step": 5}, {"r": 2, "c": 1, "step": 6}, {"r": 3, "c": 1, "step": 7}, {"r": 3, "c": 0, "step": 8}, {"r": 4, "c": 0, "step": 9}, {"r": 4, "c": 1, "step": 10}, {"r": 4, "c": 2, "step": 11}, {"r": 4, "c": 3, "step": 12}, {"r": 4, "c": 4, "step": 13}, {"r": 3, "c": 4, "step": 14}, {"r": 3, "c": 3, "step": 15}, {"r": 3, "c": 2, "step": 16}, {"r": 2, "c": 2, "step": 17}, {"r": 1, "c": 2, "step": 18}, {"r": 0, "c": 2, "step": 19}, {"r": 0, "c": 3, "step": 20}, {"r": 0, "c": 4, "step": 21}, {"r": 1, "c": 4, "step": 22}, {"r": 2, "c": 4, "step": 23}, {"r": 2, "c": 3, "step": 24}, {"r": 1, "c": 3, "step": 25}]}, {"id": "zip-5", "title": "Zip Tages-Pfad #5", "size": 5, "maxCheckpoint": 7, "checkpoints": {"3,3": {"num": 1, "requiredStep": 1}, "4,2": {"num": 2, "requiredStep": 5}, "2,4": {"num": 3, "requiredStep": 9}, "1,3": {"num": 4, "requiredStep": 13}, "0,0": {"num": 5, "requiredStep": 17}, "2,0": {"num": 6, "requiredStep": 21}, "3,1": {"num": 7, "requiredStep": 25}}, "pathSolution": [{"r": 3, "c": 3, "step": 1}, {"r": 3, "c": 4, "step": 2}, {"r": 4, "c": 4, "step": 3}, {"r": 4, "c": 3, "step": 4}, {"r": 4, "c": 2, "step": 5}, {"r": 3, "c": 2, "step": 6}, {"r": 2, "c": 2, "step": 7}, {"r": 2, "c": 3, "step": 8}, {"r": 2, "c": 4, "step": 9}, {"r": 1, "c": 4, "step": 10}, {"r": 0, "c": 4, "step": 11}, {"r": 0, "c": 3, "step": 12}, {"r": 1, "c": 3, "step": 13}, {"r": 1, "c": 2, "step": 14}, {"r": 0, "c": 2, "step": 15}, {"r": 0, "c": 1, "step": 16}, {"r": 0, "c": 0, "step": 17}, {"r": 1, "c": 0, "step": 18}, {"r": 1, "c": 1, "step": 19}, {"r": 2, "c": 1, "step": 20}, {"r": 2, "c": 0, "step": 21}, {"r": 3, "c": 0, "step": 22}, {"r": 4, "c": 0, "step": 23}, {"r": 4, "c": 1, "step": 24}, {"r": 3, "c": 1, "step": 25}]}, {"id": "zip-6", "title": "Zip Tages-Pfad #6", "size": 5, "maxCheckpoint": 7, "checkpoints": {"2,2": {"num": 1, "requiredStep": 1}, "0,0": {"num": 2, "requiredStep": 5}, "0,2": {"num": 3, "requiredStep": 9}, "1,3": {"num": 4, "requiredStep": 13}, "4,4": {"num": 5, "requiredStep": 17}, "4,2": {"num": 6, "requiredStep": 21}, "3,1": {"num": 7, "requiredStep": 25}}, "pathSolution": [{"r": 2, "c": 2, "step": 1}, {"r": 2, "c": 1, "step": 2}, {"r": 2, "c": 0, "step": 3}, {"r": 1, "c": 0, "step": 4}, {"r": 0, "c": 0, "step": 5}, {"r": 0, "c": 1, "step": 6}, {"r": 1, "c": 1, "step": 7}, {"r": 1, "c": 2, "step": 8}, {"r": 0, "c": 2, "step": 9}, {"r": 0, "c": 3, "step": 10}, {"r": 0, "c": 4, "step": 11}, {"r": 1, "c": 4, "step": 12}, {"r": 1, "c": 3, "step": 13}, {"r": 2, "c": 3, "step": 14}, {"r": 2, "c": 4, "step": 15}, {"r": 3, "c": 4, "step": 16}, {"r": 4, "c": 4, "step": 17}, {"r": 4, "c": 3, "step": 18}, {"r": 3, "c": 3, "step": 19}, {"r": 3, "c": 2, "step": 20}, {"r": 4, "c": 2, "step": 21}, {"r": 4, "c": 1, "step": 22}, {"r": 4, "c": 0, "step": 23}, {"r": 3, "c": 0, "step": 24}, {"r": 3, "c": 1, "step": 25}]}, {"id": "zip-7", "title": "Zip Tages-Pfad #7", "size": 5, "maxCheckpoint": 7, "checkpoints": {"2,2": {"num": 1, "requiredStep": 1}, "4,0": {"num": 2, "requiredStep": 5}, "4,2": {"num": 3, "requiredStep": 9}, "3,3": {"num": 4, "requiredStep": 13}, "0,4": {"num": 5, "requiredStep": 17}, "0,2": {"num": 6, "requiredStep": 21}, "1,1": {"num": 7, "requiredStep": 25}}, "pathSolution": [{"r": 2, "c": 2, "step": 1}, {"r": 2, "c": 1, "step": 2}, {"r": 2, "c": 0, "step": 3}, {"r": 3, "c": 0, "step": 4}, {"r": 4, "c": 0, "step": 5}, {"r": 4, "c": 1, "step": 6}, {"r": 3, "c": 1, "step": 7}, {"r": 3, "c": 2, "step": 8}, {"r": 4, "c": 2, "step": 9}, {"r": 4, "c": 3, "step": 10}, {"r": 4, "c": 4, "step": 11}, {"r": 3, "c": 4, "step": 12}, {"r": 3, "c": 3, "step": 13}, {"r": 2, "c": 3, "step": 14}, {"r": 2, "c": 4, "step": 15}, {"r": 1, "c": 4, "step": 16}, {"r": 0, "c": 4, "step": 17}, {"r": 0, "c": 3, "step": 18}, {"r": 1, "c": 3, "step": 19}, {"r": 1, "c": 2, "step": 20}, {"r": 0, "c": 2, "step": 21}, {"r": 0, "c": 1, "step": 22}, {"r": 0, "c": 0, "step": 23}, {"r": 1, "c": 0, "step": 24}, {"r": 1, "c": 1, "step": 25}]}, {"id": "zip-8", "title": "Zip Tages-Pfad #8", "size": 5, "maxCheckpoint": 7, "checkpoints": {"2,0": {"num": 1, "requiredStep": 1}, "3,1": {"num": 2, "requiredStep": 5}, "4,2": {"num": 3, "requiredStep": 9}, "3,3": {"num": 4, "requiredStep": 13}, "0,4": {"num": 5, "requiredStep": 17}, "0,2": {"num": 6, "requiredStep": 21}, "1,1": {"num": 7, "requiredStep": 25}}, "pathSolution": [{"r": 2, "c": 0, "step": 1}, {"r": 3, "c": 0, "step": 2}, {"r": 4, "c": 0, "step": 3}, {"r": 4, "c": 1, "step": 4}, {"r": 3, "c": 1, "step": 5}, {"r": 2, "c": 1, "step": 6}, {"r": 2, "c": 2, "step": 7}, {"r": 3, "c": 2, "step": 8}, {"r": 4, "c": 2, "step": 9}, {"r": 4, "c": 3, "step": 10}, {"r": 4, "c": 4, "step": 11}, {"r": 3, "c": 4, "step": 12}, {"r": 3, "c": 3, "step": 13}, {"r": 2, "c": 3, "step": 14}, {"r": 2, "c": 4, "step": 15}, {"r": 1, "c": 4, "step": 16}, {"r": 0, "c": 4, "step": 17}, {"r": 0, "c": 3, "step": 18}, {"r": 1, "c": 3, "step": 19}, {"r": 1, "c": 2, "step": 20}, {"r": 0, "c": 2, "step": 21}, {"r": 0, "c": 1, "step": 22}, {"r": 0, "c": 0, "step": 23}, {"r": 1, "c": 0, "step": 24}, {"r": 1, "c": 1, "step": 25}]}, {"id": "zip-9", "title": "Zip Tages-Pfad #9", "size": 5, "maxCheckpoint": 7, "checkpoints": {"2,2": {"num": 1, "requiredStep": 1}, "4,4": {"num": 2, "requiredStep": 5}, "4,2": {"num": 3, "requiredStep": 9}, "3,1": {"num": 4, "requiredStep": 13}, "0,0": {"num": 5, "requiredStep": 17}, "0,2": {"num": 6, "requiredStep": 21}, "0,4": {"num": 7, "requiredStep": 25}}, "pathSolution": [{"r": 2, "c": 2, "step": 1}, {"r": 2, "c": 3, "step": 2}, {"r": 2, "c": 4, "step": 3}, {"r": 3, "c": 4, "step": 4}, {"r": 4, "c": 4, "step": 5}, {"r": 4, "c": 3, "step": 6}, {"r": 3, "c": 3, "step": 7}, {"r": 3, "c": 2, "step": 8}, {"r": 4, "c": 2, "step": 9}, {"r": 4, "c": 1, "step": 10}, {"r": 4, "c": 0, "step": 11}, {"r": 3, "c": 0, "step": 12}, {"r": 3, "c": 1, "step": 13}, {"r": 2, "c": 1, "step": 14}, {"r": 2, "c": 0, "step": 15}, {"r": 1, "c": 0, "step": 16}, {"r": 0, "c": 0, "step": 17}, {"r": 0, "c": 1, "step": 18}, {"r": 1, "c": 1, "step": 19}, {"r": 1, "c": 2, "step": 20}, {"r": 0, "c": 2, "step": 21}, {"r": 0, "c": 3, "step": 22}, {"r": 1, "c": 3, "step": 23}, {"r": 1, "c": 4, "step": 24}, {"r": 0, "c": 4, "step": 25}]}, {"id": "zip-10", "title": "Zip Tages-Pfad #10", "size": 5, "maxCheckpoint": 7, "checkpoints": {"3,3": {"num": 1, "requiredStep": 1}, "4,2": {"num": 2, "requiredStep": 5}, "3,1": {"num": 3, "requiredStep": 9}, "2,0": {"num": 4, "requiredStep": 13}, "1,1": {"num": 5, "requiredStep": 17}, "0,4": {"num": 6, "requiredStep": 21}, "2,4": {"num": 7, "requiredStep": 25}}, "pathSolution": [{"r": 3, "c": 3, "step": 1}, {"r": 3, "c": 4, "step": 2}, {"r": 4, "c": 4, "step": 3}, {"r": 4, "c": 3, "step": 4}, {"r": 4, "c": 2, "step": 5}, {"r": 4, "c": 1, "step": 6}, {"r": 4, "c": 0, "step": 7}, {"r": 3, "c": 0, "step": 8}, {"r": 3, "c": 1, "step": 9}, {"r": 3, "c": 2, "step": 10}, {"r": 2, "c": 2, "step": 11}, {"r": 2, "c": 1, "step": 12}, {"r": 2, "c": 0, "step": 13}, {"r": 1, "c": 0, "step": 14}, {"r": 0, "c": 0, "step": 15}, {"r": 0, "c": 1, "step": 16}, {"r": 1, "c": 1, "step": 17}, {"r": 1, "c": 2, "step": 18}, {"r": 0, "c": 2, "step": 19}, {"r": 0, "c": 3, "step": 20}, {"r": 0, "c": 4, "step": 21}, {"r": 1, "c": 4, "step": 22}, {"r": 1, "c": 3, "step": 23}, {"r": 2, "c": 3, "step": 24}, {"r": 2, "c": 4, "step": 25}]}, {"id": "zip-11", "title": "Zip Tages-Pfad #11", "size": 5, "maxCheckpoint": 7, "checkpoints": {"4,4": {"num": 1, "requiredStep": 1}, "0,4": {"num": 2, "requiredStep": 5}, "0,0": {"num": 3, "requiredStep": 9}, "4,0": {"num": 4, "requiredStep": 13}, "3,3": {"num": 5, "requiredStep": 17}, "1,1": {"num": 6, "requiredStep": 21}, "3,1": {"num": 7, "requiredStep": 25}}, "pathSolution": [{"r": 4, "c": 4, "step": 1}, {"r": 3, "c": 4, "step": 2}, {"r": 2, "c": 4, "step": 3}, {"r": 1, "c": 4, "step": 4}, {"r": 0, "c": 4, "step": 5}, {"r": 0, "c": 3, "step": 6}, {"r": 0, "c": 2, "step": 7}, {"r": 0, "c": 1, "step": 8}, {"r": 0, "c": 0, "step": 9}, {"r": 1, "c": 0, "step": 10}, {"r": 2, "c": 0, "step": 11}, {"r": 3, "c": 0, "step": 12}, {"r": 4, "c": 0, "step": 13}, {"r": 4, "c": 1, "step": 14}, {"r": 4, "c": 2, "step": 15}, {"r": 4, "c": 3, "step": 16}, {"r": 3, "c": 3, "step": 17}, {"r": 2, "c": 3, "step": 18}, {"r": 1, "c": 3, "step": 19}, {"r": 1, "c": 2, "step": 20}, {"r": 1, "c": 1, "step": 21}, {"r": 2, "c": 1, "step": 22}, {"r": 2, "c": 2, "step": 23}, {"r": 3, "c": 2, "step": 24}, {"r": 3, "c": 1, "step": 25}]}, {"id": "zip-12", "title": "Zip Tages-Pfad #12", "size": 5, "maxCheckpoint": 7, "checkpoints": {"3,3": {"num": 1, "requiredStep": 1}, "4,2": {"num": 2, "requiredStep": 5}, "4,0": {"num": 3, "requiredStep": 9}, "2,2": {"num": 4, "requiredStep": 13}, "0,4": {"num": 5, "requiredStep": 17}, "0,2": {"num": 6, "requiredStep": 21}, "1,1": {"num": 7, "requiredStep": 25}}, "pathSolution": [{"r": 3, "c": 3, "step": 1}, {"r": 3, "c": 4, "step": 2}, {"r": 4, "c": 4, "step": 3}, {"r": 4, "c": 3, "step": 4}, {"r": 4, "c": 2, "step": 5}, {"r": 3, "c": 2, "step": 6}, {"r": 3, "c": 1, "step": 7}, {"r": 4, "c": 1, "step": 8}, {"r": 4, "c": 0, "step": 9}, {"r": 3, "c": 0, "step": 10}, {"r": 2, "c": 0, "step": 11}, {"r": 2, "c": 1, "step": 12}, {"r": 2, "c": 2, "step": 13}, {"r": 2, "c": 3, "step": 14}, {"r": 2, "c": 4, "step": 15}, {"r": 1, "c": 4, "step": 16}, {"r": 0, "c": 4, "step": 17}, {"r": 0, "c": 3, "step": 18}, {"r": 1, "c": 3, "step": 19}, {"r": 1, "c": 2, "step": 20}, {"r": 0, "c": 2, "step": 21}, {"r": 0, "c": 1, "step": 22}, {"r": 0, "c": 0, "step": 23}, {"r": 1, "c": 0, "step": 24}, {"r": 1, "c": 1, "step": 25}]}, {"id": "zip-13", "title": "Zip Tages-Pfad #13", "size": 5, "maxCheckpoint": 7, "checkpoints": {"1,1": {"num": 1, "requiredStep": 1}, "2,0": {"num": 2, "requiredStep": 5}, "3,1": {"num": 3, "requiredStep": 9}, "0,2": {"num": 4, "requiredStep": 13}, "1,3": {"num": 5, "requiredStep": 17}, "4,4": {"num": 6, "requiredStep": 21}, "3,3": {"num": 7, "requiredStep": 25}}, "pathSolution": [{"r": 1, "c": 1, "step": 1}, {"r": 0, "c": 1, "step": 2}, {"r": 0, "c": 0, "step": 3}, {"r": 1, "c": 0, "step": 4}, {"r": 2, "c": 0, "step": 5}, {"r": 3, "c": 0, "step": 6}, {"r": 4, "c": 0, "step": 7}, {"r": 4, "c": 1, "step": 8}, {"r": 3, "c": 1, "step": 9}, {"r": 2, "c": 1, "step": 10}, {"r": 2, "c": 2, "step": 11}, {"r": 1, "c": 2, "step": 12}, {"r": 0, "c": 2, "step": 13}, {"r": 0, "c": 3, "step": 14}, {"r": 0, "c": 4, "step": 15}, {"r": 1, "c": 4, "step": 16}, {"r": 1, "c": 3, "step": 17}, {"r": 2, "c": 3, "step": 18}, {"r": 2, "c": 4, "step": 19}, {"r": 3, "c": 4, "step": 20}, {"r": 4, "c": 4, "step": 21}, {"r": 4, "c": 3, "step": 22}, {"r": 4, "c": 2, "step": 23}, {"r": 3, "c": 2, "step": 24}, {"r": 3, "c": 3, "step": 25}]}, {"id": "zip-14", "title": "Zip Tages-Pfad #14", "size": 5, "maxCheckpoint": 7, "checkpoints": {"2,4": {"num": 1, "requiredStep": 1}, "3,3": {"num": 2, "requiredStep": 5}, "4,2": {"num": 3, "requiredStep": 9}, "3,1": {"num": 4, "requiredStep": 13}, "0,0": {"num": 5, "requiredStep": 17}, "0,2": {"num": 6, "requiredStep": 21}, "1,3": {"num": 7, "requiredStep": 25}}, "pathSolution": [{"r": 2, "c": 4, "step": 1}, {"r": 3, "c": 4, "step": 2}, {"r": 4, "c": 4, "step": 3}, {"r": 4, "c": 3, "step": 4}, {"r": 3, "c": 3, "step": 5}, {"r": 2, "c": 3, "step": 6}, {"r": 2, "c": 2, "step": 7}, {"r": 3, "c": 2, "step": 8}, {"r": 4, "c": 2, "step": 9}, {"r": 4, "c": 1, "step": 10}, {"r": 4, "c": 0, "step": 11}, {"r": 3, "c": 0, "step": 12}, {"r": 3, "c": 1, "step": 13}, {"r": 2, "c": 1, "step": 14}, {"r": 2, "c": 0, "step": 15}, {"r": 1, "c": 0, "step": 16}, {"r": 0, "c": 0, "step": 17}, {"r": 0, "c": 1, "step": 18}, {"r": 1, "c": 1, "step": 19}, {"r": 1, "c": 2, "step": 20}, {"r": 0, "c": 2, "step": 21}, {"r": 0, "c": 3, "step": 22}, {"r": 0, "c": 4, "step": 23}, {"r": 1, "c": 4, "step": 24}, {"r": 1, "c": 3, "step": 25}]}];
       this.sudokuData = [{"id": "sudoku-1", "title": "Mini Sudoku #1", "givens": [[0, 2, 0, 5, 6, 0], [0, 5, 1, 3, 0, 2], [0, 6, 0, 1, 3, 4], [0, 0, 3, 0, 0, 5], [5, 0, 0, 0, 0, 0], [0, 1, 6, 0, 0, 0]], "solution": [[3, 2, 4, 5, 6, 1], [6, 5, 1, 3, 4, 2], [2, 6, 5, 1, 3, 4], [1, 4, 3, 6, 2, 5], [5, 3, 2, 4, 1, 6], [4, 1, 6, 2, 5, 3]]}, {"id": "sudoku-2", "title": "Mini Sudoku #2", "givens": [[3, 0, 0, 1, 0, 2], [0, 5, 0, 0, 4, 0], [0, 0, 0, 2, 0, 0], [0, 3, 0, 5, 0, 6], [4, 2, 0, 3, 6, 1], [0, 0, 3, 4, 0, 0]], "solution": [[3, 4, 6, 1, 5, 2], [1, 5, 2, 6, 4, 3], [5, 6, 1, 2, 3, 4], [2, 3, 4, 5, 1, 6], [4, 2, 5, 3, 6, 1], [6, 1, 3, 4, 2, 5]]}, {"id": "sudoku-3", "title": "Mini Sudoku #3", "givens": [[0, 4, 0, 0, 0, 5], [0, 5, 0, 0, 0, 0], [0, 0, 3, 0, 5, 6], [0, 6, 0, 4, 0, 1], [1, 0, 4, 0, 6, 0], [6, 3, 5, 0, 0, 4]], "solution": [[2, 4, 6, 3, 1, 5], [3, 5, 1, 6, 4, 2], [4, 1, 3, 2, 5, 6], [5, 6, 2, 4, 3, 1], [1, 2, 4, 5, 6, 3], [6, 3, 5, 1, 2, 4]]}, {"id": "sudoku-4", "title": "Mini Sudoku #4", "givens": [[0, 0, 0, 1, 3, 0], [3, 2, 1, 0, 6, 4], [6, 0, 2, 0, 1, 5], [0, 0, 0, 0, 0, 0], [0, 0, 0, 3, 5, 0], [5, 6, 0, 0, 4, 0]], "solution": [[4, 5, 6, 1, 3, 2], [3, 2, 1, 5, 6, 4], [6, 3, 2, 4, 1, 5], [1, 4, 5, 6, 2, 3], [2, 1, 4, 3, 5, 6], [5, 6, 3, 2, 4, 1]]}, {"id": "sudoku-5", "title": "Mini Sudoku #5", "givens": [[3, 4, 6, 0, 0, 0], [0, 5, 1, 0, 3, 6], [0, 0, 0, 0, 0, 0], [0, 0, 2, 5, 6, 0], [0, 0, 0, 3, 0, 1], [1, 0, 5, 6, 0, 4]], "solution": [[3, 4, 6, 2, 1, 5], [2, 5, 1, 4, 3, 6], [5, 6, 3, 1, 4, 2], [4, 1, 2, 5, 6, 3], [6, 2, 4, 3, 5, 1], [1, 3, 5, 6, 2, 4]]}, {"id": "sudoku-6", "title": "Mini Sudoku #6", "givens": [[0, 1, 0, 2, 0, 0], [2, 5, 0, 0, 0, 0], [4, 0, 1, 0, 2, 5], [5, 0, 2, 0, 0, 6], [3, 0, 0, 0, 6, 2], [0, 0, 6, 0, 3, 0]], "solution": [[6, 1, 4, 2, 5, 3], [2, 5, 3, 6, 4, 1], [4, 6, 1, 3, 2, 5], [5, 3, 2, 4, 1, 6], [3, 4, 5, 1, 6, 2], [1, 2, 6, 5, 3, 4]]}, {"id": "sudoku-7", "title": "Mini Sudoku #7", "givens": [[0, 0, 6, 4, 0, 2], [4, 1, 0, 0, 3, 6], [5, 0, 0, 0, 0, 3], [1, 6, 0, 0, 0, 5], [0, 4, 0, 3, 0, 1], [0, 0, 0, 0, 0, 4]], "solution": [[3, 5, 6, 4, 1, 2], [4, 1, 2, 5, 3, 6], [5, 2, 4, 1, 6, 3], [1, 6, 3, 2, 4, 5], [6, 4, 5, 3, 2, 1], [2, 3, 1, 6, 5, 4]]}, {"id": "sudoku-8", "title": "Mini Sudoku #8", "givens": [[1, 0, 0, 0, 0, 6], [2, 5, 6, 0, 0, 0], [0, 1, 0, 2, 5, 3], [3, 0, 5, 6, 1, 0], [0, 0, 2, 0, 0, 5], [0, 0, 0, 3, 0, 0]], "solution": [[1, 4, 3, 5, 2, 6], [2, 5, 6, 4, 3, 1], [6, 1, 4, 2, 5, 3], [3, 2, 5, 6, 1, 4], [4, 3, 2, 1, 6, 5], [5, 6, 1, 3, 4, 2]]}, {"id": "sudoku-9", "title": "Mini Sudoku #9", "givens": [[0, 6, 5, 1, 0, 0], [0, 0, 3, 6, 5, 2], [0, 2, 4, 0, 6, 0], [6, 0, 1, 0, 4, 0], [0, 3, 2, 0, 0, 0], [0, 4, 0, 0, 0, 0]], "solution": [[2, 6, 5, 1, 3, 4], [4, 1, 3, 6, 5, 2], [3, 2, 4, 5, 6, 1], [6, 5, 1, 2, 4, 3], [5, 3, 2, 4, 1, 6], [1, 4, 6, 3, 2, 5]]}, {"id": "sudoku-10", "title": "Mini Sudoku #10", "givens": [[0, 0, 0, 3, 1, 0], [3, 0, 0, 0, 2, 0], [0, 3, 2, 0, 0, 4], [4, 5, 0, 1, 0, 0], [0, 1, 5, 0, 0, 3], [2, 0, 3, 5, 0, 0]], "solution": [[5, 2, 4, 3, 1, 6], [3, 6, 1, 4, 2, 5], [1, 3, 2, 6, 5, 4], [4, 5, 6, 1, 3, 2], [6, 1, 5, 2, 4, 3], [2, 4, 3, 5, 6, 1]]}, {"id": "sudoku-11", "title": "Mini Sudoku #11", "givens": [[1, 0, 0, 0, 0, 5], [5, 4, 0, 3, 2, 1], [0, 0, 0, 0, 1, 0], [3, 5, 0, 0, 6, 0], [4, 0, 2, 1, 0, 0], [0, 0, 0, 0, 3, 2]], "solution": [[1, 2, 3, 6, 4, 5], [5, 4, 6, 3, 2, 1], [2, 6, 4, 5, 1, 3], [3, 5, 1, 2, 6, 4], [4, 3, 2, 1, 5, 6], [6, 1, 5, 4, 3, 2]]}, {"id": "sudoku-12", "title": "Mini Sudoku #12", "givens": [[0, 2, 0, 0, 0, 0], [1, 0, 4, 0, 6, 0], [2, 0, 0, 6, 0, 5], [6, 0, 0, 3, 0, 2], [0, 0, 0, 1, 2, 0], [4, 1, 0, 5, 3, 0]], "solution": [[3, 2, 6, 4, 5, 1], [1, 5, 4, 2, 6, 3], [2, 3, 1, 6, 4, 5], [6, 4, 5, 3, 1, 2], [5, 6, 3, 1, 2, 4], [4, 1, 2, 5, 3, 6]]}, {"id": "sudoku-13", "title": "Mini Sudoku #13", "givens": [[1, 0, 2, 5, 0, 0], [6, 5, 4, 1, 0, 0], [0, 6, 0, 2, 0, 0], [2, 0, 3, 0, 5, 0], [0, 0, 0, 0, 0, 1], [0, 0, 1, 0, 4, 5]], "solution": [[1, 3, 2, 5, 6, 4], [6, 5, 4, 1, 3, 2], [4, 6, 5, 2, 1, 3], [2, 1, 3, 4, 5, 6], [5, 4, 6, 3, 2, 1], [3, 2, 1, 6, 4, 5]]}, {"id": "sudoku-14", "title": "Mini Sudoku #14", "givens": [[0, 2, 0, 0, 0, 0], [0, 0, 0, 6, 1, 0], [0, 5, 0, 2, 0, 0], [4, 6, 2, 0, 0, 1], [6, 4, 0, 0, 0, 3], [2, 0, 0, 5, 4, 6]], "solution": [[1, 2, 6, 4, 3, 5], [5, 3, 4, 6, 1, 2], [3, 5, 1, 2, 6, 4], [4, 6, 2, 3, 5, 1], [6, 4, 5, 1, 2, 3], [2, 1, 3, 5, 4, 6]]}];
 
@@ -6041,6 +6200,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
       if (!this.freePlayPuzzles) this.freePlayPuzzles = {};
       this.freePlayActive = true;
       this.freePlayTier = tier;
+      localStorage.setItem('orbitsuite_level_selector_mode', 'difficulty');
 
       const seed = `${game}_free_${tier}_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
       let puzzle = null;
@@ -6093,6 +6253,14 @@ btnRandom: document.getElementById('btn-riddle-random'),
       this.suite.sound.playPop();
       const tierLabels = { easy: 'Leicht', medium: 'Mittel', hard: 'Schwer' };
       this.suite.showToast(`🎲 Neues Freies Spiel gestartet: Stufe ${tierLabels[tier] || tier}`, 'success');
+
+      // Automatisch zum Spielfeld herunterscrollen
+      setTimeout(() => {
+        const boardCard = document.querySelector(`#panel-game-${game} .game-arena-card`) || document.getElementById(`panel-game-${game}`);
+        if (boardCard) {
+          boardCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
     }
 
     getScreenFitLevelCount(game) {
@@ -6152,7 +6320,10 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
       const cur = this.getCurrentLevel(game);
       const solvedSet = this.getSolvedSet(game);
-      const viewMode = localStorage.getItem('orbitsuite_level_selector_mode') || 'path';
+      let viewMode = localStorage.getItem('orbitsuite_level_selector_mode') || 'path';
+      if (this.freePlayActive) {
+        viewMode = 'difficulty';
+      }
       const diffInfo = this.getLevelDifficulty(cur);
       const highestUnlocked = this.getHighestUnlockedLevel(game);
       const totalLevels = this.getPathLength(game);
@@ -6189,8 +6360,8 @@ btnRandom: document.getElementById('btn-riddle-random'),
       let html = `
         <div class="level-hub-header">
           <div class="level-hub-title-group">
-            <span class="level-hub-title">🎯 Level-Wahl</span>
-            <span class="level-hub-pill">Level #${cur} aktiv</span>
+            <span class="level-hub-title">${viewMode === 'difficulty' ? '🎲 Freies Spiel' : '🎯 Kampagne'}</span>
+            <span class="level-hub-pill">${this.freePlayActive ? `🎲 Freies Spiel • ${(this.freePlayTier === 'easy' ? 'Leicht' : (this.freePlayTier === 'medium' ? 'Mittel' : 'Schwer'))}` : (viewMode === 'difficulty' ? '🎲 Freie Stufenwahl' : `Level #${cur} aktiv`)}</span>
           </div>
           <div class="level-mode-switcher">
             <button class="level-mode-tab ${viewMode === 'path' ? 'active' : ''}" data-hub-mode="path" title="Linearer Pfad ohne Stufen-Unterteilung">
@@ -6796,13 +6967,52 @@ btnRandom: document.getElementById('btn-riddle-random'),
           titleEl.textContent = `${gameNames[game] || game}: Freies Spiel • ${tierLabel}${sizeInfo}`;
         }
 
+        // Alle Hinweise auf Levelsystem im Banner ausblenden / neutralisieren
+        const pulseTag = document.querySelector(`#panel-game-${game} .daily-pulse-tag`);
+        if (pulseTag) {
+          pulseTag.innerHTML = `<span class="pulse-indicator"></span> FREIES SPIEL • ${tierLabel.toUpperCase()}${sizeInfo ? ' • ' + sizeInfo.trim() : ''}`;
+        }
         const lvlNumEl = document.getElementById(`${game}-banner-level-num`);
         if (lvlNumEl) lvlNumEl.textContent = '🎲';
 
         const tbBadge = document.getElementById(`${game}-toolbar-level-badge`);
-        if (tbBadge) tbBadge.textContent = `🎲 ${tierLabel}`;
+        if (tbBadge) tbBadge.textContent = `🎲 ${tierLabel}${sizeInfo}`;
+
+        // Level-Selector im Freien Spiel ausblenden
+        const selEl = document.getElementById(`${game}-level-select`);
+        if (selEl) selEl.style.display = 'none';
+        const prevBtn = document.getElementById(`btn-${game}-prev`);
+        if (prevBtn) prevBtn.style.display = 'none';
+        const labelEl = document.querySelector(`label[for="${game}-level-select"]`);
+        if (labelEl) labelEl.style.display = 'none';
+
+        // Banner-Button auf "Neues Board" umschalten
+        const bannerNextBtn = document.getElementById(`btn-${game}-banner-next`);
+        if (bannerNextBtn) {
+          bannerNextBtn.textContent = '🎲 Neues Board generieren';
+          bannerNextBtn.onclick = () => this.startFreePlay(game, this.freePlayTier);
+        }
 
         return;
+      }
+
+      // Re-enable level controls if coming back from Free Play
+      const selElRestore = document.getElementById(`${game}-level-select`);
+      if (selElRestore) selElRestore.style.display = '';
+      const prevBtnRestore = document.getElementById(`btn-${game}-prev`);
+      if (prevBtnRestore) prevBtnRestore.style.display = '';
+      const labelElRestore = document.querySelector(`label[for="${game}-level-select"]`);
+      if (labelElRestore) labelElRestore.style.display = '';
+
+      const bannerNextBtnRestore = document.getElementById(`btn-${game}-banner-next`);
+      if (bannerNextBtnRestore) {
+        bannerNextBtnRestore.textContent = 'Nächstes Board ▶';
+        bannerNextBtnRestore.onclick = null;
+      }
+
+      const pulseTagRestore = document.querySelector(`#panel-game-${game} .daily-pulse-tag`);
+      if (pulseTagRestore) {
+        pulseTagRestore.innerHTML = `<span class="pulse-indicator"></span> KAMPAGNE • LEVEL <span id="${game}-banner-level-num">${this.getCurrentLevel(game)}</span>`;
       }
 
       const cur = this.getCurrentLevel(game);
@@ -8290,21 +8500,21 @@ btnRandom: document.getElementById('btn-riddle-random'),
       if (challenge.compoundClue) return challenge.compoundClue;
       const top = challenge.words[0];
       const bot = challenge.words[challenge.words.length - 1];
-      const map = {
-        'KALT+BILD': 'Frostige Momentaufnahme / Winterliches Kunstwerk (KALT + BILD)',
-        'SAND+RIND': 'Feiner Strand trifft Weidetier (SAND + RIND)',
-        'BOOT+PEST': 'Seefahrt und historische Seuche (BOOT + PEST)',
-        'GOLD+HELM': 'Glänzender Kopfschutz für echte Helden (GOLD + HELM)',
-        'WIND+DANK': 'Anerkennung und Dankbarkeit im Sturm (WIND + DANK)',
-        'BALL+HELM': 'Sicherheitsausrüstung beim Ballsport (BALL + HELM)',
-        'KIND+BUNT': 'Farbenfrohe Welt der Kleinsten (KIND + BUNT)',
-        'HAUS+FAHL': 'Düstere Behausung im fahlen Mondlicht (HAUS + FAHL)',
-        'ZEIT+WORT': 'Grammatischer Fachbegriff für ein Verb (ZEIT + WORT)',
-        'BUCH+NACH': 'Nachschlagen im Wissenswerk (BUCH + NACH)',
-        'MEER+HIER': 'Das offene Meer direkt an diesem Ort (MEER + HIER)',
-        'TORF+BORN': 'Moorland und sprudelnde Naturquelle (TORF + BORN)',
-        'WEIN+FERN': 'Edler Tropfen aus fernen Ländern (WEIN + FERN)',
-        'LUFT+REST': 'Die verbleibende Atemreserve in der Flasche (LUFT + REST)'
+            const map = {
+        'KALT+BIND': 'Frostiges Bündnis / Fest gefroren (KALT + BIND)',
+        'SAND+WIND': 'Wüstensturm an der Küste (SAND + WIND)',
+        'BOOT+FEST': 'Sicher verankertes Schiff am Hafen (BOOT + FEST)',
+        'GOLD+FELL': 'Das sagenhafte Goldene Vlies (GOLD + FELL)',
+        'WIND+DENK': 'Klarer Kopf bei stürmischem Wetter (WIND + DENK)',
+        'BALL+HERD': 'Sportliche Pause am warmen Küchenherd (BALL + HERD)',
+        'KIND+BANK': 'Sparschwein & Taschengeldkonto für die Kleinen (KIND + BANK)',
+        'HAUS+ZAHL': 'Die genaue Anschrift in der Straße (HAUS + ZAHL)',
+        'ZEIT+WIRT': 'Historische Taverne durch die Epochen (ZEIT + WIRT)',
+        'BUCH+NOCH': 'Noch ein weiteres Kapitel vorm Einschlafen lesen (BUCH + NOCH)',
+        'MEER+VIER': 'Die vier Weltmeere und Ozeane (MEER + VIER)',
+        'TORF+BORD': 'Moorlandschaft & Schiffsreling (TORF + BORD)',
+        'WEIN+KERN': 'Edler Rebensaft & Traubenkern (WEIN + KERN)',
+        'LUFT+NEST': 'Hoch oben im Baum schwebendes Vogelheim (LUFT + NEST)'
       };
       const key = `${top}+${bot}`;
       return map[key] || `Decke und Boden bilden zusammen das Begriffspaar "${top} + ${bot}"`;
@@ -8521,12 +8731,15 @@ btnRandom: document.getElementById('btn-riddle-random'),
       if (isDeckeUnlocked) {
         const input = deckeCard.querySelector('.decke-input');
         input.addEventListener('input', (e) => {
-          this.crossclimbDecke.currentWord = e.target.value.toUpperCase();
-          if (this.crossclimbDecke.currentWord === this.crossclimbDecke.targetWord) {
+          const val = e.target.value.toUpperCase();
+          this.crossclimbDecke.currentWord = val;
+          if (val === this.crossclimbDecke.targetWord) {
+            deckeCard.classList.add('valid-rung');
             this.suite.sound.playPop();
+            this.checkCrossclimbWin();
+          } else {
+            deckeCard.classList.remove('valid-rung');
           }
-          this.checkCrossclimbWin();
-          this.renderCrossclimb();
         });
       }
       listEl.appendChild(deckeCard);
@@ -8557,20 +8770,33 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
         const input = card.querySelector('.rung-word-input');
         input.addEventListener('input', (e) => {
-          rung.currentWord = e.target.value.toUpperCase();
-          if (rung.currentWord === rung.targetWord) {
+          const val = e.target.value.toUpperCase();
+          rung.currentWord = val;
+          if (val === rung.targetWord) {
             rung.isSolved = true;
+            card.classList.add('valid-rung');
             this.suite.sound.playPop();
-          }
-          if (this.crossclimbRungs.every(r => r.isSolved || r.currentWord === r.targetWord)) {
-            if (this.crossclimbStep === 1) {
-              this.crossclimbStep = 2;
-              this.suite.sound.playSuccess();
-              this.suite.showToast('🎉 Alle Leiterwörter erraten! Schritt 2 freigeschaltet: Sortiere die Sprossen per Drag & Drop!');
-              this.checkCrossclimbLadderOrder();
+            if (this.crossclimbRungs.every(r => r.isSolved || r.currentWord === r.targetWord)) {
+              if (this.crossclimbStep === 1) {
+                this.crossclimbStep = 2;
+                this.suite.sound.playSuccess();
+                this.suite.showToast('🎉 Alle Leiterwörter erraten! Schritt 2 freigeschaltet: Sortiere die Sprossen per Drag & Drop!');
+                this.checkCrossclimbLadderOrder();
+                this.renderCrossclimb();
+                return;
+              }
             }
+          } else {
+            rung.isSolved = false;
+            card.classList.remove('valid-rung');
           }
-          this.renderCrossclimb();
+        });
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            const nextCard = card.nextElementSibling;
+            const nextInp = nextCard ? nextCard.querySelector('.rung-word-input') : null;
+            if (nextInp) nextInp.focus();
+          }
         });
 
         // Up / Down Buttons
@@ -8631,12 +8857,15 @@ btnRandom: document.getElementById('btn-riddle-random'),
       if (isBodenUnlocked) {
         const input = bodenCard.querySelector('.boden-input');
         input.addEventListener('input', (e) => {
-          this.crossclimbBoden.currentWord = e.target.value.toUpperCase();
-          if (this.crossclimbBoden.currentWord === this.crossclimbBoden.targetWord) {
+          const val = e.target.value.toUpperCase();
+          this.crossclimbBoden.currentWord = val;
+          if (val === this.crossclimbBoden.targetWord) {
+            bodenCard.classList.add('valid-rung');
             this.suite.sound.playPop();
+            this.checkCrossclimbWin();
+          } else {
+            bodenCard.classList.remove('valid-rung');
           }
-          this.checkCrossclimbWin();
-          this.renderCrossclimb();
         });
       }
       listEl.appendChild(bodenCard);
@@ -9411,7 +9640,11 @@ init() {
         for (let r = 0; r < size; r++) {
           for (let c = 0; c < size; c++) {
             if (this.queensUserGrid[r][c] === 'Q') {
-              const isCorrect = solution.some(([sr, sc]) => sr === r && sc === c);
+              const isCorrect = solution.some(q => {
+                const sr = Array.isArray(q) ? q[0] : q.r;
+                const sc = Array.isArray(q) ? q[1] : q.c;
+                return sr === r && sc === c;
+              });
               if (!isCorrect) {
                 return {
                   key: `queens_wrong_${r}_${c}`,
@@ -9424,7 +9657,11 @@ init() {
         }
 
         // 2. Find a missing queen from solution
-        for (const [sr, sc] of solution) {
+        for (const q of solution) {
+          const sr = Array.isArray(q) ? q[0] : q.r;
+          const sc = Array.isArray(q) ? q[1] : q.c;
+          if (sr === undefined || sc === undefined || isNaN(sr) || isNaN(sc)) continue;
+
           if (this.queensUserGrid[sr][sc] !== 'Q') {
             return {
               key: `queens_place_${sr}_${sc}`,
