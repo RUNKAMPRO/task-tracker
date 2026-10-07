@@ -1354,10 +1354,10 @@
             </div>
 
                         <div class="riddle-stats-badges">
-              <span class="riddle-badge-item" id="riddle-badge-score">🏆 0 Gelöst</span>
-              <span class="riddle-badge-item streak" id="riddle-badge-streak">🔥 0er Streak</span>
-              <span class="riddle-badge-item daily-streak" id="riddle-badge-daily-streak">⭐ 0 Tage Daily</span>
-              <span class="riddle-badge-item daily-timer" id="riddle-badge-countdown" title="Neues Rätsel täglich um 07:00 Uhr deutscher Zeit">⏳ 07:00 Drop: --:--:--</span>
+              <span class="riddle-badge-item" id="riddle-badge-score">🏆 0/84 Gelöst</span>
+              <span class="riddle-badge-item streak" id="riddle-badge-streak">⚡ Freies Spiel</span>
+              <span class="riddle-badge-item daily-streak" id="riddle-badge-info">🧩 Beliebig viele Rätsel</span>
+              <span class="riddle-badge-item daily-timer" id="riddle-badge-countdown" style="display: none;">⏳ 07:00 Drop: --:--:--</span>
             </div>
           </div>
 
@@ -1382,7 +1382,7 @@
               <span class="game-nav-title">Queens</span>
               <span class="game-nav-sub">Kronen-Logik</span>
             </div>
-            <span class="game-nav-badge">Daily</span>
+            <span class="game-nav-badge" id="queens-nav-badge">0/14</span>
           </button>
           <button class="game-nav-btn" data-game-mode="tango">
             <span class="game-nav-icon">☀️🌙</span>
@@ -1390,7 +1390,7 @@
               <span class="game-nav-title">Tango</span>
               <span class="game-nav-sub">Sonne & Mond</span>
             </div>
-            <span class="game-nav-badge">Daily</span>
+            <span class="game-nav-badge" id="tango-nav-badge">0/14</span>
           </button>
           <button class="game-nav-btn" data-game-mode="crossclimb">
             <span class="game-nav-icon">🪜</span>
@@ -1398,7 +1398,7 @@
               <span class="game-nav-title">Crossclimb</span>
               <span class="game-nav-sub">Wortleiter-Trivia</span>
             </div>
-            <span class="game-nav-badge">Daily</span>
+            <span class="game-nav-badge" id="crossclimb-nav-badge">0/14</span>
           </button>
           <button class="game-nav-btn" data-game-mode="pinpoint">
             <span class="game-nav-icon">🎯</span>
@@ -1406,7 +1406,7 @@
               <span class="game-nav-title">Pinpoint</span>
               <span class="game-nav-sub">5 Assoziationen</span>
             </div>
-            <span class="game-nav-badge">Daily</span>
+            <span class="game-nav-badge" id="pinpoint-nav-badge">0/14</span>
           </button>
           <button class="game-nav-btn" data-game-mode="zip">
             <span class="game-nav-icon">⚡</span>
@@ -1414,7 +1414,7 @@
               <span class="game-nav-title">Zip</span>
               <span class="game-nav-sub">Pfad-Verbindung</span>
             </div>
-            <span class="game-nav-badge">Daily</span>
+            <span class="game-nav-badge" id="zip-nav-badge">0/14</span>
           </button>
           <button class="game-nav-btn" data-game-mode="sudoku">
             <span class="game-nav-icon">🔢</span>
@@ -1422,7 +1422,7 @@
               <span class="game-nav-title">Mini Sudoku</span>
               <span class="game-nav-sub">6×6 Zahlenlogik</span>
             </div>
-            <span class="game-nav-badge">Daily</span>
+            <span class="game-nav-badge" id="sudoku-nav-badge">0/14</span>
           </button>
         </div>
 
@@ -1434,7 +1434,7 @@
             <div class="daily-banner-glow"></div>
             <div class="daily-banner-left">
               <div class="daily-badge-row">
-                <span class="daily-pulse-tag"><span class="pulse-indicator"></span> 07:00 UHR TAGES-BOARD</span>
+                <span class="daily-pulse-tag"><span class="pulse-indicator"></span> FREIES SPIEL • LEVEL <span id="queens-banner-level-num">1</span></span>
                 <span class="daily-status-pill" id="queens-status-pill">Offen ⏳</span>
               </div>
               <h3 class="daily-banner-title" id="queens-daily-date-title">👑 Queens: Das Damen-Logikspiel</h3>
@@ -1442,9 +1442,9 @@
             </div>
             <div class="daily-banner-right">
               <div class="daily-countdown-card">
-                <span class="countdown-eyebrow">NÄCHSTES TAGES-BOARD IN</span>
-                <div class="countdown-clock" id="queens-daily-countdown">--:--:--</div>
-                <span class="countdown-target">Drop täglich um 07:00:00 Uhr</span>
+                <span class="countdown-eyebrow">FORTSCHRITT</span>
+                <div class="countdown-clock" id="queens-daily-countdown">0 / 14</div>
+                <button class="btn-inline-next" id="btn-queens-banner-next" style="margin-top: 8px;">Nächstes Board ▶</button>
               </div>
             </div>
           </div>
@@ -1453,9 +1453,10 @@
             <div class="game-arena-toolbar">
               <div class="toolbar-left">
                 <label for="queens-level-select" class="toolbar-label">Board:</label>
-                <select id="queens-level-select" class="select-input select-level">
-                  <option value="daily">⭐ Heutiges Tages-Board (07:00 Drop)</option>
-                </select>
+                <button class="btn-nav-level" id="btn-queens-prev" title="Vorheriges Board">◀</button>
+                <select id="queens-level-select" class="select-input select-level"></select>
+                <button class="btn-nav-level" id="btn-queens-next" title="Nächstes Board">▶</button>
+                <button class="btn-nav-level" id="btn-queens-random" title="Zufälliges Board">🎲 Zufall</button>
                 <span class="game-pill-badge" id="queens-moves-badge">Züge: 0</span>
                 <span class="game-pill-badge" id="queens-timer-badge">⏱️ 00:00</span>
               </div>
@@ -1500,7 +1501,7 @@
             <div class="daily-banner-glow"></div>
             <div class="daily-banner-left">
               <div class="daily-badge-row">
-                <span class="daily-pulse-tag"><span class="pulse-indicator"></span> 07:00 UHR TAGES-BOARD</span>
+                <span class="daily-pulse-tag"><span class="pulse-indicator"></span> FREIES SPIEL • LEVEL <span id="tango-banner-level-num">1</span></span>
                 <span class="daily-status-pill" id="tango-status-pill">Offen ⏳</span>
               </div>
               <h3 class="daily-banner-title" id="tango-daily-date-title">☀️🌙 Tango: Sonne & Mond Gitter</h3>
@@ -1508,9 +1509,9 @@
             </div>
             <div class="daily-banner-right">
               <div class="daily-countdown-card">
-                <span class="countdown-eyebrow">NÄCHSTES TAGES-BOARD IN</span>
-                <div class="countdown-clock" id="tango-daily-countdown">--:--:--</div>
-                <span class="countdown-target">Drop täglich um 07:00:00 Uhr</span>
+                <span class="countdown-eyebrow">FORTSCHRITT</span>
+                <div class="countdown-clock" id="tango-daily-countdown">0 / 14</div>
+                <button class="btn-inline-next" id="btn-tango-banner-next" style="margin-top: 8px;">Nächstes Board ▶</button>
               </div>
             </div>
           </div>
@@ -1519,9 +1520,10 @@
             <div class="game-arena-toolbar">
               <div class="toolbar-left">
                 <label for="tango-level-select" class="toolbar-label">Board:</label>
-                <select id="tango-level-select" class="select-input select-level">
-                  <option value="daily">⭐ Heutiges Tages-Board (07:00 Drop)</option>
-                </select>
+                <button class="btn-nav-level" id="btn-tango-prev" title="Vorheriges Board">◀</button>
+                <select id="tango-level-select" class="select-input select-level"></select>
+                <button class="btn-nav-level" id="btn-tango-next" title="Nächstes Board">▶</button>
+                <button class="btn-nav-level" id="btn-tango-random" title="Zufälliges Board">🎲 Zufall</button>
                 <span class="game-pill-badge" id="tango-timer-badge">⏱️ 00:00</span>
               </div>
               <div class="toolbar-right">
@@ -1558,7 +1560,7 @@
             <div class="daily-banner-glow"></div>
             <div class="daily-banner-left">
               <div class="daily-badge-row">
-                <span class="daily-pulse-tag"><span class="pulse-indicator"></span> 07:00 UHR TAGES-RÄTSEL</span>
+                <span class="daily-pulse-tag"><span class="pulse-indicator"></span> FREIES SPIEL • LEVEL <span id="pinpoint-banner-level-num">1</span></span>
                 <span class="daily-status-pill" id="pinpoint-status-pill">Offen ⏳</span>
               </div>
               <h3 class="daily-banner-title" id="pinpoint-daily-date-title">🎯 Pinpoint: 5 Assoziationen</h3>
@@ -1566,9 +1568,9 @@
             </div>
             <div class="daily-banner-right">
               <div class="daily-countdown-card">
-                <span class="countdown-eyebrow">NÄCHSTES TAGES-RÄTSEL IN</span>
-                <div class="countdown-clock" id="pinpoint-daily-countdown">--:--:--</div>
-                <span class="countdown-target">Drop täglich um 07:00:00 Uhr</span>
+                <span class="countdown-eyebrow">FORTSCHRITT</span>
+                <div class="countdown-clock" id="pinpoint-daily-countdown">0 / 14</div>
+                <button class="btn-inline-next" id="btn-pinpoint-banner-next" style="margin-top: 8px;">Nächstes Rätsel ▶</button>
               </div>
             </div>
           </div>
@@ -1577,9 +1579,10 @@
             <div class="game-arena-toolbar">
               <div class="toolbar-left">
                 <label for="pinpoint-level-select" class="toolbar-label">Rätsel:</label>
-                <select id="pinpoint-level-select" class="select-input select-level">
-                  <option value="daily">⭐ Heutiges Tages-Rätsel (07:00 Drop)</option>
-                </select>
+                <button class="btn-nav-level" id="btn-pinpoint-prev" title="Vorheriges Rätsel">◀</button>
+                <select id="pinpoint-level-select" class="select-input select-level"></select>
+                <button class="btn-nav-level" id="btn-pinpoint-next" title="Nächstes Rätsel">▶</button>
+                <button class="btn-nav-level" id="btn-pinpoint-random" title="Zufälliges Rätsel">🎲 Zufall</button>
                 <span class="game-pill-badge" id="pinpoint-attempts-badge">Versuche: 5 übrig</span>
               </div>
               <div class="toolbar-right">
@@ -1627,7 +1630,7 @@
             <div class="daily-banner-glow"></div>
             <div class="daily-banner-left">
               <div class="daily-badge-row">
-                <span class="daily-pulse-tag"><span class="pulse-indicator"></span> 07:00 UHR TAGES-LEITER</span>
+                <span class="daily-pulse-tag"><span class="pulse-indicator"></span> FREIES SPIEL • LEVEL <span id="crossclimb-banner-level-num">1</span></span>
                 <span class="daily-status-pill" id="crossclimb-status-pill">Offen ⏳</span>
               </div>
               <h3 class="daily-banner-title" id="crossclimb-daily-date-title">🪜 Crossclimb: Die Wortleiter</h3>
@@ -1635,9 +1638,9 @@
             </div>
             <div class="daily-banner-right">
               <div class="daily-countdown-card">
-                <span class="countdown-eyebrow">NÄCHSTE TAGES-LEITER IN</span>
-                <div class="countdown-clock" id="crossclimb-daily-countdown">--:--:--</div>
-                <span class="countdown-target">Drop täglich um 07:00:00 Uhr</span>
+                <span class="countdown-eyebrow">FORTSCHRITT</span>
+                <div class="countdown-clock" id="crossclimb-daily-countdown">0 / 14</div>
+                <button class="btn-inline-next" id="btn-crossclimb-banner-next" style="margin-top: 8px;">Nächste Leiter ▶</button>
               </div>
             </div>
           </div>
@@ -1646,9 +1649,10 @@
             <div class="game-arena-toolbar">
               <div class="toolbar-left">
                 <label for="crossclimb-level-select" class="toolbar-label">Leiter:</label>
-                <select id="crossclimb-level-select" class="select-input select-level">
-                  <option value="daily">⭐ Heutige Tages-Leiter (07:00 Drop)</option>
-                </select>
+                <button class="btn-nav-level" id="btn-crossclimb-prev" title="Vorherige Leiter">◀</button>
+                <select id="crossclimb-level-select" class="select-input select-level"></select>
+                <button class="btn-nav-level" id="btn-crossclimb-next" title="Nächste Leiter">▶</button>
+                <button class="btn-nav-level" id="btn-crossclimb-random" title="Zufällige Leiter">🎲 Zufall</button>
                 <span class="game-pill-badge" id="crossclimb-status-badge">Sprossen: 0/5 gelöst</span>
               </div>
               <div class="toolbar-right">
@@ -1685,7 +1689,7 @@
             <div class="daily-banner-glow"></div>
             <div class="daily-banner-left">
               <div class="daily-badge-row">
-                <span class="daily-pulse-tag"><span class="pulse-indicator"></span> 07:00 UHR TAGES-PFAD</span>
+                <span class="daily-pulse-tag"><span class="pulse-indicator"></span> FREIES SPIEL • LEVEL <span id="zip-banner-level-num">1</span></span>
                 <span class="daily-status-pill" id="zip-status-pill">Offen ⏳</span>
               </div>
               <h3 class="daily-banner-title" id="zip-daily-date-title">⚡ Zip: Der lückenlose Pfad</h3>
@@ -1693,9 +1697,9 @@
             </div>
             <div class="daily-banner-right">
               <div class="daily-countdown-card">
-                <span class="countdown-eyebrow">NÄCHSTER TAGES-PFAD IN</span>
-                <div class="countdown-clock" id="zip-daily-countdown">--:--:--</div>
-                <span class="countdown-target">Drop täglich um 07:00:00 Uhr</span>
+                <span class="countdown-eyebrow">FORTSCHRITT</span>
+                <div class="countdown-clock" id="zip-daily-countdown">0 / 14</div>
+                <button class="btn-inline-next" id="btn-zip-banner-next" style="margin-top: 8px;">Nächster Pfad ▶</button>
               </div>
             </div>
           </div>
@@ -1704,9 +1708,10 @@
             <div class="game-arena-toolbar">
               <div class="toolbar-left">
                 <label for="zip-level-select" class="toolbar-label">Pfad:</label>
-                <select id="zip-level-select" class="select-input select-level">
-                  <option value="daily">⭐ Heutiger Tages-Pfad (07:00 Drop)</option>
-                </select>
+                <button class="btn-nav-level" id="btn-zip-prev" title="Vorheriger Pfad">◀</button>
+                <select id="zip-level-select" class="select-input select-level"></select>
+                <button class="btn-nav-level" id="btn-zip-next" title="Nächster Pfad">▶</button>
+                <button class="btn-nav-level" id="btn-zip-random" title="Zufälliger Pfad">🎲 Zufall</button>
                 <span class="game-pill-badge" id="zip-progress-badge">Pfad: 1/25 Felder</span>
               </div>
               <div class="toolbar-right">
@@ -1745,7 +1750,7 @@
             <div class="daily-banner-glow"></div>
             <div class="daily-banner-left">
               <div class="daily-badge-row">
-                <span class="daily-pulse-tag"><span class="pulse-indicator"></span> 07:00 UHR TAGES-SUDOKU</span>
+                <span class="daily-pulse-tag"><span class="pulse-indicator"></span> FREIES SPIEL • LEVEL <span id="sudoku-banner-level-num">1</span></span>
                 <span class="daily-status-pill" id="sudoku-status-pill">Offen ⏳</span>
               </div>
               <h3 class="daily-banner-title" id="sudoku-daily-date-title">🔢 Mini Sudoku: 6×6 Zahlenrätsel</h3>
@@ -1753,9 +1758,9 @@
             </div>
             <div class="daily-banner-right">
               <div class="daily-countdown-card">
-                <span class="countdown-eyebrow">NÄCHSTES TAGES-SUDOKU IN</span>
-                <div class="countdown-clock" id="sudoku-daily-countdown">--:--:--</div>
-                <span class="countdown-target">Drop täglich um 07:00:00 Uhr</span>
+                <span class="countdown-eyebrow">FORTSCHRITT</span>
+                <div class="countdown-clock" id="sudoku-daily-countdown">0 / 14</div>
+                <button class="btn-inline-next" id="btn-sudoku-banner-next" style="margin-top: 8px;">Nächstes Sudoku ▶</button>
               </div>
             </div>
           </div>
@@ -1763,10 +1768,11 @@
           <div class="game-arena-card">
             <div class="game-arena-toolbar">
               <div class="toolbar-left">
-                <label for="sudoku-level-select" class="toolbar-label">Sudoku:</label>
-                <select id="sudoku-level-select" class="select-input select-level">
-                  <option value="daily">⭐ Heutiges Tages-Sudoku (07:00 Drop)</option>
-                </select>
+                <label for="sudoku-level-select" class="toolbar-label">Board:</label>
+                <button class="btn-nav-level" id="btn-sudoku-prev" title="Vorheriges Board">◀</button>
+                <select id="sudoku-level-select" class="select-input select-level"></select>
+                <button class="btn-nav-level" id="btn-sudoku-next" title="Nächstes Board">▶</button>
+                <button class="btn-nav-level" id="btn-sudoku-random" title="Zufälliges Board">🎲 Zufall</button>
                 <span class="game-pill-badge" id="sudoku-timer-badge">⏱️ 00:00</span>
               </div>
               <div class="toolbar-right">
