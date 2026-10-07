@@ -6022,6 +6022,64 @@ btnRandom: document.getElementById('btn-riddle-random'),
       return false;
     }
 
+    startFreePlay(game, tier) {
+      if (!this.freePlayPuzzles) this.freePlayPuzzles = {};
+      this.freePlayActive = true;
+      this.freePlayTier = tier;
+
+      const seed = `${game}_free_${tier}_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+      let puzzle = null;
+
+      if (game === 'queens') {
+        const size = tier === 'easy' ? 6 : (tier === 'medium' ? 8 : 10);
+        puzzle = OrbitRiddleGenerator.generateQueens(null, seed, size);
+      } else if (game === 'zip') {
+        const size = tier === 'easy' ? 5 : (tier === 'medium' ? 6 : 7);
+        puzzle = OrbitRiddleGenerator.generateZip(null, seed, size);
+      } else if (game === 'tango') {
+        const diffLvl = tier === 'easy' ? 2 : (tier === 'medium' ? 7 : 12);
+        puzzle = OrbitRiddleGenerator.generateTango(diffLvl, seed);
+      } else if (game === 'sudoku') {
+        const diffLvl = tier === 'easy' ? 2 : (tier === 'medium' ? 7 : 12);
+        puzzle = OrbitRiddleGenerator.generateSudoku(diffLvl, seed);
+      } else if (game === 'crossclimb') {
+        const diffLvl = tier === 'easy' ? 2 : (tier === 'medium' ? 7 : 12);
+        puzzle = OrbitRiddleGenerator.generateCrossclimb(diffLvl, this.crossclimbData);
+      } else if (game === 'pinpoint') {
+        const diffLvl = tier === 'easy' ? 2 : (tier === 'medium' ? 7 : 12);
+        puzzle = OrbitRiddleGenerator.generatePinpoint(diffLvl, this.pinpointData);
+      }
+
+      this.freePlayPuzzles[game] = puzzle;
+
+      if (game === 'queens') {
+        this.resetQueensBoard(true);
+        this.renderQueens();
+      } else if (game === 'tango') {
+        this.resetTangoBoard();
+        this.renderTango();
+      } else if (game === 'pinpoint') {
+        this.resetPinpoint();
+        this.renderPinpoint();
+      } else if (game === 'crossclimb') {
+        this.resetCrossclimb();
+        this.renderCrossclimb();
+      } else if (game === 'zip') {
+        this.resetZip();
+        this.renderZip();
+      } else if (game === 'sudoku') {
+        this.resetSudoku();
+        this.renderSudoku();
+      }
+
+      this.updateGameBanner(game);
+      this.populateLevelSelect(game);
+      this.renderLevelHub(game);
+      this.suite.sound.playPop();
+      const tierLabels = { easy: 'Leicht', medium: 'Mittel', hard: 'Schwer' };
+      this.suite.showToast(`🎲 Neues Freies Spiel gestartet: Stufe ${tierLabels[tier] || tier}`, 'success');
+    }
+
     getScreenFitLevelCount(game) {
       const w = window.innerWidth || document.documentElement.clientWidth || 1024;
 
@@ -6087,7 +6145,10 @@ btnRandom: document.getElementById('btn-riddle-random'),
       // Update toolbar level badge (no difficulty in campaign view)
       const tbBadge = document.getElementById(`${game}-toolbar-level-badge`);
       if (tbBadge) {
-        if (viewMode === 'path') {
+        if (this.freePlayActive && this.freePlayTier) {
+          const tierNames = { easy: 'Leicht', medium: 'Mittel', hard: 'Schwer' };
+          tbBadge.textContent = `🎲 Freies Spiel • ${tierNames[this.freePlayTier] || this.freePlayTier}`;
+        } else if (viewMode === 'path') {
           tbBadge.textContent = `Level #${cur}`;
         } else {
           tbBadge.textContent = `Level #${cur} • ${diffInfo.icon} ${diffInfo.label}`;
@@ -6304,36 +6365,45 @@ btnRandom: document.getElementById('btn-riddle-random'),
         const medTarget = getFirstPlayableInTier(medLevels) || 6;
         const hardTarget = getFirstPlayableInTier(hardLevels) || 11;
 
+        const easySolvedFree = parseInt(localStorage.getItem(`orbitsuite_${game}_free_solved_easy`), 10) || 0;
+        const medSolvedFree = parseInt(localStorage.getItem(`orbitsuite_${game}_free_solved_medium`), 10) || 0;
+        const hardSolvedFree = parseInt(localStorage.getItem(`orbitsuite_${game}_free_solved_hard`), 10) || 0;
+
+        const isCurrentFree = this.freePlayActive;
+        const curTier = this.freePlayTier || null;
+
         html += `
           <div class="level-difficulty-view">
+            <div class="diff-view-intro">
+              <div class="diff-intro-text">
+                🎲 <strong>Freies Spiel (Endlos & Prozedural):</strong> Keine vorgefertigten Level – wähle einfach eine Schwierigkeit bzw. Spielfeldgröße. Jedes Spiel wird bei Klick live neu generiert!
+              </div>
+            </div>
             <div class="difficulty-cards-grid">
               <!-- Leicht Card (Immer freigeschaltet) -->
-              <div class="difficulty-card tier-easy">
+              <div class="difficulty-card tier-easy ${isCurrentFree && curTier === 'easy' ? 'card-active-play' : ''}">
                 <div class="diff-card-header">
                   <div class="diff-title-col">
                     <span class="diff-card-title">🟢 Leicht</span>
                     <span class="diff-size-pill">📐 ${activeSizeDef.easy.badge}</span>
                   </div>
-                  <span class="tier-badge easy">${easySolved}/${easyLevels.length} Gelöst</span>
+                  <span class="tier-badge easy">🏆 ${easySolvedFree} Gelöst</span>
                 </div>
                 <div class="diff-size-subtitle">${activeSizeDef.easy.sub}</div>
                 <p class="diff-desc">${activeSizeDef.easy.desc}</p>
-                <div class="diff-chips-row">
-                  ${renderChips(easyLevels, true)}
-                </div>
-                <button class="btn-diff-play" data-select-level="${easyTarget}" title="Spiele ${activeSizeDef.easy.badge}">
-                  <span>▶ ${activeSizeDef.easy.badge} spielen (Lvl #${easyTarget})</span>
+                <button class="btn-diff-play" data-play-free-diff="easy" title="Starte ein neues leichtes Spiel (${activeSizeDef.easy.badge})">
+                  <span>${isCurrentFree && curTier === 'easy' ? '🎲 Neues leichtes Board generieren' : `▶ ${activeSizeDef.easy.badge} spielen`}</span>
                 </button>
               </div>
 
               <!-- Mittel Card (Freischaltung ab Checkpoint 1 / Level 5) -->
-              <div class="difficulty-card tier-medium ${isMedUnlocked ? '' : 'card-locked'}">
+              <div class="difficulty-card tier-medium ${isMedUnlocked ? (isCurrentFree && curTier === 'medium' ? 'card-active-play' : '') : 'card-locked'}">
                 <div class="diff-card-header">
                   <div class="diff-title-col">
                     <span class="diff-card-title">🟡 Mittel${isMedUnlocked ? '' : ' • 🔒 Gesperrt'}</span>
                     <span class="diff-size-pill">📐 ${activeSizeDef.medium.badge}</span>
                   </div>
-                  <span class="tier-badge medium">${medSolved}/${medLevels.length} Gelöst</span>
+                  <span class="tier-badge medium">🏆 ${medSolvedFree} Gelöst</span>
                 </div>
                 <div class="diff-size-subtitle">${activeSizeDef.medium.sub}</div>
                 ${isMedUnlocked ? `
@@ -6342,12 +6412,9 @@ btnRandom: document.getElementById('btn-riddle-random'),
                   <div class="diff-checkpoint-lock-notice">🚩 Gesperrt • Erreiche Kampagnen-Checkpoint 1 (Level #5), um ${activeSizeDef.medium.badge} freizuschalten!</div>
                 `}
                 <p class="diff-desc">${activeSizeDef.medium.desc}</p>
-                <div class="diff-chips-row">
-                  ${renderChips(medLevels, isMedUnlocked)}
-                </div>
                 ${isMedUnlocked ? `
-                  <button class="btn-diff-play" data-select-level="${medTarget}" title="Spiele ${activeSizeDef.medium.badge}">
-                    <span>▶ ${activeSizeDef.medium.badge} spielen (Lvl #${medTarget})</span>
+                  <button class="btn-diff-play" data-play-free-diff="medium" title="Starte ein neues mittleres Spiel (${activeSizeDef.medium.badge})">
+                    <span>${isCurrentFree && curTier === 'medium' ? '🎲 Neues mittleres Board generieren' : `▶ ${activeSizeDef.medium.badge} spielen`}</span>
                   </button>
                 ` : `
                   <button class="btn-diff-play locked" data-goto-checkpoint="5" title="Zu Kampagnen-Checkpoint 1 springen">
@@ -6357,13 +6424,13 @@ btnRandom: document.getElementById('btn-riddle-random'),
               </div>
 
               <!-- Schwer Card (Freischaltung ab Checkpoint 2 / Level 10) -->
-              <div class="difficulty-card tier-hard ${isHardUnlocked ? '' : 'card-locked'}">
+              <div class="difficulty-card tier-hard ${isHardUnlocked ? (isCurrentFree && curTier === 'hard' ? 'card-active-play' : '') : 'card-locked'}">
                 <div class="diff-card-header">
                   <div class="diff-title-col">
                     <span class="diff-card-title">🔴 Schwer${isHardUnlocked ? '' : ' • 🔒 Gesperrt'}</span>
                     <span class="diff-size-pill">📐 ${activeSizeDef.hard.badge}</span>
                   </div>
-                  <span class="tier-badge hard">${hardSolved}/${hardLevels.length} Gelöst</span>
+                  <span class="tier-badge hard">🏆 ${hardSolvedFree} Gelöst</span>
                 </div>
                 <div class="diff-size-subtitle">${activeSizeDef.hard.sub}</div>
                 ${isHardUnlocked ? `
@@ -6372,12 +6439,9 @@ btnRandom: document.getElementById('btn-riddle-random'),
                   <div class="diff-checkpoint-lock-notice">🏆 Gesperrt • Erreiche Kampagnen-Checkpoint 2 (Level #10), um ${activeSizeDef.hard.badge} freizuschalten!</div>
                 `}
                 <p class="diff-desc">${activeSizeDef.hard.desc}</p>
-                <div class="diff-chips-row">
-                  ${renderChips(hardLevels, isHardUnlocked)}
-                </div>
                 ${isHardUnlocked ? `
-                  <button class="btn-diff-play" data-select-level="${hardTarget}" title="Spiele ${activeSizeDef.hard.badge}">
-                    <span>▶ ${activeSizeDef.hard.badge} spielen (Lvl #${hardTarget})</span>
+                  <button class="btn-diff-play" data-play-free-diff="hard" title="Starte ein neues schweres Spiel (${activeSizeDef.hard.badge})">
+                    <span>${isCurrentFree && curTier === 'hard' ? '🎲 Neues schweres Board generieren' : `▶ ${activeSizeDef.hard.badge} spielen`}</span>
                   </button>
                 ` : `
                   <button class="btn-diff-play locked" data-goto-checkpoint="10" title="Zu Kampagnen-Checkpoint 2 springen">
@@ -6441,7 +6505,21 @@ btnRandom: document.getElementById('btn-riddle-random'),
         btn.addEventListener('click', () => {
           const mode = btn.dataset.hubMode;
           localStorage.setItem('orbitsuite_level_selector_mode', mode);
+          if (mode === 'path' && this.freePlayActive) {
+            this.freePlayActive = false;
+            this.setGameLevel(game, this.getCurrentLevel(game));
+          }
+          this.updateGameBanner(game);
           this.renderLevelHub(game);
+        });
+      });
+
+      container.querySelectorAll('[data-play-free-diff]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tier = btn.dataset.playFreeDiff;
+          if (tier) {
+            this.startFreePlay(game, tier);
+          }
         });
       });
 
@@ -6494,6 +6572,22 @@ btnRandom: document.getElementById('btn-riddle-random'),
     }
 
     markLevelSolved(game, lvl) {
+      if (this.freePlayActive && this.freePlayTier) {
+        const key = `orbitsuite_${game}_free_solved_${this.freePlayTier}`;
+        const prev = parseInt(localStorage.getItem(key), 10) || 0;
+        localStorage.setItem(key, String(prev + 1));
+        this.updateGameBanner(game);
+        this.renderLevelHub(game);
+        this.updateTotalStats();
+        setTimeout(() => {
+          this.suite.sound.playSuccess();
+          this.suite.confetti.fire();
+          const tierNames = { easy: 'Leicht', medium: 'Mittel', hard: 'Schwer' };
+          this.suite.showToast(`🎉 Freies Spiel (${tierNames[this.freePlayTier] || this.freePlayTier}) gelöst! Großartige Leistung! 🏆`, 'success');
+        }, 500);
+        return;
+      }
+
       const set = this.getSolvedSet(game);
       const numLvl = Number(lvl);
       const wasAlreadySolved = set.has(numLvl);
@@ -6656,6 +6750,46 @@ btnRandom: document.getElementById('btn-riddle-random'),
       this.renderLevelHub(game);
     }
     updateGameBanner(game) {
+      if (this.freePlayActive && this.freePlayTier) {
+        const tier = this.freePlayTier;
+        const tierNames = { easy: 'Leicht', medium: 'Mittel', hard: 'Schwer' };
+        const tierLabel = tierNames[tier] || tier;
+        const activePuzzle = this.freePlayPuzzles && this.freePlayPuzzles[game];
+        const sizeInfo = activePuzzle && activePuzzle.size ? ` (${activePuzzle.size}×${activePuzzle.size})` : '';
+
+        const statusEl = this.dom[`${game}StatusPill`];
+        if (statusEl) {
+          statusEl.textContent = '🎲 Freies Spiel';
+          statusEl.classList.remove('solved');
+        }
+
+        const countEl = this.dom[`${game}Countdown`];
+        if (countEl) {
+          countEl.textContent = `🎲 ${tierLabel}`;
+        }
+
+        const titleEl = this.dom[`${game}DateTitle`];
+        if (titleEl) {
+          const gameNames = {
+            queens: '👑 Queens',
+            tango: '☀️🌙 Tango',
+            pinpoint: '🎯 Pinpoint',
+            crossclimb: '🪜 Crossclimb',
+            zip: '⚡ Zip',
+            sudoku: '🔢 Mini Sudoku'
+          };
+          titleEl.textContent = `${gameNames[game] || game}: Freies Spiel • ${tierLabel}${sizeInfo}`;
+        }
+
+        const lvlNumEl = document.getElementById(`${game}-banner-level-num`);
+        if (lvlNumEl) lvlNumEl.textContent = '🎲';
+
+        const tbBadge = document.getElementById(`${game}-toolbar-level-badge`);
+        if (tbBadge) tbBadge.textContent = `🎲 ${tierLabel}`;
+
+        return;
+      }
+
       const cur = this.getCurrentLevel(game);
       const isSolved = this.isLevelSolved(game, cur);
       const solvedCount = this.getSolvedCount(game);
@@ -6812,6 +6946,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
 
     getActiveQueensBoard() {
+      if (this.freePlayActive && this.freePlayPuzzles && this.freePlayPuzzles.queens) return this.freePlayPuzzles.queens;
       return this.getPuzzle('queens', this.getCurrentLevel('queens'));
     }
 
@@ -7303,6 +7438,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
 
     getActiveTangoPuzzle() {
+      if (this.freePlayActive && this.freePlayPuzzles && this.freePlayPuzzles.tango) return this.freePlayPuzzles.tango;
       return this.getPuzzle('tango', this.getCurrentLevel('tango'));
     }
 
@@ -7696,6 +7832,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
 
     getActivePinpointChallenge() {
+      if (this.freePlayActive && this.freePlayPuzzles && this.freePlayPuzzles.pinpoint) return this.freePlayPuzzles.pinpoint;
       return this.getPuzzle('pinpoint', this.getCurrentLevel('pinpoint'));
     }
 
@@ -7961,6 +8098,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
     }
 
     getActiveCrossclimb() {
+      if (this.freePlayActive && this.freePlayPuzzles && this.freePlayPuzzles.crossclimb) return this.freePlayPuzzles.crossclimb;
       return this.getPuzzle('crossclimb', this.getCurrentLevel('crossclimb'));
     }
 
@@ -8381,6 +8519,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
     }
 
     getActiveZip() {
+      if (this.freePlayActive && this.freePlayPuzzles && this.freePlayPuzzles.zip) return this.freePlayPuzzles.zip;
       return this.getPuzzle('zip', this.getCurrentLevel('zip'));
     }
 
@@ -8656,6 +8795,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
     }
 
     getActiveSudoku() {
+      if (this.freePlayActive && this.freePlayPuzzles && this.freePlayPuzzles.sudoku) return this.freePlayPuzzles.sudoku;
       return this.getPuzzle('sudoku', this.getCurrentLevel('sudoku'));
     }
 

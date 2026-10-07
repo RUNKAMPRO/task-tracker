@@ -6774,3 +6774,25 @@ body {
   transform: translateY(-2px);
   box-shadow: 0 4px 14px rgba(245, 158, 11, 0.25);
 }
+
+/* Active free play card and intro */
+.diff-view-intro {
+  margin-bottom: 14px;
+  padding: 10px 16px;
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: var(--radius-md);
+  font-size: 0.88rem;
+  color: #c7d2fe;
+}
+
+.difficulty-card.card-active-play {
+  border-color: rgba(99, 102, 241, 0.7) !important;
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.35) !important;
+}
+
+.difficulty-card.card-active-play .btn-diff-play {
+  background: var(--accent) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.45);
+}
