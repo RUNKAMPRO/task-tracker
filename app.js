@@ -5972,35 +5972,53 @@ btnRandom: document.getElementById('btn-riddle-random'),
       return l <= this.getHighestUnlockedLevel(game);
     }
 
-    getScreenFitLevelCount() {
+    getScreenFitLevelCount(game) {
+      // 1. Genaue Messung der tatsächlichen Container-Breite im DOM
+      let containerWidth = 0;
+      if (game) {
+        const c = document.querySelector(`#${game}-level-hub .linear-trail-container`);
+        if (c && c.clientWidth > 80) {
+          containerWidth = c.clientWidth;
+        }
+      }
+      if (!containerWidth) {
+        const anyC = document.querySelector('.linear-trail-container');
+        if (anyC && anyC.clientWidth > 80) {
+          containerWidth = anyC.clientWidth;
+        }
+      }
+
       const w = window.innerWidth || document.documentElement.clientWidth || 1024;
-      const isDesktop = w >= 992;
-      const effectiveWidth = isDesktop ? Math.max(300, w - 360) : Math.max(260, w - 70);
-      const pitch = w < 640 ? 56 : 70;
-      const count = Math.floor(effectiveWidth / pitch);
-      return Math.max(6, count);
+      if (!containerWidth) {
+        // Fallback: Volle Bildschirmbreite abzüglich Seitenränder und Buttons (~100px)
+        const wrapperPadding = w < 640 ? 40 : 100;
+        containerWidth = Math.max(280, w - wrapperPadding);
+      }
+
+      // Node-Abstand: Node-Breite + Connector
+      // Mobile: 38px + 14px = 52px
+      // Tablet: 42px + 18px = 60px
+      // Desktop: 44px + 14px = 58px
+      const pitch = w < 640 ? 52 : (w <= 1024 ? 60 : 58);
+
+      // Berechne exakt, wie viele Nodes benötigt werden, um das GANZE Feld lückenlos zu füllen
+      const count = Math.ceil((containerWidth - 28) / pitch);
+      return Math.max(8, count);
     }
 
     getPathLength(game) {
       const cur = this.getCurrentLevel(game);
       const highest = this.getHighestUnlockedLevel(game);
       const playerPos = Math.max(cur, highest);
-      const screenFit = this.getScreenFitLevelCount();
-
-      // Menge der Level dynamisch an den Bildschirm anpassen
-      const baseLength = Math.max(screenFit, 8);
+      const screenFit = this.getScreenFitLevelCount(game);
 
       let storedLength = parseInt(localStorage.getItem(`orbitsuite_${game}_path_length`), 10);
-      if (isNaN(storedLength) || storedLength < baseLength) {
-        storedLength = baseLength;
-      }
-
-      // Bei vergrößertem Fenster / breiterem Bildschirm anpassen
-      if (storedLength < screenFit) {
+      if (isNaN(storedLength) || storedLength < screenFit) {
         storedLength = screenFit;
+        localStorage.setItem(`orbitsuite_${game}_path_length`, String(storedLength));
       }
 
-      // Dynamische Weitergenerierung: Mindestens 5 Level vor dem Spieler
+      // Dynamische Weitergenerierung: Immer mindestens 5 Level vor dem Spieler
       const minAhead = 5;
       if (playerPos >= storedLength - minAhead) {
         storedLength = playerPos + minAhead;
@@ -6245,6 +6263,24 @@ btnRandom: document.getElementById('btn-riddle-random'),
       }
 
       container.innerHTML = html;
+
+      // Auto-fill check: ensure level trail completely fills the container field
+      setTimeout(() => {
+        const trailContainer = container.querySelector('.linear-trail-container');
+        const trailTrack = container.querySelector('.linear-trail-track');
+        if (trailContainer && trailTrack && trailContainer.clientWidth > 80) {
+          const innerWidth = trailContainer.clientWidth - 28;
+          if (trailTrack.scrollWidth < innerWidth) {
+            const pitch = window.innerWidth < 640 ? 52 : (window.innerWidth <= 1024 ? 60 : 58);
+            const missing = Math.ceil((innerWidth - trailTrack.scrollWidth) / pitch);
+            if (missing > 0) {
+              const currentLen = this.getPathLength(game);
+              localStorage.setItem(`orbitsuite_${game}_path_length`, String(currentLen + missing));
+              this.renderLevelHub(game);
+            }
+          }
+        }
+      }, 20);
 
       // Auto-scroll linear trail to active node
       setTimeout(() => {

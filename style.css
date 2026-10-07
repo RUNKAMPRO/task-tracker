@@ -6235,11 +6235,22 @@ body {
 }
 
 .linear-trail-track {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 0;
-  min-width: max-content;
+  min-width: 100%;
+  width: max-content;
   padding: 4px 6px;
+  box-sizing: border-box;
+}
+
+.linear-trail-track .trail-node {
+  flex-shrink: 0;
+}
+
+.linear-trail-track .trail-connector {
+  flex: 1 0 14px;
+  min-width: 14px;
 }
 
 .trail-scroll-btn {
