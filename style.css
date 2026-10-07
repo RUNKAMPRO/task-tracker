@@ -4590,3 +4590,560 @@ body {
     justify-content: center;
   }
 }
+
+/* ==========================================================================
+   LINKEDIN DAILY GAMES (QUEENS, TANGO, PINPOINT)
+   ========================================================================== */
+
+/* Game Mode Navigation Bar */
+.riddle-games-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.riddle-games-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.game-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  border-radius: 12px;
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary, #94a3b8);
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+}
+
+.game-nav-btn:hover {
+  background: rgba(51, 65, 85, 0.8);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-1px);
+}
+
+.game-nav-btn.active {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.2) 0%, rgba(99, 102, 241, 0.25) 100%);
+  border-color: rgba(56, 189, 248, 0.5);
+  color: #38bdf8;
+  box-shadow: 0 4px 16px rgba(56, 189, 248, 0.2);
+}
+
+.game-nav-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.game-nav-label {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.game-nav-title {
+  font-weight: 700;
+  color: inherit;
+  font-size: 0.92rem;
+  line-height: 1.2;
+}
+
+.game-nav-sub {
+  font-size: 0.72rem;
+  color: var(--text-muted, #64748b);
+  font-weight: 500;
+}
+
+.game-nav-btn.active .game-nav-sub {
+  color: #7dd3fc;
+}
+
+.game-nav-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+/* Game Mode Panels */
+.game-mode-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+.game-mode-panel.hidden {
+  display: none !important;
+}
+
+/* Game Arena Card & Toolbar */
+.game-arena-card {
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.game-arena-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.toolbar-left, .toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.toolbar-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.select-level {
+  min-width: 220px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 0.88rem;
+}
+
+.game-pill-badge {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+/* Guide box */
+.game-guide-box {
+  background: rgba(30, 41, 59, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.guide-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.guide-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: #94a3b8;
+  line-height: 1.45;
+}
+
+.guide-list li strong {
+  color: #e2e8f0;
+}
+
+.game-inline-feedback {
+  min-height: 28px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 8px;
+  display: none;
+}
+.game-inline-feedback.show {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.game-inline-feedback.success {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+.game-inline-feedback.error {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* ==========================================================================
+   QUEENS GAME STYLES
+   ========================================================================== */
+.queens-interactive-layout {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 28px;
+  align-items: start;
+}
+
+.queens-grid-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 12px;
+  background: rgba(2, 6, 23, 0.4);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.queens-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 62px);
+  grid-template-rows: repeat(6, 62px);
+  gap: 0;
+  border: 3px solid #475569;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  user-select: none;
+}
+
+.queens-cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.85rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+  box-sizing: border-box;
+}
+
+.queens-cell:hover {
+  filter: brightness(1.15);
+}
+
+.queens-cell:active {
+  transform: scale(0.96);
+}
+
+/* Heavy borders between distinct colored regions */
+.queens-cell.border-top {
+  border-top: 2.5px solid rgba(255, 255, 255, 0.45);
+}
+.queens-cell.border-right {
+  border-right: 2.5px solid rgba(255, 255, 255, 0.45);
+}
+.queens-cell.border-bottom {
+  border-bottom: 2.5px solid rgba(255, 255, 255, 0.45);
+}
+.queens-cell.border-left {
+  border-left: 2.5px solid rgba(255, 255, 255, 0.45);
+}
+
+/* Region Color Themes */
+.reg-0 { background-color: #3b2323; }
+.reg-1 { background-color: #1e3a5f; }
+.reg-2 { background-color: #1c3e34; }
+.reg-3 { background-color: #45371c; }
+.reg-4 { background-color: #35214d; }
+.reg-5 { background-color: #451d38; }
+
+.queens-cell.cell-queen {
+  animation: queenPop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.queens-cell.cell-queen::after {
+  content: '👑';
+  filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.8));
+}
+
+.queens-cell.cell-cross::after {
+  content: '✕';
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.35);
+  line-height: 1;
+}
+
+/* Clash Warning */
+.queens-cell.cell-clash {
+  background-color: #7f1d1d !important;
+  animation: cellShake 0.3s ease;
+}
+
+@keyframes queenPop {
+  0% { transform: scale(0.4); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes cellShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-3px); }
+  75% { transform: translateX(3px); }
+}
+
+/* ==========================================================================
+   TANGO GAME STYLES
+   ========================================================================== */
+.tango-interactive-layout {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 28px;
+  align-items: start;
+}
+
+.tango-grid-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+  background: rgba(2, 6, 23, 0.4);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.tango-board-card-inner {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(6, 58px);
+  grid-template-rows: repeat(6, 58px);
+  gap: 12px;
+  user-select: none;
+}
+
+.tango-cell {
+  position: relative;
+  background: rgba(30, 41, 59, 0.65);
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tango-cell:hover:not(.given) {
+  background: rgba(51, 65, 85, 0.8);
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
+.tango-cell.given {
+  background: rgba(15, 23, 42, 0.85);
+  border-color: rgba(255, 255, 255, 0.25);
+  cursor: default;
+}
+
+.tango-cell.given::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.tango-cell.val-sun::after {
+  content: '☀️';
+  filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.7));
+}
+
+.tango-cell.val-moon::after {
+  content: '🌙';
+  filter: drop-shadow(0 0 6px rgba(129, 140, 248, 0.7));
+}
+
+.tango-cell.cell-error {
+  border-color: #ef4444 !important;
+  background: rgba(239, 68, 68, 0.25) !important;
+}
+
+/* Edge Constraints Badges */
+.tango-constraint-h {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #0f172a;
+  border: 1.5px solid #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: #e2e8f0;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.tango-constraint-v {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #0f172a;
+  border: 1.5px solid #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: #e2e8f0;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* ==========================================================================
+   PINPOINT GAME STYLES
+   ========================================================================== */
+.pinpoint-interactive-layout {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.pinpoint-clues-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pinpoint-clue-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  border-radius: 14px;
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.25s ease;
+}
+
+.pinpoint-clue-card.revealed {
+  background: rgba(30, 41, 59, 0.85);
+  border-color: rgba(56, 189, 248, 0.3);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
+.pinpoint-clue-card.locked {
+  opacity: 0.45;
+  filter: blur(0.5px);
+}
+
+.clue-number-pill {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
+.pinpoint-clue-card.revealed .clue-number-pill {
+  background: linear-gradient(135deg, #0284c7 0%, #6366f1 100%);
+  color: #ffffff;
+  border-color: transparent;
+}
+
+.clue-text-body {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.pinpoint-clue-card.locked .clue-text-body {
+  color: #64748b;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+}
+
+.pinpoint-action-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pinpoint-guess-card {
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.guess-card-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.pinpoint-input-row {
+  display: flex;
+  gap: 10px;
+}
+
+.pinpoint-input-row input {
+  flex: 1;
+}
+
+/* Responsive adjustments */
+@media (max-width: 900px) {
+  .queens-interactive-layout,
+  .tango-interactive-layout,
+  .pinpoint-interactive-layout {
+    grid-template-columns: 1fr;
+  }
+  .queens-grid {
+    grid-template-columns: repeat(6, 48px);
+    grid-template-rows: repeat(6, 48px);
+  }
+  .tango-board-card-inner {
+    grid-template-columns: repeat(6, 46px);
+    grid-template-rows: repeat(6, 46px);
+    gap: 8px;
+  }
+}

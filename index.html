@@ -1374,8 +1374,239 @@
             </button>
           </div>
         </header>
+        <!-- LinkedIn Daily Games Mode Selector Bar -->
+        <div class="riddle-games-nav" id="riddle-games-nav">
+          <button class="game-nav-btn active" data-game-mode="queens">
+            <span class="game-nav-icon">👑</span>
+            <div class="game-nav-label">
+              <span class="game-nav-title">Queens</span>
+              <span class="game-nav-sub">Kronen-Logik</span>
+            </div>
+            <span class="game-nav-badge">Daily</span>
+          </button>
+          <button class="game-nav-btn" data-game-mode="tango">
+            <span class="game-nav-icon">☀️🌙</span>
+            <div class="game-nav-label">
+              <span class="game-nav-title">Tango</span>
+              <span class="game-nav-sub">Sonne & Mond</span>
+            </div>
+            <span class="game-nav-badge">Daily</span>
+          </button>
+          <button class="game-nav-btn" data-game-mode="pinpoint">
+            <span class="game-nav-icon">🎯</span>
+            <div class="game-nav-label">
+              <span class="game-nav-title">Pinpoint</span>
+              <span class="game-nav-sub">5 Assoziationen</span>
+            </div>
+            <span class="game-nav-badge">Daily</span>
+          </button>
+          <button class="game-nav-btn" data-game-mode="optical">
+            <span class="game-nav-icon">👁️</span>
+            <div class="game-nav-label">
+              <span class="game-nav-title">Optisch</span>
+              <span class="game-nav-sub">28 Denkaufgaben</span>
+            </div>
+            <span class="game-nav-badge">Archiv</span>
+          </button>
+        </div>
 
-        <!-- Riddle Category Filters -->
+
+                <!-- Panel 1: Queens (LinkedIn Hit Game) -->
+        <div class="game-mode-panel" id="panel-game-queens">
+          <!-- Queens Daily Banner -->
+          <div class="riddle-daily-banner">
+            <div class="daily-banner-glow"></div>
+            <div class="daily-banner-left">
+              <div class="daily-badge-row">
+                <span class="daily-pulse-tag"><span class="pulse-indicator"></span> 07:00 UHR TAGES-BOARD</span>
+                <span class="daily-status-pill" id="queens-status-pill">Offen ⏳</span>
+              </div>
+              <h3 class="daily-banner-title" id="queens-daily-date-title">👑 Queens: Das Damen-Logikspiel</h3>
+              <p class="daily-banner-subtitle">Platziere in jeder Zeile, Spalte und Farbzone genau 1 Krone (👑). Kronen dürfen sich nicht berühren (auch nicht diagonal)!</p>
+            </div>
+            <div class="daily-banner-right">
+              <div class="daily-countdown-card">
+                <span class="countdown-eyebrow">NÄCHSTES TAGES-BOARD IN</span>
+                <div class="countdown-clock" id="queens-daily-countdown">--:--:--</div>
+                <span class="countdown-target">Drop täglich um 07:00:00 Uhr</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="game-arena-card">
+            <div class="game-arena-toolbar">
+              <div class="toolbar-left">
+                <label for="queens-level-select" class="toolbar-label">Board:</label>
+                <select id="queens-level-select" class="select-input select-level">
+                  <option value="daily">⭐ Heutiges Tages-Board (07:00 Drop)</option>
+                </select>
+                <span class="game-pill-badge" id="queens-moves-badge">Züge: 0</span>
+                <span class="game-pill-badge" id="queens-timer-badge">⏱️ 00:00</span>
+              </div>
+              <div class="toolbar-right">
+                <button class="btn-secondary" id="btn-queens-autox" title="Kreuze ✕ automatisch um gesetzte Kronen platzieren">
+                  <span>❌ Auto-X</span>
+                </button>
+                <button class="btn-secondary" id="btn-queens-undo" title="Letzten Zug rückgängig machen">
+                  <span>↩ Zurück</span>
+                </button>
+                <button class="btn-secondary" id="btn-queens-reset" title="Board zurücksetzen">
+                  <span>🔄 Reset</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="queens-interactive-layout">
+              <div class="queens-grid-container">
+                <div class="queens-grid" id="queens-grid">
+                  <!-- Dynamically rendered 6x6 grid -->
+                </div>
+              </div>
+              <div class="game-guide-box">
+                <h4 class="guide-title">💡 Spielanleitung</h4>
+                <ul class="guide-list">
+                  <li><strong>1. Klick:</strong> Setzt ein <code>✕</code> (keine Krone hier möglich).</li>
+                  <li><strong>2. Klick:</strong> Platziere eine Krone <code>👑</code>.</li>
+                  <li><strong>3. Klick:</strong> Leert die Zelle wieder.</li>
+                  <li><strong>Rechtsklick:</strong> Direkt eine Krone <code>👑</code> setzen/entfernen.</li>
+                  <li><strong>Ziel:</strong> Genau <strong>1 Krone</strong> pro Zeile, Spalte und Farbzone.</li>
+                  <li><strong>Regel:</strong> Keine zwei Kronen dürfen sich berühren (auch nicht diagonal!).</li>
+                </ul>
+                <div class="game-inline-feedback" id="queens-feedback"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 2: Tango (LinkedIn Sun & Moon Game) -->
+        <div class="game-mode-panel hidden" id="panel-game-tango">
+          <div class="riddle-daily-banner">
+            <div class="daily-banner-glow"></div>
+            <div class="daily-banner-left">
+              <div class="daily-badge-row">
+                <span class="daily-pulse-tag"><span class="pulse-indicator"></span> 07:00 UHR TAGES-BOARD</span>
+                <span class="daily-status-pill" id="tango-status-pill">Offen ⏳</span>
+              </div>
+              <h3 class="daily-banner-title" id="tango-daily-date-title">☀️🌙 Tango: Sonne & Mond Gitter</h3>
+              <p class="daily-banner-subtitle">Fülle das Gitter mit Sonnen und Monden. Gleiche Anzahl pro Zeile/Spalte, nie 3 gleiche hintereinander, beachte = und ✕!</p>
+            </div>
+            <div class="daily-banner-right">
+              <div class="daily-countdown-card">
+                <span class="countdown-eyebrow">NÄCHSTES TAGES-BOARD IN</span>
+                <div class="countdown-clock" id="tango-daily-countdown">--:--:--</div>
+                <span class="countdown-target">Drop täglich um 07:00:00 Uhr</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="game-arena-card">
+            <div class="game-arena-toolbar">
+              <div class="toolbar-left">
+                <label for="tango-level-select" class="toolbar-label">Board:</label>
+                <select id="tango-level-select" class="select-input select-level">
+                  <option value="daily">⭐ Heutiges Tages-Board (07:00 Drop)</option>
+                </select>
+                <span class="game-pill-badge" id="tango-timer-badge">⏱️ 00:00</span>
+              </div>
+              <div class="toolbar-right">
+                <button class="btn-secondary" id="btn-tango-reset" title="Board zurücksetzen">
+                  <span>🔄 Reset</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="tango-interactive-layout">
+              <div class="tango-grid-container">
+                <div class="tango-grid" id="tango-grid">
+                  <!-- Dynamically rendered 6x6 grid with horizontal/vertical constraints -->
+                </div>
+              </div>
+              <div class="game-guide-box">
+                <h4 class="guide-title">💡 Spielanleitung</h4>
+                <ul class="guide-list">
+                  <li>Klicke auf ein freies Feld, um zwischen ☀️ (Sonne) und 🌙 (Mond) zu wechseln.</li>
+                  <li><strong>Gleichstand:</strong> Jede Zeile & Spalte hat genau 3 Sonnen und 3 Monde.</li>
+                  <li><strong>Maximal zwei:</strong> Nie mehr als 2 gleiche Symbole nebeneinander oder untereinander (kein ☀️☀️☀️, kein 🌙🌙🌙).</li>
+                  <li><code>=</code> bedeutet: Beide Nachbarfelder müssen das <em>gleiche</em> Symbol haben.</li>
+                  <li><code>✕</code> bedeutet: Beide Nachbarfelder müssen <em>unterschiedliche</em> Symbole haben.</li>
+                </ul>
+                <div class="game-inline-feedback" id="tango-feedback"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 3: Pinpoint (LinkedIn 5-Clues Association) -->
+        <div class="game-mode-panel hidden" id="panel-game-pinpoint">
+          <div class="riddle-daily-banner">
+            <div class="daily-banner-glow"></div>
+            <div class="daily-banner-left">
+              <div class="daily-badge-row">
+                <span class="daily-pulse-tag"><span class="pulse-indicator"></span> 07:00 UHR TAGES-RÄTSEL</span>
+                <span class="daily-status-pill" id="pinpoint-status-pill">Offen ⏳</span>
+              </div>
+              <h3 class="daily-banner-title" id="pinpoint-daily-date-title">🎯 Pinpoint: 5 Assoziationen</h3>
+              <p class="daily-banner-subtitle">Errate die geheime übergeordnete Kategorie in möglichst wenigen Hinweisen!</p>
+            </div>
+            <div class="daily-banner-right">
+              <div class="daily-countdown-card">
+                <span class="countdown-eyebrow">NÄCHSTES TAGES-RÄTSEL IN</span>
+                <div class="countdown-clock" id="pinpoint-daily-countdown">--:--:--</div>
+                <span class="countdown-target">Drop täglich um 07:00:00 Uhr</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="game-arena-card">
+            <div class="game-arena-toolbar">
+              <div class="toolbar-left">
+                <label for="pinpoint-level-select" class="toolbar-label">Rätsel:</label>
+                <select id="pinpoint-level-select" class="select-input select-level">
+                  <option value="daily">⭐ Heutiges Tages-Rätsel (07:00 Drop)</option>
+                </select>
+                <span class="game-pill-badge" id="pinpoint-attempts-badge">Versuche: 5 übrig</span>
+              </div>
+              <div class="toolbar-right">
+                <button class="btn-secondary" id="btn-pinpoint-reveal-clue" title="Den nächsten Hinweis vorzeitig aufdecken">
+                  <span>🔍 Hinweis aufdecken</span>
+                </button>
+                <button class="btn-secondary" id="btn-pinpoint-reset" title="Neu versuchen">
+                  <span>🔄 Neustart</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="pinpoint-interactive-layout">
+              <div class="pinpoint-clues-column" id="pinpoint-clues-list">
+                <!-- 5 Clues Cards rendered dynamically -->
+              </div>
+              <div class="pinpoint-action-column">
+                <div class="pinpoint-guess-card">
+                  <h4 class="guess-card-title">Übergeordnete Kategorie eingeben:</h4>
+                  <div class="pinpoint-input-row">
+                    <input type="text" id="pinpoint-guess-input" class="form-input" placeholder="Z.B. Schachfiguren, Kaffeespezialitäten..." autocomplete="off" />
+                    <button class="btn-primary" id="btn-pinpoint-submit">
+                      <span>Prüfen</span>
+                    </button>
+                  </div>
+                  <div class="game-inline-feedback" id="pinpoint-feedback"></div>
+                </div>
+                <div class="game-guide-box">
+                  <h4 class="guide-title">💡 Spielanleitung</h4>
+                  <ul class="guide-list">
+                    <li>Alle 5 Begriffe gehören zu einer gemeinsamen geheimen Kategorie.</li>
+                    <li>Du startest mit Hinweis 1. Bei jeder falschen Antwort wird der nächste Hinweis enthüllt.</li>
+                    <li>Ziel ist es, die Kategorie mit so wenigen Hinweisen wie möglich zu enttarnen!</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 4: Optical Riddles (28 Visual Puzzles Archive) -->
+        <div class="game-mode-panel hidden" id="panel-game-optical">
+<!-- Riddle Category Filters -->
         <section class="controls-strip">
           <div class="filter-group">
             <span class="filter-title">Kategorie:</span>
@@ -1507,7 +1738,8 @@
             <div class="riddle-cards-grid" id="riddle-cards-grid"></div>
           </div>
 
-        </main>
+                </div> <!-- end panel-game-optical -->
+</main>
       </div>
     </section>
 

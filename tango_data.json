@@ -1,0 +1,1993 @@
+[
+  {
+    "id": "tango-1",
+    "title": "Tango Tages-Board #1",
+    "size": 6,
+    "givens": [
+      [
+        "S",
+        null,
+        null,
+        "S",
+        null,
+        "M"
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        "M",
+        null,
+        null,
+        null
+      ],
+      [
+        "S",
+        null,
+        "S",
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        "S",
+        null,
+        null
+      ]
+    ],
+    "hEdges": [
+      {
+        "r": 5,
+        "c": 0,
+        "op": "x"
+      },
+      {
+        "r": 2,
+        "c": 3,
+        "op": "x"
+      },
+      {
+        "r": 3,
+        "c": 4,
+        "op": "="
+      },
+      {
+        "r": 2,
+        "c": 2,
+        "op": "x"
+      }
+    ],
+    "vEdges": [
+      {
+        "r": 0,
+        "c": 5,
+        "op": "="
+      },
+      {
+        "r": 0,
+        "c": 0,
+        "op": "="
+      },
+      {
+        "r": 2,
+        "c": 3,
+        "op": "x"
+      }
+    ],
+    "solution": [
+      [
+        "S",
+        "M",
+        "S",
+        "S",
+        "M",
+        "M"
+      ],
+      [
+        "S",
+        "M",
+        "S",
+        "M",
+        "S",
+        "M"
+      ],
+      [
+        "M",
+        "S",
+        "M",
+        "S",
+        "M",
+        "S"
+      ],
+      [
+        "M",
+        "S",
+        "M",
+        "M",
+        "S",
+        "S"
+      ],
+      [
+        "S",
+        "M",
+        "S",
+        "M",
+        "S",
+        "M"
+      ],
+      [
+        "M",
+        "S",
+        "M",
+        "S",
+        "M",
+        "S"
+      ]
+    ]
+  },
+  {
+    "id": "tango-2",
+    "title": "Tango Tages-Board #2",
+    "size": 6,
+    "givens": [
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        "M",
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        "S",
+        null,
+        null
+      ],
+      [
+        null,
+        "M",
+        null,
+        "S",
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        "S",
+        null,
+        "M",
+        null,
+        null,
+        null
+      ]
+    ],
+    "hEdges": [
+      {
+        "r": 5,
+        "c": 4,
+        "op": "x"
+      },
+      {
+        "r": 1,
+        "c": 4,
+        "op": "="
+      },
+      {
+        "r": 3,
+        "c": 4,
+        "op": "="
+      },
+      {
+        "r": 2,
+        "c": 2,
+        "op": "="
+      }
+    ],
+    "vEdges": [
+      {
+        "r": 3,
+        "c": 4,
+        "op": "x"
+      },
+      {
+        "r": 0,
+        "c": 5,
+        "op": "="
+      },
+      {
+        "r": 0,
+        "c": 1,
+        "op": "x"
+      }
+    ],
+    "solution": [
+      [
+        "M",
+        "M",
+        "S",
+        "S",
+        "M",
+        "S"
+      ],
+      [
+        "M",
+        "S",
+        "M",
+        "M",
+        "S",
+        "S"
+      ],
+      [
+        "S",
+        "M",
+        "S",
+        "S",
+        "M",
+        "M"
+      ],
+      [
+        "S",
+        "M",
+        "S",
+        "S",
+        "M",
+        "M"
+      ],
+      [
+        "M",
+        "S",
+        "M",
+        "M",
+        "S",
+        "S"
+      ],
+      [
+        "S",
+        "S",
+        "M",
+        "M",
+        "S",
+        "M"
+      ]
+    ]
+  },
+  {
+    "id": "tango-3",
+    "title": "Tango Tages-Board #3",
+    "size": 6,
+    "givens": [
+      [
+        null,
+        null,
+        "S",
+        null,
+        null,
+        null
+      ],
+      [
+        "S",
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        "M"
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        "S",
+        null,
+        null,
+        null,
+        "S",
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        "S",
+        "S"
+      ]
+    ],
+    "hEdges": [
+      {
+        "r": 1,
+        "c": 1,
+        "op": "="
+      },
+      {
+        "r": 4,
+        "c": 1,
+        "op": "="
+      },
+      {
+        "r": 5,
+        "c": 1,
+        "op": "x"
+      }
+    ],
+    "vEdges": [
+      {
+        "r": 3,
+        "c": 4,
+        "op": "x"
+      },
+      {
+        "r": 0,
+        "c": 3,
+        "op": "="
+      }
+    ],
+    "solution": [
+      [
+        "S",
+        "M",
+        "S",
+        "S",
+        "M",
+        "M"
+      ],
+      [
+        "S",
+        "M",
+        "M",
+        "S",
+        "M",
+        "S"
+      ],
+      [
+        "M",
+        "S",
+        "S",
+        "M",
+        "S",
+        "M"
+      ],
+      [
+        "M",
+        "S",
+        "S",
+        "M",
+        "M",
+        "S"
+      ],
+      [
+        "S",
+        "M",
+        "M",
+        "S",
+        "S",
+        "M"
+      ],
+      [
+        "M",
+        "S",
+        "M",
+        "M",
+        "S",
+        "S"
+      ]
+    ]
+  },
+  {
+    "id": "tango-4",
+    "title": "Tango Tages-Board #4",
+    "size": 6,
+    "givens": [
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        "M"
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        "S"
+      ],
+      [
+        "S",
+        null,
+        null,
+        null,
+        null,
+        "S"
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        "M"
+      ],
+      [
+        "S",
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        "M",
+        null
+      ]
+    ],
+    "hEdges": [
+      {
+        "r": 3,
+        "c": 1,
+        "op": "x"
+      },
+      {
+        "r": 2,
+        "c": 3,
+        "op": "x"
+      },
+      {
+        "r": 5,
+        "c": 1,
+        "op": "="
+      },
+      {
+        "r": 2,
+        "c": 2,
+        "op": "x"
+      }
+    ],
+    "vEdges": [
+      {
+        "r": 0,
+        "c": 0,
+        "op": "="
+      },
+      {
+        "r": 4,
+        "c": 4,
+        "op": "x"
+      }
+    ],
+    "solution": [
+      [
+        "M",
+        "S",
+        "S",
+        "M",
+        "S",
+        "M"
+      ],
+      [
+        "M",
+        "S",
+        "S",
+        "M",
+        "M",
+        "S"
+      ],
+      [
+        "S",
+        "M",
+        "M",
+        "S",
+        "M",
+        "S"
+      ],
+      [
+        "M",
+        "S",
+        "M",
+        "S",
+        "S",
+        "M"
+      ],
+      [
+        "S",
+        "M",
+        "S",
+        "M",
+        "S",
+        "M"
+      ],
+      [
+        "S",
+        "M",
+        "M",
+        "S",
+        "M",
+        "S"
+      ]
+    ]
+  },
+  {
+    "id": "tango-5",
+    "title": "Tango Tages-Board #5",
+    "size": 6,
+    "givens": [
+      [
+        null,
+        null,
+        null,
+        null,
+        "S",
+        null
+      ],
+      [
+        null,
+        "S",
+        null,
+        "M",
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        "S",
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        "S"
+      ],
+      [
+        null,
+        null,
+        null,
+        "S",
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        "S",
+        null,
+        null,
+        null
+      ]
+    ],
+    "hEdges": [
+      {
+        "r": 3,
+        "c": 2,
+        "op": "x"
+      },
+      {
+        "r": 0,
+        "c": 0,
+        "op": "="
+      },
+      {
+        "r": 2,
+        "c": 0,
+        "op": "="
+      },
+      {
+        "r": 4,
+        "c": 3,
+        "op": "="
+      }
+    ],
+    "vEdges": [
+      {
+        "r": 3,
+        "c": 2,
+        "op": "x"
+      },
+      {
+        "r": 4,
+        "c": 0,
+        "op": "x"
+      },
+      {
+        "r": 3,
+        "c": 3,
+        "op": "x"
+      }
+    ],
+    "solution": [
+      [
+        "S",
+        "S",
+        "M",
+        "M",
+        "S",
+        "M"
+      ],
+      [
+        "S",
+        "S",
+        "M",
+        "M",
+        "S",
+        "M"
+      ],
+      [
+        "M",
+        "M",
+        "S",
+        "S",
+        "M",
+        "S"
+      ],
+      [
+        "M",
+        "S",
+        "S",
+        "M",
+        "M",
+        "S"
+      ],
+      [
+        "S",
+        "M",
+        "M",
+        "S",
+        "S",
+        "M"
+      ],
+      [
+        "M",
+        "M",
+        "S",
+        "S",
+        "M",
+        "S"
+      ]
+    ]
+  },
+  {
+    "id": "tango-6",
+    "title": "Tango Tages-Board #6",
+    "size": 6,
+    "givens": [
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        "M"
+      ],
+      [
+        null,
+        "S",
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        "M",
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        "M",
+        null,
+        "S",
+        "M",
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        "S"
+      ]
+    ],
+    "hEdges": [
+      {
+        "r": 3,
+        "c": 3,
+        "op": "="
+      },
+      {
+        "r": 2,
+        "c": 2,
+        "op": "="
+      },
+      {
+        "r": 5,
+        "c": 2,
+        "op": "="
+      }
+    ],
+    "vEdges": [
+      {
+        "r": 0,
+        "c": 1,
+        "op": "="
+      },
+      {
+        "r": 3,
+        "c": 0,
+        "op": "x"
+      }
+    ],
+    "solution": [
+      [
+        "S",
+        "S",
+        "M",
+        "M",
+        "S",
+        "M"
+      ],
+      [
+        "S",
+        "S",
+        "M",
+        "M",
+        "S",
+        "M"
+      ],
+      [
+        "M",
+        "M",
+        "S",
+        "S",
+        "M",
+        "S"
+      ],
+      [
+        "S",
+        "M",
+        "M",
+        "S",
+        "S",
+        "M"
+      ],
+      [
+        "M",
+        "S",
+        "S",
+        "M",
+        "M",
+        "S"
+      ],
+      [
+        "M",
+        "M",
+        "S",
+        "S",
+        "M",
+        "S"
+      ]
+    ]
+  },
+  {
+    "id": "tango-7",
+    "title": "Tango Tages-Board #7",
+    "size": 6,
+    "givens": [
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        "S",
+        null,
+        null,
+        "S",
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        "M",
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        "M"
+      ],
+      [
+        "M",
+        null,
+        null,
+        null,
+        "M",
+        null
+      ]
+    ],
+    "hEdges": [
+      {
+        "r": 4,
+        "c": 1,
+        "op": "="
+      },
+      {
+        "r": 5,
+        "c": 2,
+        "op": "x"
+      },
+      {
+        "r": 4,
+        "c": 0,
+        "op": "x"
+      },
+      {
+        "r": 1,
+        "c": 4,
+        "op": "="
+      }
+    ],
+    "vEdges": [
+      {
+        "r": 0,
+        "c": 1,
+        "op": "="
+      },
+      {
+        "r": 0,
+        "c": 0,
+        "op": "x"
+      }
+    ],
+    "solution": [
+      [
+        "M",
+        "M",
+        "S",
+        "M",
+        "S",
+        "S"
+      ],
+      [
+        "S",
+        "M",
+        "S",
+        "S",
+        "M",
+        "M"
+      ],
+      [
+        "S",
+        "S",
+        "M",
+        "M",
+        "S",
+        "M"
+      ],
+      [
+        "M",
+        "S",
+        "S",
+        "M",
+        "M",
+        "S"
+      ],
+      [
+        "S",
+        "M",
+        "M",
+        "S",
+        "S",
+        "M"
+      ],
+      [
+        "M",
+        "S",
+        "M",
+        "S",
+        "M",
+        "S"
+      ]
+    ]
+  },
+  {
+    "id": "tango-8",
+    "title": "Tango Tages-Board #8",
+    "size": 6,
+    "givens": [
+      [
+        null,
+        null,
+        "S",
+        null,
+        null,
+        "S"
+      ],
+      [
+        null,
+        null,
+        "S",
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        "M",
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        "M",
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        "S",
+        null,
+        "M"
+      ]
+    ],
+    "hEdges": [
+      {
+        "r": 1,
+        "c": 3,
+        "op": "="
+      },
+      {
+        "r": 2,
+        "c": 4,
+        "op": "x"
+      },
+      {
+        "r": 2,
+        "c": 2,
+        "op": "="
+      }
+    ],
+    "vEdges": [
+      {
+        "r": 0,
+        "c": 2,
+        "op": "="
+      },
+      {
+        "r": 1,
+        "c": 2,
+        "op": "x"
+      },
+      {
+        "r": 4,
+        "c": 0,
+        "op": "="
+      }
+    ],
+    "solution": [
+      [
+        "M",
+        "M",
+        "S",
+        "S",
+        "M",
+        "S"
+      ],
+      [
+        "M",
+        "S",
+        "S",
+        "M",
+        "M",
+        "S"
+      ],
+      [
+        "S",
+        "S",
+        "M",
+        "M",
+        "S",
+        "M"
+      ],
+      [
+        "M",
+        "M",
+        "S",
+        "S",
+        "M",
+        "S"
+      ],
+      [
+        "S",
+        "S",
+        "M",
+        "M",
+        "S",
+        "M"
+      ],
+      [
+        "S",
+        "M",
+        "M",
+        "S",
+        "S",
+        "M"
+      ]
+    ]
+  },
+  {
+    "id": "tango-9",
+    "title": "Tango Tages-Board #9",
+    "size": 6,
+    "givens": [
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        "S"
+      ],
+      [
+        null,
+        "S",
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        "M",
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        "S",
+        null,
+        null
+      ],
+      [
+        "S",
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        "M",
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    ],
+    "hEdges": [
+      {
+        "r": 1,
+        "c": 1,
+        "op": "x"
+      },
+      {
+        "r": 0,
+        "c": 1,
+        "op": "="
+      },
+      {
+        "r": 4,
+        "c": 3,
+        "op": "x"
+      },
+      {
+        "r": 3,
+        "c": 0,
+        "op": "="
+      }
+    ],
+    "vEdges": [
+      {
+        "r": 1,
+        "c": 4,
+        "op": "="
+      },
+      {
+        "r": 4,
+        "c": 2,
+        "op": "x"
+      },
+      {
+        "r": 0,
+        "c": 5,
+        "op": "x"
+      }
+    ],
+    "solution": [
+      [
+        "M",
+        "S",
+        "S",
+        "M",
+        "M",
+        "S"
+      ],
+      [
+        "S",
+        "S",
+        "M",
+        "M",
+        "S",
+        "M"
+      ],
+      [
+        "S",
+        "M",
+        "M",
+        "S",
+        "S",
+        "M"
+      ],
+      [
+        "M",
+        "M",
+        "S",
+        "S",
+        "M",
+        "S"
+      ],
+      [
+        "S",
+        "S",
+        "M",
+        "M",
+        "S",
+        "M"
+      ],
+      [
+        "M",
+        "M",
+        "S",
+        "S",
+        "M",
+        "S"
+      ]
+    ]
+  },
+  {
+    "id": "tango-11",
+    "title": "Tango Tages-Board #11",
+    "size": 6,
+    "givens": [
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        "M"
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        "S",
+        null,
+        null,
+        null,
+        "S",
+        "M"
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        "S",
+        null,
+        null,
+        null,
+        null
+      ]
+    ],
+    "hEdges": [
+      {
+        "r": 5,
+        "c": 0,
+        "op": "x"
+      },
+      {
+        "r": 2,
+        "c": 2,
+        "op": "="
+      },
+      {
+        "r": 1,
+        "c": 2,
+        "op": "x"
+      }
+    ],
+    "vEdges": [
+      {
+        "r": 3,
+        "c": 5,
+        "op": "="
+      },
+      {
+        "r": 2,
+        "c": 2,
+        "op": "="
+      },
+      {
+        "r": 0,
+        "c": 4,
+        "op": "="
+      }
+    ],
+    "solution": [
+      [
+        "S",
+        "M",
+        "S",
+        "S",
+        "M",
+        "M"
+      ],
+      [
+        "M",
+        "S",
+        "S",
+        "M",
+        "M",
+        "S"
+      ],
+      [
+        "M",
+        "S",
+        "M",
+        "M",
+        "S",
+        "S"
+      ],
+      [
+        "S",
+        "M",
+        "M",
+        "S",
+        "S",
+        "M"
+      ],
+      [
+        "S",
+        "M",
+        "S",
+        "S",
+        "M",
+        "M"
+      ],
+      [
+        "M",
+        "S",
+        "M",
+        "M",
+        "S",
+        "S"
+      ]
+    ]
+  },
+  {
+    "id": "tango-12",
+    "title": "Tango Tages-Board #12",
+    "size": 6,
+    "givens": [
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        "M",
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        "M",
+        null
+      ],
+      [
+        null,
+        null,
+        "M",
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        "S"
+      ],
+      [
+        null,
+        null,
+        "M",
+        null,
+        null,
+        null
+      ]
+    ],
+    "hEdges": [
+      {
+        "r": 1,
+        "c": 1,
+        "op": "="
+      },
+      {
+        "r": 1,
+        "c": 0,
+        "op": "x"
+      },
+      {
+        "r": 0,
+        "c": 4,
+        "op": "="
+      },
+      {
+        "r": 3,
+        "c": 4,
+        "op": "="
+      }
+    ],
+    "vEdges": [
+      {
+        "r": 4,
+        "c": 0,
+        "op": "="
+      },
+      {
+        "r": 4,
+        "c": 2,
+        "op": "x"
+      },
+      {
+        "r": 4,
+        "c": 4,
+        "op": "="
+      }
+    ],
+    "solution": [
+      [
+        "S",
+        "M",
+        "S",
+        "S",
+        "M",
+        "M"
+      ],
+      [
+        "S",
+        "M",
+        "M",
+        "S",
+        "S",
+        "M"
+      ],
+      [
+        "M",
+        "S",
+        "S",
+        "M",
+        "M",
+        "S"
+      ],
+      [
+        "S",
+        "S",
+        "M",
+        "S",
+        "M",
+        "M"
+      ],
+      [
+        "M",
+        "M",
+        "S",
+        "M",
+        "S",
+        "S"
+      ],
+      [
+        "M",
+        "S",
+        "M",
+        "M",
+        "S",
+        "S"
+      ]
+    ]
+  },
+  {
+    "id": "tango-13",
+    "title": "Tango Tages-Board #13",
+    "size": 6,
+    "givens": [
+      [
+        null,
+        null,
+        null,
+        "M",
+        null,
+        "S"
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        "M",
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        "S",
+        "M",
+        "M",
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        "M"
+      ]
+    ],
+    "hEdges": [
+      {
+        "r": 3,
+        "c": 4,
+        "op": "="
+      },
+      {
+        "r": 1,
+        "c": 2,
+        "op": "="
+      },
+      {
+        "r": 5,
+        "c": 4,
+        "op": "x"
+      }
+    ],
+    "vEdges": [
+      {
+        "r": 1,
+        "c": 4,
+        "op": "="
+      },
+      {
+        "r": 3,
+        "c": 1,
+        "op": "="
+      },
+      {
+        "r": 3,
+        "c": 5,
+        "op": "="
+      }
+    ],
+    "solution": [
+      [
+        "M",
+        "S",
+        "M",
+        "M",
+        "S",
+        "S"
+      ],
+      [
+        "S",
+        "M",
+        "S",
+        "S",
+        "M",
+        "M"
+      ],
+      [
+        "S",
+        "S",
+        "M",
+        "S",
+        "M",
+        "M"
+      ],
+      [
+        "M",
+        "M",
+        "S",
+        "M",
+        "S",
+        "S"
+      ],
+      [
+        "S",
+        "M",
+        "M",
+        "S",
+        "M",
+        "S"
+      ],
+      [
+        "M",
+        "S",
+        "S",
+        "M",
+        "S",
+        "M"
+      ]
+    ]
+  },
+  {
+    "id": "tango-13",
+    "title": "Tango Tages-Board #13",
+    "size": 6,
+    "givens": [
+      [
+        null,
+        null,
+        null,
+        null,
+        "M",
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        "S"
+      ],
+      [
+        "S",
+        null,
+        "M",
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        "M"
+      ],
+      [
+        null,
+        null,
+        "S",
+        "S",
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        "M",
+        null,
+        null,
+        null
+      ]
+    ],
+    "hEdges": [
+      {
+        "r": 3,
+        "c": 2,
+        "op": "="
+      },
+      {
+        "r": 4,
+        "c": 2,
+        "op": "="
+      },
+      {
+        "r": 5,
+        "c": 1,
+        "op": "x"
+      },
+      {
+        "r": 3,
+        "c": 3,
+        "op": "x"
+      },
+      {
+        "r": 5,
+        "c": 0,
+        "op": "="
+      }
+    ],
+    "vEdges": [
+      {
+        "r": 1,
+        "c": 5,
+        "op": "x"
+      },
+      {
+        "r": 2,
+        "c": 2,
+        "op": "="
+      },
+      {
+        "r": 0,
+        "c": 3,
+        "op": "x"
+      },
+      {
+        "r": 1,
+        "c": 3,
+        "op": "="
+      }
+    ],
+    "solution": [
+      [
+        "M",
+        "S",
+        "S",
+        "M",
+        "M",
+        "S"
+      ],
+      [
+        "M",
+        "M",
+        "S",
+        "S",
+        "M",
+        "S"
+      ],
+      [
+        "S",
+        "M",
+        "M",
+        "S",
+        "S",
+        "M"
+      ],
+      [
+        "S",
+        "S",
+        "M",
+        "M",
+        "S",
+        "M"
+      ],
+      [
+        "M",
+        "M",
+        "S",
+        "S",
+        "M",
+        "S"
+      ],
+      [
+        "S",
+        "S",
+        "M",
+        "M",
+        "S",
+        "M"
+      ]
+    ]
+  },
+  {
+    "id": "tango-14",
+    "title": "Tango Tages-Board #14",
+    "size": 6,
+    "givens": [
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        "S",
+        null,
+        "M",
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        "M",
+        "S",
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        "S",
+        "S",
+        null,
+        null,
+        null
+      ]
+    ],
+    "hEdges": [
+      {
+        "r": 5,
+        "c": 1,
+        "op": "="
+      },
+      {
+        "r": 5,
+        "c": 3,
+        "op": "="
+      },
+      {
+        "r": 3,
+        "c": 2,
+        "op": "="
+      },
+      {
+        "r": 0,
+        "c": 4,
+        "op": "x"
+      },
+      {
+        "r": 4,
+        "c": 4,
+        "op": "="
+      }
+    ],
+    "vEdges": [
+      {
+        "r": 2,
+        "c": 2,
+        "op": "x"
+      },
+      {
+        "r": 3,
+        "c": 4,
+        "op": "x"
+      },
+      {
+        "r": 1,
+        "c": 2,
+        "op": "x"
+      },
+      {
+        "r": 0,
+        "c": 4,
+        "op": "="
+      }
+    ],
+    "solution": [
+      [
+        "S",
+        "M",
+        "M",
+        "S",
+        "S",
+        "M"
+      ],
+      [
+        "S",
+        "M",
+        "M",
+        "S",
+        "S",
+        "M"
+      ],
+      [
+        "M",
+        "S",
+        "S",
+        "M",
+        "M",
+        "S"
+      ],
+      [
+        "M",
+        "S",
+        "M",
+        "M",
+        "S",
+        "S"
+      ],
+      [
+        "S",
+        "M",
+        "S",
+        "S",
+        "M",
+        "M"
+      ],
+      [
+        "M",
+        "S",
+        "S",
+        "M",
+        "M",
+        "S"
+      ]
+    ]
+  }
+]

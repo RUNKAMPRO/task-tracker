@@ -1,0 +1,184 @@
+[
+  {
+    "id": "pinpoint-1",
+    "title": "Pinpoint #1",
+    "category": "Schachfiguren",
+    "clues": [
+      "Turm",
+      "Springer",
+      "Läufer",
+      "Dame",
+      "König"
+    ],
+    "keywords": ["schachfiguren", "schach", "figuren beim schach", "schach figuren", "schachspiel"]
+  },
+  {
+    "id": "pinpoint-2",
+    "title": "Pinpoint #2",
+    "category": "Kaffeespezialitäten",
+    "clues": [
+      "Espresso",
+      "Cappuccino",
+      "Flat White",
+      "Latte Macchiato",
+      "Americano"
+    ],
+    "keywords": ["kaffee", "kaffeespezialitäten", "kaffeearten", "kaffeegetränke", "kaffeesorten"]
+  },
+  {
+    "id": "pinpoint-3",
+    "title": "Pinpoint #3",
+    "category": "Dinge mit Tasten",
+    "clues": [
+      "Taschenrechner",
+      "Klavier",
+      "Fernbedienung",
+      "Tastatur",
+      "Geldautomat"
+    ],
+    "keywords": ["tasten", "dinge mit tasten", "geräte mit tasten", "hat tasten", "tasteninstrumente und geräte"]
+  },
+  {
+    "id": "pinpoint-4",
+    "title": "Pinpoint #4",
+    "category": "Web-Browser",
+    "clues": [
+      "Safari",
+      "Firefox",
+      "Opera",
+      "Edge",
+      "Chrome"
+    ],
+    "keywords": ["browser", "webbrowser", "web browser", "internet browser"]
+  },
+  {
+    "id": "pinpoint-5",
+    "title": "Pinpoint #5",
+    "category": "Hauptstädte in Europa",
+    "clues": [
+      "Lissabon",
+      "Madrid",
+      "Rom",
+      "Wien",
+      "Berlin"
+    ],
+    "keywords": ["hauptstädte", "hauptstädte europas", "europäische hauptstädte", "europäische städte", "hauptstadt"]
+  },
+  {
+    "id": "pinpoint-6",
+    "title": "Pinpoint #6",
+    "category": "Programmiersprachen",
+    "clues": [
+      "Rust",
+      "Go",
+      "Ruby",
+      "Python",
+      "JavaScript"
+    ],
+    "keywords": ["programmiersprachen", "coding", "programmiersprache", "code sprachen", "sprachen"]
+  },
+  {
+    "id": "pinpoint-7",
+    "title": "Pinpoint #7",
+    "category": "Planeten unseres Sonnensystems",
+    "clues": [
+      "Merkur",
+      "Venus",
+      "Mars",
+      "Jupiter",
+      "Saturn"
+    ],
+    "keywords": ["planeten", "sonnensystem", "unser sonnensystem", "planeten unseres sonnensystems"]
+  },
+  {
+    "id": "pinpoint-8",
+    "title": "Pinpoint #8",
+    "category": "Musikinstrumente im Orchester",
+    "clues": [
+      "Fagott",
+      "Oboe",
+      "Bratsche",
+      "Cello",
+      "Querflöte"
+    ],
+    "keywords": ["orchester", "musikinstrumente", "instrumente", "orchesterinstrumente"]
+  },
+  {
+    "id": "pinpoint-9",
+    "title": "Pinpoint #9",
+    "category": "Zutaten für Pizzateig",
+    "clues": [
+      "Hefe",
+      "Olivenöl",
+      "Salz",
+      "Wasser",
+      "Mehl"
+    ],
+    "keywords": ["pizza", "pizzateig", "zutaten pizzateig", "teig zutaten", "pizzateig zutaten"]
+  },
+  {
+    "id": "pinpoint-10",
+    "title": "Pinpoint #10",
+    "category": "Edelmetalle",
+    "clues": [
+      "Platin",
+      "Palladium",
+      "Rhodium",
+      "Silber",
+      "Gold"
+    ],
+    "keywords": ["edelmetalle", "edelmetall", "wertvolle metalle", "metalle"]
+  },
+  {
+    "id": "pinpoint-11",
+    "title": "Pinpoint #11",
+    "category": "Deutsche Bundesländer",
+    "clues": [
+      "Saarland",
+      "Hessen",
+      "Sachsen",
+      "Bayern",
+      "Nordrhein-Westfalen"
+    ],
+    "keywords": ["bundesländer", "deutsche bundesländer", "länder deutschlands", "bundesland"]
+  },
+  {
+    "id": "pinpoint-12",
+    "title": "Pinpoint #12",
+    "category": "Video- und Daten-Schnittstellen",
+    "clues": [
+      "VGA",
+      "DVI",
+      "DisplayPort",
+      "HDMI",
+      "USB-C"
+    ],
+    "keywords": ["anschlüsse", "schnittstellen", "kabel", "videoanschlüsse", "stecker"]
+  },
+  {
+    "id": "pinpoint-13",
+    "title": "Pinpoint #13",
+    "category": "Welt-Währungen",
+    "clues": [
+      "Yen",
+      "Pfund",
+      "Franken",
+      "Dollar",
+      "Euro"
+    ],
+    "keywords": ["währungen", "währung", "geld", "währungseinheiten", "devisen"]
+  },
+  {
+    "id": "pinpoint-14",
+    "title": "Pinpoint #14",
+    "category": "Bekannte Social-Media-Netzwerke",
+    "clues": [
+      "Reddit",
+      "Pinterest",
+      "X",
+      "Instagram",
+      "LinkedIn"
+    ],
+    "keywords": ["social media", "soziale netzwerke", "soziale medien", "netzwerke", "social network"]
+  }
+]
