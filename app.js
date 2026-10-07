@@ -4628,13 +4628,492 @@
 
   // ==========================================================================
 
-  class OrbitRiddleApp {
+  
+// =====================================================================
+// PROCEDURAL & ALGORITHMIC PUZZLE GENERATION ENGINE (ORBIT RÄTSEL)
+// =====================================================================
+class OrbitRiddleGenerator {
+  static createPrng(seedStr) {
+    let h = 1779033703 ^ seedStr.length;
+    for (let i = 0; i < seedStr.length; i++) {
+      h = Math.imul(h ^ seedStr.charCodeAt(i), 3432918353);
+      h = (h << 13) | (h >>> 19);
+    }
+    return function() {
+      h = Math.imul(h ^ (h >>> 16), 2246822507);
+      h = Math.imul(h ^ (h >>> 13), 3266489909);
+      return ((h ^= h >>> 16) >>> 0) / 4294967296;
+    };
+  }
+
+  // 1. QUEENS GENERATOR: 6x6 grid, 6 queens, 6 contiguous color regions
+  static generateQueens(level, customSeed = null) {
+    const seed = customSeed || `queens_level_${level}`;
+    const rng = this.createPrng(seed);
+    const size = 6;
+
+    let queens = null;
+    for (let attempt = 0; attempt < 1000; attempt++) {
+      const cols = [0, 1, 2, 3, 4, 5];
+      for (let i = size - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        [cols[i], cols[j]] = [cols[j], cols[i]];
+      }
+      let ok = true;
+      for (let r = 0; r < size - 1; r++) {
+        if (Math.abs(cols[r] - cols[r + 1]) <= 1) {
+          ok = false;
+          break;
+        }
+      }
+      if (ok) {
+        queens = cols.map((c, r) => [r, c]);
+        break;
+      }
+    }
+    if (!queens) queens = [[0, 3], [1, 0], [2, 2], [3, 4], [4, 1], [5, 5]];
+
+    const grid = Array(size).fill(null).map(() => Array(size).fill(-1));
+    const regionCells = {};
+    queens.forEach(([r, c], i) => {
+      grid[r][c] = i;
+      regionCells[i] = [{ r, c }];
+    });
+
+    let unassigned = size * size - size;
+    while (unassigned > 0) {
+      const candidates = [];
+      for (let i = 0; i < size; i++) {
+        const nbrs = [];
+        regionCells[i].forEach(({ r, c }) => {
+          [[-1, 0], [1, 0], [0, -1], [0, 1]].forEach(([dr, dc]) => {
+            const nr = r + dr, nc = c + dc;
+            if (nr >= 0 && nr < size && nc >= 0 && nc < size && grid[nr][nc] === -1) {
+              if (!nbrs.some(n => n.r === nr && n.c === nc)) {
+                nbrs.push({ r: nr, c: nc });
+              }
+            }
+          });
+        });
+        if (nbrs.length > 0) {
+          candidates.push({ size: regionCells[i].length, region: i, nbrs });
+        }
+      }
+      if (candidates.length === 0) break;
+      candidates.sort((a, b) => a.size - b.size);
+      const chosen = candidates[0];
+      const targetCell = chosen.nbrs[Math.floor(rng() * chosen.nbrs.length)];
+      grid[targetCell.r][targetCell.c] = chosen.region;
+      regionCells[chosen.region].push(targetCell);
+      unassigned--;
+    }
+
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
+        if (grid[r][c] === -1) {
+          for (const [dr, dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+            const nr = r + dr, nc = c + dc;
+            if (nr >= 0 && nr < size && nc >= 0 && nc < size && grid[nr][nc] !== -1) {
+              grid[r][c] = grid[nr][nc];
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    return {
+      id: `queens-gen-${level}`,
+      title: `👑 Queens: Board #${level} (6×6)`,
+      size: 6,
+      regions: grid,
+      solution: queens
+    };
+  }
+
+  // 2. TANGO GENERATOR: 6x6 grid, 3 Suns and 3 Moons, edge hints and givens
+  static generateTango(level, customSeed = null) {
+    const seed = customSeed || `tango_level_${level}`;
+    const rng = this.createPrng(seed);
+    const size = 6;
+
+    const baseRows = [
+      ['S','S','M','S','M','M'], ['S','S','M','M','S','M'], ['S','M','S','S','M','M'],
+      ['S','M','S','M','S','M'], ['S','M','S','M','M','S'], ['S','M','M','S','S','M'],
+      ['S','M','M','S','M','S'], ['M','S','S','M','S','M'], ['M','S','S','M','M','S'],
+      ['M','S','M','S','S','M'], ['M','S','M','S','M','S'], ['M','S','M','M','S','S'],
+      ['M','M','S','S','M','S'], ['M','M','S','M','S','S']
+    ];
+
+    const shuffledRows = [...baseRows];
+    for (let i = shuffledRows.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [shuffledRows[i], shuffledRows[j]] = [shuffledRows[j], shuffledRows[i]];
+    }
+
+    const grid = [];
+    function solve(rowIdx) {
+      if (rowIdx === size) return true;
+      for (let r = 0; r < shuffledRows.length; r++) {
+        grid.push(shuffledRows[r]);
+        let colOk = true;
+        for (let c = 0; c < size; c++) {
+          let sCnt = 0, mCnt = 0;
+          for (let ri = 0; ri < grid.length; ri++) {
+            if (grid[ri][c] === 'S') sCnt++;
+            if (grid[ri][c] === 'M') mCnt++;
+          }
+          if (sCnt > 3 || mCnt > 3) { colOk = false; break; }
+          const len = grid.length;
+          if (len >= 3 && grid[len-1][c] === grid[len-2][c] && grid[len-2][c] === grid[len-3][c]) {
+            colOk = false; break;
+          }
+        }
+        if (colOk && solve(rowIdx + 1)) return true;
+        grid.pop();
+      }
+      return false;
+    }
+    solve(0);
+
+    const givens = Array(size).fill(null).map(() => Array(size).fill(null));
+    const allCoords = [];
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) allCoords.push({ r, c });
+    }
+    for (let i = allCoords.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [allCoords[i], allCoords[j]] = [allCoords[j], allCoords[i]];
+    }
+    for (let i = 0; i < 5; i++) {
+      const { r, c } = allCoords[i];
+      givens[r][c] = grid[r][c];
+    }
+
+    const hEdges = [];
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size - 1; c++) {
+        hEdges.push({ r, c, op: grid[r][c] === grid[r][c+1] ? '=' : 'x' });
+      }
+    }
+    const vEdges = [];
+    for (let r = 0; r < size - 1; r++) {
+      for (let c = 0; c < size; c++) {
+        vEdges.push({ r, c, op: grid[r][c] === grid[r+1][c] ? '=' : 'x' });
+      }
+    }
+    for (let i = hEdges.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [hEdges[i], hEdges[j]] = [hEdges[j], hEdges[i]];
+    }
+    for (let i = vEdges.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [vEdges[i], vEdges[j]] = [vEdges[j], vEdges[i]];
+    }
+
+    return {
+      id: `tango-gen-${level}`,
+      title: `☀️🌙 Tango: Board #${level} (6×6)`,
+      size: 6,
+      givens,
+      hEdges: hEdges.slice(0, 4),
+      vEdges: vEdges.slice(0, 4),
+      solution: grid
+    };
+  }
+
+  // 3. SUDOKU GENERATOR: 6x6 grid, Latin square with 2x3 blocks
+  static generateSudoku(level, customSeed = null) {
+    const seed = customSeed || `sudoku_level_${level}`;
+    const rng = this.createPrng(seed);
+    const base = [
+      [1, 2, 3, 4, 5, 6],
+      [4, 5, 6, 1, 2, 3],
+      [2, 3, 1, 5, 6, 4],
+      [5, 6, 4, 2, 3, 1],
+      [3, 1, 2, 6, 4, 5],
+      [6, 4, 5, 3, 1, 2]
+    ];
+
+    const digits = [1, 2, 3, 4, 5, 6];
+    for (let i = 5; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [digits[i], digits[j]] = [digits[j], digits[i]];
+    }
+    const map = {};
+    for (let i = 1; i <= 6; i++) map[i] = digits[i - 1];
+
+    let grid = base.map(row => row.map(val => map[val]));
+
+    if (rng() > 0.5) [grid[0], grid[1]] = [grid[1], grid[0]];
+    if (rng() > 0.5) [grid[2], grid[3]] = [grid[3], grid[2]];
+    if (rng() > 0.5) [grid[4], grid[5]] = [grid[5], grid[4]];
+
+    function permuteCols(g, c1, c2, c3) {
+      const cols = [c1, c2, c3];
+      for (let i = 2; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        [cols[i], cols[j]] = [cols[j], cols[i]];
+      }
+      return g.map(row => {
+        const copy = [...row];
+        row[c1] = copy[cols[0]];
+        row[c2] = copy[cols[1]];
+        row[c3] = copy[cols[2]];
+        return row;
+      });
+    }
+    grid = permuteCols(grid, 0, 1, 2);
+    grid = permuteCols(grid, 3, 4, 5);
+
+    const givens = grid.map(row => [...row]);
+    const coords = [];
+    for (let r = 0; r < 6; r++) {
+      for (let c = 0; c < 6; c++) coords.push({ r, c });
+    }
+    for (let i = coords.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [coords[i], coords[j]] = [coords[j], coords[i]];
+    }
+    const removeCount = 18 + Math.floor(rng() * 3);
+    for (let i = 0; i < removeCount; i++) {
+      givens[coords[i].r][coords[i].c] = 0;
+    }
+
+    return {
+      id: `sudoku-gen-${level}`,
+      title: `🔢 Mini Sudoku: Board #${level} (6×6)`,
+      size: 6,
+      givens,
+      solution: grid
+    };
+  }
+
+  // 4. ZIP GENERATOR: 5x5 grid, Hamiltonian path, 7 ordered checkpoints
+  static generateZip(level, customSeed = null) {
+    const seed = customSeed || `zip_level_${level}`;
+    const rng = this.createPrng(seed);
+    const size = 5;
+    const total = 25;
+
+    let path = null;
+    for (let attempt = 0; attempt < 500; attempt++) {
+      const sr = Math.floor(rng() * size);
+      const sc = Math.floor(rng() * size);
+      const curPath = [{ r: sr, c: sc }];
+      const visited = new Set([`${sr},${sc}`]);
+
+      while (curPath.length < total) {
+        const last = curPath[curPath.length - 1];
+        const nbrs = [];
+        [[-1, 0], [1, 0], [0, -1], [0, 1]].forEach(([dr, dc]) => {
+          const nr = last.r + dr, nc = last.c + dc;
+          if (nr >= 0 && nr < size && nc >= 0 && nc < size && !visited.has(`${nr},${nc}`)) {
+            let deg = 0;
+            [[-1, 0], [1, 0], [0, -1], [0, 1]].forEach(([ddr, ddc]) => {
+              const nnr = nr + ddr, nnc = nc + ddc;
+              if (nnr >= 0 && nnr < size && nnc >= 0 && nnc < size && !visited.has(`${nnr},${nnc}`)) {
+                deg++;
+              }
+            });
+            nbrs.push({ deg, r: nr, c: nc });
+          }
+        });
+
+        if (nbrs.length === 0) break;
+        for (let i = nbrs.length - 1; i > 0; i--) {
+          const j = Math.floor(rng() * (i + 1));
+          [nbrs[i], nbrs[j]] = [nbrs[j], nbrs[i]];
+        }
+        nbrs.sort((a, b) => a.deg - b.deg);
+        const next = nbrs[0];
+        curPath.push({ r: next.r, c: next.c });
+        visited.add(`${next.r},${next.c}`);
+      }
+
+      if (curPath.length === total) {
+        path = curPath;
+        break;
+      }
+    }
+
+    if (!path) {
+      path = [];
+      for (let r = 0; r < 5; r++) {
+        if (r % 2 === 0) {
+          for (let c = 0; c < 5; c++) path.push({ r, c });
+        } else {
+          for (let c = 4; c >= 0; c--) path.push({ r, c });
+        }
+      }
+    }
+
+    const checkpoints = {};
+    const steps = [0, 4, 8, 12, 16, 20, 24];
+    steps.forEach((stepIdx, numIdx) => {
+      const cell = path[stepIdx];
+      checkpoints[`${cell.r},${cell.c}`] = {
+        num: numIdx + 1,
+        requiredStep: stepIdx + 1
+      };
+    });
+
+    return {
+      id: `zip-gen-${level}`,
+      title: `⚡ Zip: Pfad #${level} (5×5)`,
+      size: 5,
+      checkpoints,
+      solution: path
+    };
+  }
+
+  // 5. CROSSCLIMB GENERATOR: Procedural selection & permutation
+  static generateCrossclimb(level, staticPool = [], customSeed = null) {
+    const seed = customSeed || `crossclimb_level_${level}`;
+    const rng = this.createPrng(seed);
+
+    const extraPool = [
+      {
+        title: "Crossclimb: Korn bis Bord",
+        words: ["KORN", "BORN", "BORT", "BORD", "MORD"],
+        clues: [
+          "Getreidesame auf dem Feld",
+          "Altes Wort für Quelle oder Brunnen",
+          "Kante eines Bootes oder Schiffes",
+          "An Bord eines Flugzeugs oder Schiffs",
+          "Vorsätzliche Tötung im Strafrecht"
+        ]
+      },
+      {
+        title: "Crossclimb: Wand bis Band",
+        words: ["WAND", "WIND", "WILD", "BILD", "BAND"],
+        clues: [
+          "Begrenzung eines Zimmers",
+          "Spürbare Luftbewegung im Freien",
+          "Freilebende Tiere des Waldes",
+          "Foto oder Gemälde an der Wand",
+          "Musikgruppe oder Stoffstreifen"
+        ]
+      },
+      {
+        title: "Crossclimb: Geld bis Held",
+        words: ["GELD", "GOLD", "HOLD", "HELD", "HERD"],
+        clues: [
+          "Zahlungsmittel in Münzen und Scheinen",
+          "Glänzendes gelbes Edelmetall",
+          "Altertümlich für anmutig oder geneigt",
+          "Mutige Hauptfigur in einer Geschichte",
+          "Kochstelle in der modernen Küche"
+        ]
+      },
+      {
+        title: "Crossclimb: Bach bis Dach",
+        words: ["BACH", "BUCH", "TUCH", "TEICH", "DACH"],
+        clues: [
+          "Kleiner natürlicher Wasserlauf",
+          "Gebundenes Werk aus bedrucktem Papier",
+          "Stück Stoff zum Abtrocknen oder Putzen",
+          "Kleines stehendes Gewässer im Garten",
+          "Oberste Abdeckung eines Hauses"
+        ]
+      },
+      {
+        title: "Crossclimb: Stern bis Stein",
+        words: ["STERN", "STEIR", "STEIN", "BEIN", "WEIN"],
+        clues: [
+          "Leuchtender Himmelskörper bei Nacht",
+          "Kurzform für Bewohner der Steiermark",
+          "Harter mineralischer Brocken",
+          "Körperteil zum Gehen und Laufen",
+          "Vergorener Saft aus Weintrauben"
+        ]
+      }
+    ];
+
+    const all = [...staticPool, ...extraPool];
+    const idx = (level - 1) % all.length;
+    const item = all[idx];
+
+    return {
+      id: `crossclimb-gen-${level}`,
+      title: `🪜 Crossclimb: Leiter #${level}`,
+      words: [...item.words],
+      clues: [...item.clues]
+    };
+  }
+
+  // 6. PINPOINT GENERATOR: Rich procedural category bank
+  static generatePinpoint(level, staticPool = [], customSeed = null) {
+    const seed = customSeed || `pinpoint_level_${level}`;
+    const rng = this.createPrng(seed);
+
+    const extraPool = [
+      {
+        category: "Programmiersprachen",
+        clues: ["Python", "JavaScript", "Rust", "TypeScript", "C++"],
+        keywords: ["programmiersprachen", "code", "coding", "software", "sprachen"]
+      },
+      {
+        category: "Planeten unseres Sonnensystems",
+        clues: ["Merkur", "Venus", "Mars", "Jupiter", "Saturn"],
+        keywords: ["planeten", "sonnensystem", "weltall", "astronomie", "himmelskörper"]
+      },
+      {
+        category: "Edelsteine & Mineralien",
+        clues: ["Rubin", "Saphir", "Smaragd", "Diamant", "Amethyst"],
+        keywords: ["edelsteine", "steine", "schmuck", "mineralien", "kristalle"]
+      },
+      {
+        category: "Streichinstrumente",
+        clues: ["Geige", "Bratsche", "Cello", "Kontrabass", "Viola"],
+        keywords: ["streichinstrumente", "instrumente", "orchester", "streicher", "musik"]
+      },
+      {
+        category: "Deutsche Großstädte",
+        clues: ["Hamburg", "München", "Köln", "Frankfurt", "Berlin"],
+        keywords: ["städte", "deutschland", "deutsche städte", "großstädte", "metropolen"]
+      },
+      {
+        category: "Dinge mit Flügeln",
+        clues: ["Schmetterling", "Flugzeug", "Fledermaus", "Engel", "Windmühle"],
+        keywords: ["flügel", "dinge mit flügeln", "hat flügel", "kann fliegen"]
+      },
+      {
+        category: "Sitzmöbel",
+        clues: ["Hocker", "Sessel", "Sofa", "Schaukelstuhl", "Bürostuhl"],
+        keywords: ["sitzmöbel", "stühle", "sitzen", "möbel"]
+      }
+    ];
+
+    const all = [...staticPool, ...extraPool];
+    const idx = (level - 1) % all.length;
+    const item = all[idx];
+
+    return {
+      id: `pinpoint-gen-${level}`,
+      title: `🎯 Pinpoint: Rätsel #${level}`,
+      category: item.category,
+      clues: [...item.clues],
+      keywords: [...item.keywords]
+    };
+  }
+}
+
+class OrbitRiddleApp {
 
     constructor(suite) {
 
       this.suite = suite;
 
-            this.queensData = [{"id": "queens-1", "title": "Queens Tages-Board #1", "size": 6, "regions": [[1, 2, 0, 0, 0, 0], [1, 2, 2, 2, 0, 0], [1, 2, 2, 2, 2, 3], [4, 2, 4, 4, 3, 3], [4, 4, 4, 4, 3, 5], [4, 4, 4, 4, 3, 5]], "solution": [[0, 3], [1, 0], [2, 2], [3, 4], [4, 1], [5, 5]]}, {"id": "queens-2", "title": "Queens Tages-Board #2", "size": 6, "regions": [[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 1, 1], [2, 3, 0, 0, 1, 1], [2, 3, 3, 4, 4, 4], [5, 5, 4, 4, 4, 4], [5, 5, 5, 4, 4, 4]], "solution": [[0, 3], [1, 5], [2, 0], [3, 2], [4, 4], [5, 1]]}, {"id": "queens-3", "title": "Queens Tages-Board #3", "size": 6, "regions": [[1, 1, 1, 0, 0, 2], [1, 1, 1, 1, 1, 2], [3, 3, 1, 1, 4, 2], [3, 3, 1, 4, 4, 4], [3, 3, 4, 4, 4, 4], [3, 4, 4, 4, 5, 5]], "solution": [[0, 3], [1, 1], [2, 5], [3, 0], [4, 2], [5, 4]]}, {"id": "queens-4", "title": "Queens Tages-Board #4", "size": 6, "regions": [[1, 1, 1, 0, 0, 0], [1, 1, 1, 1, 2, 0], [1, 1, 1, 1, 2, 0], [3, 1, 1, 1, 2, 2], [3, 1, 1, 4, 2, 2], [3, 5, 5, 4, 2, 2]], "solution": [[0, 5], [1, 2], [2, 4], [3, 0], [4, 3], [5, 1]]}, {"id": "queens-5", "title": "Queens Tages-Board #5", "size": 6, "regions": [[2, 2, 0, 0, 1, 1], [2, 2, 2, 2, 1, 3], [2, 2, 2, 2, 2, 3], [2, 2, 2, 2, 2, 3], [4, 2, 5, 3, 3, 3], [4, 5, 5, 5, 5, 3]], "solution": [[0, 2], [1, 4], [2, 1], [3, 5], [4, 0], [5, 3]]}, {"id": "queens-6", "title": "Queens Tages-Board #6", "size": 6, "regions": [[0, 0, 1, 1, 1, 1], [2, 0, 3, 1, 1, 1], [2, 2, 3, 3, 1, 1], [3, 3, 3, 1, 1, 1], [5, 5, 5, 1, 1, 4], [5, 5, 5, 5, 4, 4]], "solution": [[0, 1], [1, 4], [2, 0], [3, 2], [4, 5], [5, 3]]}, {"id": "queens-7", "title": "Queens Tages-Board #7", "size": 6, "regions": [[0, 0, 1, 1, 1, 1], [0, 0, 0, 1, 1, 1], [0, 2, 1, 1, 1, 1], [2, 2, 3, 3, 4, 1], [2, 2, 5, 5, 4, 4], [5, 5, 5, 5, 5, 4]], "solution": [[0, 0], [1, 4], [2, 1], [3, 3], [4, 5], [5, 2]]}, {"id": "queens-8", "title": "Queens Tages-Board #8", "size": 6, "regions": [[0, 0, 1, 1, 3, 2], [1, 1, 1, 3, 3, 2], [3, 3, 3, 3, 3, 2], [3, 3, 3, 3, 3, 3], [4, 4, 4, 4, 5, 3], [4, 4, 4, 4, 5, 5]], "solution": [[0, 0], [1, 2], [2, 5], [3, 3], [4, 1], [5, 4]]}, {"id": "queens-9", "title": "Queens Tages-Board #9", "size": 6, "regions": [[0, 0, 2, 2, 3, 1], [0, 0, 2, 2, 3, 1], [0, 2, 2, 2, 3, 3], [4, 2, 5, 2, 3, 3], [4, 5, 5, 5, 5, 5], [5, 5, 5, 5, 5, 5]], "solution": [[0, 1], [1, 5], [2, 2], [3, 4], [4, 0], [5, 3]]}, {"id": "queens-10", "title": "Queens Tages-Board #10", "size": 6, "regions": [[1, 1, 0, 0, 0, 0], [1, 0, 0, 0, 0, 2], [1, 1, 0, 2, 2, 2], [1, 3, 3, 2, 2, 4], [5, 5, 3, 2, 2, 4], [5, 5, 3, 2, 2, 4]], "solution": [[0, 3], [1, 0], [2, 4], [3, 2], [4, 5], [5, 1]]}, {"id": "queens-11", "title": "Queens Tages-Board #11", "size": 6, "regions": [[1, 1, 3, 3, 3, 0], [3, 1, 3, 3, 2, 0], [3, 1, 3, 2, 2, 0], [3, 3, 3, 3, 3, 3], [4, 4, 3, 3, 3, 3], [4, 5, 5, 5, 5, 5]], "solution": [[0, 5], [1, 1], [2, 4], [3, 2], [4, 0], [5, 3]]}, {"id": "queens-12", "title": "Queens Tages-Board #12", "size": 6, "regions": [[0, 0, 0, 1, 1, 1], [0, 0, 2, 1, 1, 1], [3, 4, 2, 1, 1, 1], [3, 4, 4, 4, 1, 1], [3, 4, 4, 4, 4, 4], [4, 4, 4, 4, 5, 5]], "solution": [[0, 1], [1, 4], [2, 2], [3, 0], [4, 3], [5, 5]]}, {"id": "queens-13", "title": "Queens Tages-Board #13", "size": 6, "regions": [[1, 1, 2, 2, 0, 0], [1, 2, 2, 2, 2, 3], [2, 2, 2, 2, 3, 3], [2, 2, 2, 4, 3, 3], [2, 2, 2, 4, 3, 3], [5, 5, 4, 4, 4, 4]], "solution": [[0, 4], [1, 0], [2, 2], [3, 5], [4, 3], [5, 1]]}, {"id": "queens-14", "title": "Queens Tages-Board #14", "size": 6, "regions": [[1, 0, 0, 3, 3, 3], [1, 0, 0, 3, 3, 3], [1, 4, 2, 2, 3, 3], [4, 4, 4, 5, 3, 3], [4, 4, 4, 5, 5, 5], [4, 4, 4, 5, 5, 5]], "solution": [[0, 2], [1, 0], [2, 3], [3, 5], [4, 1], [5, 4]]}];
+                  this.levelCache = {
+        queens: {},
+        tango: {},
+        crossclimb: {},
+        pinpoint: {},
+        zip: {},
+        sudoku: {}
+      };
+      this.queensData = [{"id": "queens-1", "title": "Queens Tages-Board #1", "size": 6, "regions": [[1, 2, 0, 0, 0, 0], [1, 2, 2, 2, 0, 0], [1, 2, 2, 2, 2, 3], [4, 2, 4, 4, 3, 3], [4, 4, 4, 4, 3, 5], [4, 4, 4, 4, 3, 5]], "solution": [[0, 3], [1, 0], [2, 2], [3, 4], [4, 1], [5, 5]]}, {"id": "queens-2", "title": "Queens Tages-Board #2", "size": 6, "regions": [[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 1, 1], [2, 3, 0, 0, 1, 1], [2, 3, 3, 4, 4, 4], [5, 5, 4, 4, 4, 4], [5, 5, 5, 4, 4, 4]], "solution": [[0, 3], [1, 5], [2, 0], [3, 2], [4, 4], [5, 1]]}, {"id": "queens-3", "title": "Queens Tages-Board #3", "size": 6, "regions": [[1, 1, 1, 0, 0, 2], [1, 1, 1, 1, 1, 2], [3, 3, 1, 1, 4, 2], [3, 3, 1, 4, 4, 4], [3, 3, 4, 4, 4, 4], [3, 4, 4, 4, 5, 5]], "solution": [[0, 3], [1, 1], [2, 5], [3, 0], [4, 2], [5, 4]]}, {"id": "queens-4", "title": "Queens Tages-Board #4", "size": 6, "regions": [[1, 1, 1, 0, 0, 0], [1, 1, 1, 1, 2, 0], [1, 1, 1, 1, 2, 0], [3, 1, 1, 1, 2, 2], [3, 1, 1, 4, 2, 2], [3, 5, 5, 4, 2, 2]], "solution": [[0, 5], [1, 2], [2, 4], [3, 0], [4, 3], [5, 1]]}, {"id": "queens-5", "title": "Queens Tages-Board #5", "size": 6, "regions": [[2, 2, 0, 0, 1, 1], [2, 2, 2, 2, 1, 3], [2, 2, 2, 2, 2, 3], [2, 2, 2, 2, 2, 3], [4, 2, 5, 3, 3, 3], [4, 5, 5, 5, 5, 3]], "solution": [[0, 2], [1, 4], [2, 1], [3, 5], [4, 0], [5, 3]]}, {"id": "queens-6", "title": "Queens Tages-Board #6", "size": 6, "regions": [[0, 0, 1, 1, 1, 1], [2, 0, 3, 1, 1, 1], [2, 2, 3, 3, 1, 1], [3, 3, 3, 1, 1, 1], [5, 5, 5, 1, 1, 4], [5, 5, 5, 5, 4, 4]], "solution": [[0, 1], [1, 4], [2, 0], [3, 2], [4, 5], [5, 3]]}, {"id": "queens-7", "title": "Queens Tages-Board #7", "size": 6, "regions": [[0, 0, 1, 1, 1, 1], [0, 0, 0, 1, 1, 1], [0, 2, 1, 1, 1, 1], [2, 2, 3, 3, 4, 1], [2, 2, 5, 5, 4, 4], [5, 5, 5, 5, 5, 4]], "solution": [[0, 0], [1, 4], [2, 1], [3, 3], [4, 5], [5, 2]]}, {"id": "queens-8", "title": "Queens Tages-Board #8", "size": 6, "regions": [[0, 0, 1, 1, 3, 2], [1, 1, 1, 3, 3, 2], [3, 3, 3, 3, 3, 2], [3, 3, 3, 3, 3, 3], [4, 4, 4, 4, 5, 3], [4, 4, 4, 4, 5, 5]], "solution": [[0, 0], [1, 2], [2, 5], [3, 3], [4, 1], [5, 4]]}, {"id": "queens-9", "title": "Queens Tages-Board #9", "size": 6, "regions": [[0, 0, 2, 2, 3, 1], [0, 0, 2, 2, 3, 1], [0, 2, 2, 2, 3, 3], [4, 2, 5, 2, 3, 3], [4, 5, 5, 5, 5, 5], [5, 5, 5, 5, 5, 5]], "solution": [[0, 1], [1, 5], [2, 2], [3, 4], [4, 0], [5, 3]]}, {"id": "queens-10", "title": "Queens Tages-Board #10", "size": 6, "regions": [[1, 1, 0, 0, 0, 0], [1, 0, 0, 0, 0, 2], [1, 1, 0, 2, 2, 2], [1, 3, 3, 2, 2, 4], [5, 5, 3, 2, 2, 4], [5, 5, 3, 2, 2, 4]], "solution": [[0, 3], [1, 0], [2, 4], [3, 2], [4, 5], [5, 1]]}, {"id": "queens-11", "title": "Queens Tages-Board #11", "size": 6, "regions": [[1, 1, 3, 3, 3, 0], [3, 1, 3, 3, 2, 0], [3, 1, 3, 2, 2, 0], [3, 3, 3, 3, 3, 3], [4, 4, 3, 3, 3, 3], [4, 5, 5, 5, 5, 5]], "solution": [[0, 5], [1, 1], [2, 4], [3, 2], [4, 0], [5, 3]]}, {"id": "queens-12", "title": "Queens Tages-Board #12", "size": 6, "regions": [[0, 0, 0, 1, 1, 1], [0, 0, 2, 1, 1, 1], [3, 4, 2, 1, 1, 1], [3, 4, 4, 4, 1, 1], [3, 4, 4, 4, 4, 4], [4, 4, 4, 4, 5, 5]], "solution": [[0, 1], [1, 4], [2, 2], [3, 0], [4, 3], [5, 5]]}, {"id": "queens-13", "title": "Queens Tages-Board #13", "size": 6, "regions": [[1, 1, 2, 2, 0, 0], [1, 2, 2, 2, 2, 3], [2, 2, 2, 2, 3, 3], [2, 2, 2, 4, 3, 3], [2, 2, 2, 4, 3, 3], [5, 5, 4, 4, 4, 4]], "solution": [[0, 4], [1, 0], [2, 2], [3, 5], [4, 3], [5, 1]]}, {"id": "queens-14", "title": "Queens Tages-Board #14", "size": 6, "regions": [[1, 0, 0, 3, 3, 3], [1, 0, 0, 3, 3, 3], [1, 4, 2, 2, 3, 3], [4, 4, 4, 5, 3, 3], [4, 4, 4, 5, 5, 5], [4, 4, 4, 5, 5, 5]], "solution": [[0, 2], [1, 0], [2, 3], [3, 5], [4, 1], [5, 4]]}];
 
       this.tangoData = [{"id": "tango-1", "title": "Tango Tages-Board #1", "size": 6, "givens": [["S", null, null, "S", null, "M"], [null, null, null, null, null, null], [null, null, null, null, null, null], [null, null, "M", null, null, null], ["S", null, "S", null, null, null], [null, null, null, "S", null, null]], "hEdges": [{"r": 5, "c": 0, "op": "x"}, {"r": 2, "c": 3, "op": "x"}, {"r": 3, "c": 4, "op": "="}, {"r": 2, "c": 2, "op": "x"}], "vEdges": [{"r": 0, "c": 5, "op": "="}, {"r": 0, "c": 0, "op": "="}, {"r": 2, "c": 3, "op": "x"}], "solution": [["S", "M", "S", "S", "M", "M"], ["S", "M", "S", "M", "S", "M"], ["M", "S", "M", "S", "M", "S"], ["M", "S", "M", "M", "S", "S"], ["S", "M", "S", "M", "S", "M"], ["M", "S", "M", "S", "M", "S"]]}, {"id": "tango-2", "title": "Tango Tages-Board #2", "size": 6, "givens": [[null, null, null, null, null, null], [null, null, null, "M", null, null], [null, null, null, "S", null, null], [null, "M", null, "S", null, null], [null, null, null, null, null, null], ["S", null, "M", null, null, null]], "hEdges": [{"r": 5, "c": 4, "op": "x"}, {"r": 1, "c": 4, "op": "="}, {"r": 3, "c": 4, "op": "="}, {"r": 2, "c": 2, "op": "="}], "vEdges": [{"r": 3, "c": 4, "op": "x"}, {"r": 0, "c": 5, "op": "="}, {"r": 0, "c": 1, "op": "x"}], "solution": [["M", "M", "S", "S", "M", "S"], ["M", "S", "M", "M", "S", "S"], ["S", "M", "S", "S", "M", "M"], ["S", "M", "S", "S", "M", "M"], ["M", "S", "M", "M", "S", "S"], ["S", "S", "M", "M", "S", "M"]]}, {"id": "tango-3", "title": "Tango Tages-Board #3", "size": 6, "givens": [[null, null, "S", null, null, null], ["S", null, null, null, null, null], [null, null, null, null, null, "M"], [null, null, null, null, null, null], ["S", null, null, null, "S", null], [null, null, null, null, "S", "S"]], "hEdges": [{"r": 1, "c": 1, "op": "="}, {"r": 4, "c": 1, "op": "="}, {"r": 5, "c": 1, "op": "x"}], "vEdges": [{"r": 3, "c": 4, "op": "x"}, {"r": 0, "c": 3, "op": "="}], "solution": [["S", "M", "S", "S", "M", "M"], ["S", "M", "M", "S", "M", "S"], ["M", "S", "S", "M", "S", "M"], ["M", "S", "S", "M", "M", "S"], ["S", "M", "M", "S", "S", "M"], ["M", "S", "M", "M", "S", "S"]]}, {"id": "tango-4", "title": "Tango Tages-Board #4", "size": 6, "givens": [[null, null, null, null, null, "M"], [null, null, null, null, null, "S"], ["S", null, null, null, null, "S"], [null, null, null, null, null, "M"], ["S", null, null, null, null, null], [null, null, null, null, "M", null]], "hEdges": [{"r": 3, "c": 1, "op": "x"}, {"r": 2, "c": 3, "op": "x"}, {"r": 5, "c": 1, "op": "="}, {"r": 2, "c": 2, "op": "x"}], "vEdges": [{"r": 0, "c": 0, "op": "="}, {"r": 4, "c": 4, "op": "x"}], "solution": [["M", "S", "S", "M", "S", "M"], ["M", "S", "S", "M", "M", "S"], ["S", "M", "M", "S", "M", "S"], ["M", "S", "M", "S", "S", "M"], ["S", "M", "S", "M", "S", "M"], ["S", "M", "M", "S", "M", "S"]]}, {"id": "tango-5", "title": "Tango Tages-Board #5", "size": 6, "givens": [[null, null, null, null, "S", null], [null, "S", null, "M", null, null], [null, null, "S", null, null, null], [null, null, null, null, null, "S"], [null, null, null, "S", null, null], [null, null, "S", null, null, null]], "hEdges": [{"r": 3, "c": 2, "op": "x"}, {"r": 0, "c": 0, "op": "="}, {"r": 2, "c": 0, "op": "="}, {"r": 4, "c": 3, "op": "="}], "vEdges": [{"r": 3, "c": 2, "op": "x"}, {"r": 4, "c": 0, "op": "x"}, {"r": 3, "c": 3, "op": "x"}], "solution": [["S", "S", "M", "M", "S", "M"], ["S", "S", "M", "M", "S", "M"], ["M", "M", "S", "S", "M", "S"], ["M", "S", "S", "M", "M", "S"], ["S", "M", "M", "S", "S", "M"], ["M", "M", "S", "S", "M", "S"]]}, {"id": "tango-6", "title": "Tango Tages-Board #6", "size": 6, "givens": [[null, null, null, null, null, "M"], [null, "S", null, null, null, null], ["M", null, null, null, null, null], [null, null, null, null, null, null], ["M", null, "S", "M", null, null], [null, null, null, null, null, "S"]], "hEdges": [{"r": 3, "c": 3, "op": "="}, {"r": 2, "c": 2, "op": "="}, {"r": 5, "c": 2, "op": "="}], "vEdges": [{"r": 0, "c": 1, "op": "="}, {"r": 3, "c": 0, "op": "x"}], "solution": [["S", "S", "M", "M", "S", "M"], ["S", "S", "M", "M", "S", "M"], ["M", "M", "S", "S", "M", "S"], ["S", "M", "M", "S", "S", "M"], ["M", "S", "S", "M", "M", "S"], ["M", "M", "S", "S", "M", "S"]]}, {"id": "tango-7", "title": "Tango Tages-Board #7", "size": 6, "givens": [[null, null, null, null, null, null], ["S", null, null, "S", null, null], [null, null, null, null, null, null], [null, null, null, null, "M", null], [null, null, null, null, null, "M"], ["M", null, null, null, "M", null]], "hEdges": [{"r": 4, "c": 1, "op": "="}, {"r": 5, "c": 2, "op": "x"}, {"r": 4, "c": 0, "op": "x"}, {"r": 1, "c": 4, "op": "="}], "vEdges": [{"r": 0, "c": 1, "op": "="}, {"r": 0, "c": 0, "op": "x"}], "solution": [["M", "M", "S", "M", "S", "S"], ["S", "M", "S", "S", "M", "M"], ["S", "S", "M", "M", "S", "M"], ["M", "S", "S", "M", "M", "S"], ["S", "M", "M", "S", "S", "M"], ["M", "S", "M", "S", "M", "S"]]}, {"id": "tango-8", "title": "Tango Tages-Board #8", "size": 6, "givens": [[null, null, "S", null, null, "S"], [null, null, "S", null, null, null], [null, null, "M", null, null, null], [null, "M", null, null, null, null], [null, null, null, null, null, null], [null, null, null, "S", null, "M"]], "hEdges": [{"r": 1, "c": 3, "op": "="}, {"r": 2, "c": 4, "op": "x"}, {"r": 2, "c": 2, "op": "="}], "vEdges": [{"r": 0, "c": 2, "op": "="}, {"r": 1, "c": 2, "op": "x"}, {"r": 4, "c": 0, "op": "="}], "solution": [["M", "M", "S", "S", "M", "S"], ["M", "S", "S", "M", "M", "S"], ["S", "S", "M", "M", "S", "M"], ["M", "M", "S", "S", "M", "S"], ["S", "S", "M", "M", "S", "M"], ["S", "M", "M", "S", "S", "M"]]}, {"id": "tango-9", "title": "Tango Tages-Board #9", "size": 6, "givens": [[null, null, null, null, null, "S"], [null, "S", null, null, null, null], [null, null, "M", null, null, null], [null, null, null, "S", null, null], ["S", null, null, null, null, null], ["M", null, null, null, null, null]], "hEdges": [{"r": 1, "c": 1, "op": "x"}, {"r": 0, "c": 1, "op": "="}, {"r": 4, "c": 3, "op": "x"}, {"r": 3, "c": 0, "op": "="}], "vEdges": [{"r": 1, "c": 4, "op": "="}, {"r": 4, "c": 2, "op": "x"}, {"r": 0, "c": 5, "op": "x"}], "solution": [["M", "S", "S", "M", "M", "S"], ["S", "S", "M", "M", "S", "M"], ["S", "M", "M", "S", "S", "M"], ["M", "M", "S", "S", "M", "S"], ["S", "S", "M", "M", "S", "M"], ["M", "M", "S", "S", "M", "S"]]}, {"id": "tango-11", "title": "Tango Tages-Board #11", "size": 6, "givens": [[null, null, null, null, null, "M"], [null, null, null, null, null, null], [null, null, null, null, null, null], ["S", null, null, null, "S", "M"], [null, null, null, null, null, null], [null, "S", null, null, null, null]], "hEdges": [{"r": 5, "c": 0, "op": "x"}, {"r": 2, "c": 2, "op": "="}, {"r": 1, "c": 2, "op": "x"}], "vEdges": [{"r": 3, "c": 5, "op": "="}, {"r": 2, "c": 2, "op": "="}, {"r": 0, "c": 4, "op": "="}], "solution": [["S", "M", "S", "S", "M", "M"], ["M", "S", "S", "M", "M", "S"], ["M", "S", "M", "M", "S", "S"], ["S", "M", "M", "S", "S", "M"], ["S", "M", "S", "S", "M", "M"], ["M", "S", "M", "M", "S", "S"]]}, {"id": "tango-12", "title": "Tango Tages-Board #12", "size": 6, "givens": [[null, null, null, null, null, null], [null, "M", null, null, null, null], [null, null, null, null, "M", null], [null, null, "M", null, null, null], [null, null, null, null, null, "S"], [null, null, "M", null, null, null]], "hEdges": [{"r": 1, "c": 1, "op": "="}, {"r": 1, "c": 0, "op": "x"}, {"r": 0, "c": 4, "op": "="}, {"r": 3, "c": 4, "op": "="}], "vEdges": [{"r": 4, "c": 0, "op": "="}, {"r": 4, "c": 2, "op": "x"}, {"r": 4, "c": 4, "op": "="}], "solution": [["S", "M", "S", "S", "M", "M"], ["S", "M", "M", "S", "S", "M"], ["M", "S", "S", "M", "M", "S"], ["S", "S", "M", "S", "M", "M"], ["M", "M", "S", "M", "S", "S"], ["M", "S", "M", "M", "S", "S"]]}, {"id": "tango-13", "title": "Tango Tages-Board #13", "size": 6, "givens": [[null, null, null, "M", null, "S"], [null, null, null, null, null, null], [null, null, null, null, null, null], ["M", null, null, null, null, null], ["S", "M", "M", null, null, null], [null, null, null, null, null, "M"]], "hEdges": [{"r": 3, "c": 4, "op": "="}, {"r": 1, "c": 2, "op": "="}, {"r": 5, "c": 4, "op": "x"}], "vEdges": [{"r": 1, "c": 4, "op": "="}, {"r": 3, "c": 1, "op": "="}, {"r": 3, "c": 5, "op": "="}], "solution": [["M", "S", "M", "M", "S", "S"], ["S", "M", "S", "S", "M", "M"], ["S", "S", "M", "S", "M", "M"], ["M", "M", "S", "M", "S", "S"], ["S", "M", "M", "S", "M", "S"], ["M", "S", "S", "M", "S", "M"]]}, {"id": "tango-13", "title": "Tango Tages-Board #13", "size": 6, "givens": [[null, null, null, null, "M", null], [null, null, null, null, null, "S"], ["S", null, "M", null, null, null], [null, null, null, null, null, "M"], [null, null, "S", "S", null, null], [null, null, "M", null, null, null]], "hEdges": [{"r": 3, "c": 2, "op": "="}, {"r": 4, "c": 2, "op": "="}, {"r": 5, "c": 1, "op": "x"}, {"r": 3, "c": 3, "op": "x"}, {"r": 5, "c": 0, "op": "="}], "vEdges": [{"r": 1, "c": 5, "op": "x"}, {"r": 2, "c": 2, "op": "="}, {"r": 0, "c": 3, "op": "x"}, {"r": 1, "c": 3, "op": "="}], "solution": [["M", "S", "S", "M", "M", "S"], ["M", "M", "S", "S", "M", "S"], ["S", "M", "M", "S", "S", "M"], ["S", "S", "M", "M", "S", "M"], ["M", "M", "S", "S", "M", "S"], ["S", "S", "M", "M", "S", "M"]]}, {"id": "tango-14", "title": "Tango Tages-Board #14", "size": 6, "givens": [[null, null, null, null, null, null], [null, null, null, null, null, null], [null, "S", null, "M", null, null], [null, null, null, null, null, null], [null, "M", "S", null, null, null], [null, "S", "S", null, null, null]], "hEdges": [{"r": 5, "c": 1, "op": "="}, {"r": 5, "c": 3, "op": "="}, {"r": 3, "c": 2, "op": "="}, {"r": 0, "c": 4, "op": "x"}, {"r": 4, "c": 4, "op": "="}], "vEdges": [{"r": 2, "c": 2, "op": "x"}, {"r": 3, "c": 4, "op": "x"}, {"r": 1, "c": 2, "op": "x"}, {"r": 0, "c": 4, "op": "="}], "solution": [["S", "M", "M", "S", "S", "M"], ["S", "M", "M", "S", "S", "M"], ["M", "S", "S", "M", "M", "S"], ["M", "S", "M", "M", "S", "S"], ["S", "M", "S", "S", "M", "M"], ["M", "S", "S", "M", "M", "S"]]}];
 
@@ -5374,124 +5853,65 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
 
     startDailyTimer() {
-
-      if (this.dailyTimerInterval) clearInterval(this.dailyTimerInterval);
-
-
-
-      const updateTimer = () => {
-
-        const cycle = this.getGermanDailyCycle();
-
-
-
-        // 1. Update countdown displays
-
-        // if (this.dom.queensCountdown) this.dom.queensCountdown.textContent = cycle.formattedCountdown;
-
-        // if (this.dom.tangoCountdown) this.dom.tangoCountdown.textContent = cycle.formattedCountdown;
-
-        // if (this.dom.pinpointCountdown) this.dom.pinpointCountdown.textContent = cycle.formattedCountdown;
-        // if (this.dom.crossclimbCountdown) this.dom.crossclimbCountdown.textContent = cycle.formattedCountdown;
-        // if (this.dom.zipCountdown) this.dom.zipCountdown.textContent = cycle.formattedCountdown;
-        // if (this.dom.sudokuCountdown) this.dom.sudokuCountdown.textContent = cycle.formattedCountdown;
-
-
-        if (this.dom.dailyCountdown) {
-
-          this.dom.dailyCountdown.textContent = cycle.formattedCountdown;
-
-        }
-
-        if (this.dom.badgeCountdown) {
-
-          this.dom.badgeCountdown.textContent = `⏳ 07:00 Drop: ${cycle.formattedCountdown}`;
-
-        }
-
-
-
-        // 2. Detect 07:00:00 German time drop event
-
-        if (this.lastActiveDailyCycle && this.lastActiveDailyCycle !== cycle.cycleKey) {
-
-          this.lastActiveDailyCycle = cycle.cycleKey;
-
-          this.suite.showToast('🎉 Ein neues Tagesrätsel ist soeben um 07:00 Uhr online gegangen!');
-
-          if (this.suite.sound) this.suite.sound.playSuccess();
-
-          this.renderDailyBanner();
-
-          if (this.filterCategory === 'daily') {
-
-            this.currentIndex = 0;
-
-            this.render();
-
-          }
-
-          if (this.suite.hubApp) {
-
-            this.suite.hubApp.render();
-
-          }
-
-        } else if (!this.lastActiveDailyCycle) {
-
-          this.lastActiveDailyCycle = cycle.cycleKey;
-
-        }
-
-      };
-
-
-
-      updateTimer();
-
-      this.dailyTimerInterval = setInterval(updateTimer, 1000);
-
+      // Daily timer disabled - Unlimited procedural play
     }
-
-
 
     renderDailyBanner() {
-
-      const cycle = this.getGermanDailyCycle();
-
-      const isSolved = this.dailySolvedDates.has(cycle.cycleKey);
-
-
-
-      if (this.dom.dailyDateTitle) {
-
-        this.dom.dailyDateTitle.textContent = `Tagesrätsel für ${cycle.displayDate}`;
-
-      }
-
-
-
-      if (this.dom.dailyStatusPill) {
-
-        this.dom.dailyStatusPill.textContent = isSolved ? 'Gelöst ✓' : 'Offen ⏳';
-
-        this.dom.dailyStatusPill.classList.toggle('solved', isSolved);
-
-      }
-
-
-
-      if (this.dom.badgeDailyStreak) {
-
-        this.dom.badgeDailyStreak.textContent = `⭐ ${this.dailyStreak} Tage Daily`;
-
-      }
-
+      // Banner rendering handled dynamically per game mode
     }
 
-    
-
     // ==========================================
+    // PROCEDURAL PUZZLE ACCESS & LEVEL CACHE
+    // ==========================================
+    getPuzzle(game, lvl) {
+      const level = Math.max(1, parseInt(lvl, 10) || 1);
+      if (this.levelCache[game] && this.levelCache[game][level]) {
+        return this.levelCache[game][level];
+      }
+
+      let puzzle = null;
+      if (game === 'queens') {
+        if (level <= this.queensData.length) puzzle = this.queensData[level - 1];
+        else puzzle = OrbitRiddleGenerator.generateQueens(level);
+      } else if (game === 'tango') {
+        if (level <= this.tangoData.length) puzzle = this.tangoData[level - 1];
+        else puzzle = OrbitRiddleGenerator.generateTango(level);
+      } else if (game === 'sudoku') {
+        if (level <= this.sudokuData.length) puzzle = this.sudokuData[level - 1];
+        else puzzle = OrbitRiddleGenerator.generateSudoku(level);
+      } else if (game === 'zip') {
+        if (level <= this.zipData.length) puzzle = this.zipData[level - 1];
+        else puzzle = OrbitRiddleGenerator.generateZip(level);
+      } else if (game === 'crossclimb') {
+        puzzle = OrbitRiddleGenerator.generateCrossclimb(level, this.crossclimbData);
+      } else if (game === 'pinpoint') {
+        puzzle = OrbitRiddleGenerator.generatePinpoint(level, this.pinpointData);
+      }
+
+      if (!puzzle) puzzle = this.queensData[0];
+      if (!this.levelCache[game]) this.levelCache[game] = {};
+      this.levelCache[game][level] = puzzle;
+      return puzzle;
+    }
+
+    generateNewLevel(game) {
+      const cur = this.getCurrentLevel(game);
+      const customSeed = `${game}_seed_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
+      let puzzle = null;
+      if (game === 'queens') puzzle = OrbitRiddleGenerator.generateQueens(cur, customSeed);
+      else if (game === 'tango') puzzle = OrbitRiddleGenerator.generateTango(cur, customSeed);
+      else if (game === 'sudoku') puzzle = OrbitRiddleGenerator.generateSudoku(cur, customSeed);
+      else if (game === 'zip') puzzle = OrbitRiddleGenerator.generateZip(cur, customSeed);
+      else if (game === 'crossclimb') puzzle = OrbitRiddleGenerator.generateCrossclimb(cur, this.crossclimbData, customSeed);
+      else if (game === 'pinpoint') puzzle = OrbitRiddleGenerator.generatePinpoint(cur, this.pinpointData, customSeed);
+
+      if (puzzle) {
+        if (!this.levelCache[game]) this.levelCache[game] = {};
+        this.levelCache[game][cur] = puzzle;
+      }
+      this.setGameLevel(game, cur);
+      this.suite.showToast(`🎲 Level #${cur} neu generiert!`);
+    }
 
     // ==========================================
     // UNIFIED LEVEL & SOLVED SYSTEM (UNLIMITED PLAY)
@@ -5536,70 +5956,63 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
     getCurrentLevel(game) {
       const val = parseInt(this[`${game}CurrentLevel`], 10);
-      const max = this.getDataLength(game);
       if (isNaN(val) || val < 1) return 1;
-      return Math.min(val, max);
+      return val;
     }
 
     setGameLevel(game, lvl) {
-      const max = this.getDataLength(game);
-      const target = Math.max(1, Math.min(Number(lvl), max));
+      const target = Math.max(1, parseInt(lvl, 10) || 1);
       this[`${game}CurrentLevel`] = String(target);
       localStorage.setItem(`orbitsuite_${game}_current_level`, String(target));
 
-      if (this.dom[`${game}LevelSelect`]) {
-        this.dom[`${game}LevelSelect`].value = String(target);
-      }
+      this.populateLevelSelect(game);
 
       if (game === 'queens') {
         this.resetQueensBoard(true);
         this.startQueensTimer();
+        this.renderQueens();
       } else if (game === 'tango') {
         this.resetTangoBoard();
         this.startTangoTimer();
+        this.renderTango();
       } else if (game === 'pinpoint') {
         this.resetPinpoint();
+        this.renderPinpoint();
       } else if (game === 'crossclimb') {
         this.resetCrossclimb();
+        this.renderCrossclimb();
       } else if (game === 'zip') {
         this.resetZip();
+        this.renderZip();
       } else if (game === 'sudoku') {
         this.resetSudoku();
         this.startSudokuTimer();
+        this.renderSudoku();
       }
       this.updateGameBanner(game);
     }
 
     nextGameLevel(game) {
       const cur = this.getCurrentLevel(game);
-      const max = this.getDataLength(game);
-      const next = cur >= max ? 1 : cur + 1;
+      const next = cur + 1;
       this.setGameLevel(game, next);
-      this.suite.showToast(`Level #${next} von ${max} geladen! 🚀`);
+      this.suite.showToast(`Level #${next} geladen! 🚀`);
     }
 
     prevGameLevel(game) {
       const cur = this.getCurrentLevel(game);
-      const max = this.getDataLength(game);
-      const prev = cur <= 1 ? max : cur - 1;
-      this.setGameLevel(game, prev);
-      this.suite.showToast(`Level #${prev} von ${max} geladen! 🚀`);
+      if (cur <= 1) {
+        this.suite.showToast('Du bist bereits auf Level 1!');
+        return;
+      }
+      this.setGameLevel(game, cur - 1);
+      this.suite.showToast(`Level #${cur - 1} geladen! ◀`);
     }
 
     randomGameLevel(game) {
-      const max = this.getDataLength(game);
       const cur = this.getCurrentLevel(game);
-      const solved = this.getSolvedSet(game);
-      const candidates = [];
-      for (let i = 1; i <= max; i++) {
-        if (i !== cur && !solved.has(i)) candidates.push(i);
-      }
-      if (candidates.length === 0) {
-        for (let i = 1; i <= max; i++) {
-          if (i !== cur) candidates.push(i);
-        }
-      }
-      const target = candidates.length > 0 ? candidates[Math.floor(Math.random() * candidates.length)] : 1;
+      let target = Math.floor(Math.random() * 30) + 1;
+      if (target === cur) target = cur + 1;
       this.setGameLevel(game, target);
       this.suite.showToast(`Zufalls-Level #${target} aktiviert! 🎲`);
     }
@@ -5607,10 +6020,10 @@ btnRandom: document.getElementById('btn-riddle-random'),
     populateLevelSelect(game) {
       const selectEl = this.dom[`${game}LevelSelect`];
       if (!selectEl) return;
-      const max = this.getDataLength(game);
       const cur = this.getCurrentLevel(game);
+      const totalOptions = Math.max(30, cur + 5);
       selectEl.innerHTML = '';
-      for (let i = 1; i <= max; i++) {
+      for (let i = 1; i <= totalOptions; i++) {
         const opt = document.createElement('option');
         opt.value = String(i);
         const isSolved = this.isLevelSolved(game, i);
@@ -5627,7 +6040,6 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
     updateGameBanner(game) {
       const cur = this.getCurrentLevel(game);
-      const max = this.getDataLength(game);
       const isSolved = this.isLevelSolved(game, cur);
       const solvedCount = this.getSolvedCount(game);
 
@@ -5639,7 +6051,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
       const countEl = this.dom[`${game}Countdown`];
       if (countEl) {
-        countEl.textContent = `${solvedCount} / ${max}`;
+        countEl.textContent = `Level ${cur}`;
       }
 
       const titleEl = this.dom[`${game}DateTitle`];
@@ -5657,33 +6069,33 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
       const navBadgeEl = document.getElementById(`${game}-nav-badge`);
       if (navBadgeEl) {
-        navBadgeEl.textContent = `${solvedCount}/${max}`;
+        navBadgeEl.textContent = `${solvedCount} Gelöst`;
       }
     }
 
     updateTotalStats() {
       const games = ['queens', 'tango', 'crossclimb', 'pinpoint', 'zip', 'sudoku'];
       let totalSolved = 0;
-      let totalAvailable = 0;
       games.forEach(g => {
         const solved = this.getSolvedCount(g);
-        const total = this.getDataLength(g);
         totalSolved += solved;
-        totalAvailable += total;
         const navBadge = document.getElementById(`${g}-nav-badge`);
         if (navBadge) {
-          navBadge.textContent = `${solved}/${total}`;
+          navBadge.textContent = `${solved} Gelöst`;
         }
       });
 
       if (this.dom.badgeScore) {
-        this.dom.badgeScore.textContent = `🏆 ${totalSolved}/${totalAvailable} Gelöst`;
+        this.dom.badgeScore.textContent = `🏆 ${totalSolved} Gelöst`;
+      }
+      if (this.dom.badgeStreak) {
+        this.dom.badgeStreak.textContent = `⚡ Freies Spiel`;
+      }
+      if (this.dom.badgeInfo) {
+        this.dom.badgeInfo.textContent = `🧩 Unbegrenzt & Generiert`;
       }
     }
 
-    // LINKEDIN GAMES CONTROLLER
-
-    // ==========================================
 
     switchGameMode(mode) {
 
@@ -5778,8 +6190,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
 
     getActiveQueensBoard() {
-      const lvl = this.getCurrentLevel('queens');
-      return this.queensData[lvl - 1] || this.queensData[0];
+      return this.getPuzzle('queens', this.getCurrentLevel('queens'));
     }
 
 
@@ -5850,6 +6261,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
         this.dom.queensFeedback.textContent = '';
 
       }
+      this.renderQueens();
 
       this.renderQueens();
 
@@ -6264,8 +6676,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
 
     getActiveTangoPuzzle() {
-      const lvl = this.getCurrentLevel('tango');
-      return this.tangoData[lvl - 1] || this.tangoData[0];
+      return this.getPuzzle('tango', this.getCurrentLevel('tango'));
     }
 
 
@@ -6690,8 +7101,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
 
     getActivePinpointChallenge() {
-      const lvl = this.getCurrentLevel('pinpoint');
-      return this.pinpointData[lvl - 1] || this.pinpointData[0];
+      return this.getPuzzle('pinpoint', this.getCurrentLevel('pinpoint'));
     }
 
 
@@ -6955,8 +7365,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
     }
 
     getActiveCrossclimb() {
-      const lvl = this.getCurrentLevel('crossclimb');
-      return this.crossclimbData[lvl - 1] || this.crossclimbData[0];
+      return this.getPuzzle('crossclimb', this.getCurrentLevel('crossclimb'));
     }
 
     initCrossclimb() {
@@ -7125,8 +7534,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
     }
 
     getActiveZip() {
-      const lvl = this.getCurrentLevel('zip');
-      return this.zipData[lvl - 1] || this.zipData[0];
+      return this.getPuzzle('zip', this.getCurrentLevel('zip'));
     }
 
     initZip() {
@@ -7319,8 +7727,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
     }
 
     getActiveSudoku() {
-      const lvl = this.getCurrentLevel('sudoku');
-      return this.sudokuData[lvl - 1] || this.sudokuData[0];
+      return this.getPuzzle('sudoku', this.getCurrentLevel('sudoku'));
     }
 
     initSudoku() {
@@ -7569,6 +7976,10 @@ init() {
         }
         if (this.dom[`btn${cap}Random`]) {
           this.dom[`btn${cap}Random`].addEventListener('click', () => this.randomGameLevel(g));
+        }
+        const genBtn = document.getElementById(`btn-${g}-generate`);
+        if (genBtn) {
+          genBtn.addEventListener('click', () => this.generateNewLevel(g));
         }
         if (this.dom[`btn${cap}BannerNext`]) {
           this.dom[`btn${cap}BannerNext`].addEventListener('click', () => this.nextGameLevel(g));
@@ -7973,7 +8384,7 @@ init() {
           const solvedSet = new Set(JSON.parse(localStorage.getItem(`orbitsuite_${g}_solved_levels`) || '[]'));
           totalSolved += solvedSet.size;
         });
-        this.dom.statRiddles.textContent = `${totalSolved}/84 Rätsel`;
+        this.dom.statRiddles.textContent = `${totalSolved} Rätsel`;
       }
 
       // App Card summaries
@@ -8008,7 +8419,7 @@ init() {
           const solvedSet = new Set(JSON.parse(localStorage.getItem(`orbitsuite_${g}_solved_levels`) || '[]'));
           totalSolved += solvedSet.size;
         });
-        this.dom.cardRiddleSummary.textContent = `${totalSolved}/84 Rätsel gemeistert • Freies Spielen`;
+        this.dom.cardRiddleSummary.textContent = `${totalSolved} Rätsel gemeistert • Freies Spielen`;
       }
 
       // Live Activity Lists

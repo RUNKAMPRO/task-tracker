@@ -1354,10 +1354,9 @@
             </div>
 
                         <div class="riddle-stats-badges">
-              <span class="riddle-badge-item" id="riddle-badge-score">🏆 0/84 Gelöst</span>
+              <span class="riddle-badge-item" id="riddle-badge-score">🏆 0 Gelöst</span>
               <span class="riddle-badge-item streak" id="riddle-badge-streak">⚡ Freies Spiel</span>
-              <span class="riddle-badge-item daily-streak" id="riddle-badge-info">🧩 Beliebig viele Rätsel</span>
-              <span class="riddle-badge-item daily-timer" id="riddle-badge-countdown" style="display: none;">⏳ 07:00 Drop: --:--:--</span>
+              <span class="riddle-badge-item daily-streak" id="riddle-badge-info">🧩 Unbegrenzt & Generiert</span>
             </div>
           </div>
 
@@ -1382,7 +1381,7 @@
               <span class="game-nav-title">Queens</span>
               <span class="game-nav-sub">Kronen-Logik</span>
             </div>
-            <span class="game-nav-badge" id="queens-nav-badge">0/14</span>
+            <span class="game-nav-badge" id="queens-nav-badge">0 Gelöst</span>
           </button>
           <button class="game-nav-btn" data-game-mode="tango">
             <span class="game-nav-icon">☀️🌙</span>
@@ -1390,7 +1389,7 @@
               <span class="game-nav-title">Tango</span>
               <span class="game-nav-sub">Sonne & Mond</span>
             </div>
-            <span class="game-nav-badge" id="tango-nav-badge">0/14</span>
+            <span class="game-nav-badge" id="tango-nav-badge">0 Gelöst</span>
           </button>
           <button class="game-nav-btn" data-game-mode="crossclimb">
             <span class="game-nav-icon">🪜</span>
@@ -1398,7 +1397,7 @@
               <span class="game-nav-title">Crossclimb</span>
               <span class="game-nav-sub">Wortleiter-Trivia</span>
             </div>
-            <span class="game-nav-badge" id="crossclimb-nav-badge">0/14</span>
+            <span class="game-nav-badge" id="crossclimb-nav-badge">0 Gelöst</span>
           </button>
           <button class="game-nav-btn" data-game-mode="pinpoint">
             <span class="game-nav-icon">🎯</span>
@@ -1406,7 +1405,7 @@
               <span class="game-nav-title">Pinpoint</span>
               <span class="game-nav-sub">5 Assoziationen</span>
             </div>
-            <span class="game-nav-badge" id="pinpoint-nav-badge">0/14</span>
+            <span class="game-nav-badge" id="pinpoint-nav-badge">0 Gelöst</span>
           </button>
           <button class="game-nav-btn" data-game-mode="zip">
             <span class="game-nav-icon">⚡</span>
@@ -1414,7 +1413,7 @@
               <span class="game-nav-title">Zip</span>
               <span class="game-nav-sub">Pfad-Verbindung</span>
             </div>
-            <span class="game-nav-badge" id="zip-nav-badge">0/14</span>
+            <span class="game-nav-badge" id="zip-nav-badge">0 Gelöst</span>
           </button>
           <button class="game-nav-btn" data-game-mode="sudoku">
             <span class="game-nav-icon">🔢</span>
@@ -1422,7 +1421,7 @@
               <span class="game-nav-title">Mini Sudoku</span>
               <span class="game-nav-sub">6×6 Zahlenlogik</span>
             </div>
-            <span class="game-nav-badge" id="sudoku-nav-badge">0/14</span>
+            <span class="game-nav-badge" id="sudoku-nav-badge">0 Gelöst</span>
           </button>
         </div>
 
@@ -1443,7 +1442,7 @@
             <div class="daily-banner-right">
               <div class="daily-countdown-card">
                 <span class="countdown-eyebrow">FORTSCHRITT</span>
-                <div class="countdown-clock" id="queens-daily-countdown">0 / 14</div>
+                <div class="countdown-clock" id="queens-daily-countdown">Level 1</div>
                 <button class="btn-inline-next" id="btn-queens-banner-next" style="margin-top: 8px;">Nächstes Board ▶</button>
               </div>
             </div>
@@ -1456,7 +1455,8 @@
                 <button class="btn-nav-level" id="btn-queens-prev" title="Vorheriges Board">◀</button>
                 <select id="queens-level-select" class="select-input select-level"></select>
                 <button class="btn-nav-level" id="btn-queens-next" title="Nächstes Board">▶</button>
-                <button class="btn-nav-level" id="btn-queens-random" title="Zufälliges Board">🎲 Zufall</button>
+                <button class="btn-nav-level" id="btn-queens-random" title="Zufälliges Level">🎲 Zufall</button>
+                <button class="btn-nav-level btn-nav-generate" id="btn-queens-generate" title="Neues Level algorithmisch generieren">⚡ Neu generieren</button>
                 <span class="game-pill-badge" id="queens-moves-badge">Züge: 0</span>
                 <span class="game-pill-badge" id="queens-timer-badge">⏱️ 00:00</span>
               </div>
@@ -1510,7 +1510,7 @@
             <div class="daily-banner-right">
               <div class="daily-countdown-card">
                 <span class="countdown-eyebrow">FORTSCHRITT</span>
-                <div class="countdown-clock" id="tango-daily-countdown">0 / 14</div>
+                <div class="countdown-clock" id="tango-daily-countdown">Level 1</div>
                 <button class="btn-inline-next" id="btn-tango-banner-next" style="margin-top: 8px;">Nächstes Board ▶</button>
               </div>
             </div>
@@ -1523,7 +1523,8 @@
                 <button class="btn-nav-level" id="btn-tango-prev" title="Vorheriges Board">◀</button>
                 <select id="tango-level-select" class="select-input select-level"></select>
                 <button class="btn-nav-level" id="btn-tango-next" title="Nächstes Board">▶</button>
-                <button class="btn-nav-level" id="btn-tango-random" title="Zufälliges Board">🎲 Zufall</button>
+                <button class="btn-nav-level" id="btn-tango-random" title="Zufälliges Level">🎲 Zufall</button>
+                <button class="btn-nav-level btn-nav-generate" id="btn-tango-generate" title="Neues Level algorithmisch generieren">⚡ Neu generieren</button>
                 <span class="game-pill-badge" id="tango-timer-badge">⏱️ 00:00</span>
               </div>
               <div class="toolbar-right">
@@ -1569,7 +1570,7 @@
             <div class="daily-banner-right">
               <div class="daily-countdown-card">
                 <span class="countdown-eyebrow">FORTSCHRITT</span>
-                <div class="countdown-clock" id="pinpoint-daily-countdown">0 / 14</div>
+                <div class="countdown-clock" id="pinpoint-daily-countdown">Level 1</div>
                 <button class="btn-inline-next" id="btn-pinpoint-banner-next" style="margin-top: 8px;">Nächstes Rätsel ▶</button>
               </div>
             </div>
@@ -1582,7 +1583,8 @@
                 <button class="btn-nav-level" id="btn-pinpoint-prev" title="Vorheriges Rätsel">◀</button>
                 <select id="pinpoint-level-select" class="select-input select-level"></select>
                 <button class="btn-nav-level" id="btn-pinpoint-next" title="Nächstes Rätsel">▶</button>
-                <button class="btn-nav-level" id="btn-pinpoint-random" title="Zufälliges Rätsel">🎲 Zufall</button>
+                <button class="btn-nav-level" id="btn-pinpoint-random" title="Zufälliges Level">🎲 Zufall</button>
+                <button class="btn-nav-level btn-nav-generate" id="btn-pinpoint-generate" title="Neues Level algorithmisch generieren">⚡ Neu generieren</button>
                 <span class="game-pill-badge" id="pinpoint-attempts-badge">Versuche: 5 übrig</span>
               </div>
               <div class="toolbar-right">
@@ -1639,7 +1641,7 @@
             <div class="daily-banner-right">
               <div class="daily-countdown-card">
                 <span class="countdown-eyebrow">FORTSCHRITT</span>
-                <div class="countdown-clock" id="crossclimb-daily-countdown">0 / 14</div>
+                <div class="countdown-clock" id="crossclimb-daily-countdown">Level 1</div>
                 <button class="btn-inline-next" id="btn-crossclimb-banner-next" style="margin-top: 8px;">Nächste Leiter ▶</button>
               </div>
             </div>
@@ -1652,7 +1654,8 @@
                 <button class="btn-nav-level" id="btn-crossclimb-prev" title="Vorherige Leiter">◀</button>
                 <select id="crossclimb-level-select" class="select-input select-level"></select>
                 <button class="btn-nav-level" id="btn-crossclimb-next" title="Nächste Leiter">▶</button>
-                <button class="btn-nav-level" id="btn-crossclimb-random" title="Zufällige Leiter">🎲 Zufall</button>
+                <button class="btn-nav-level" id="btn-crossclimb-random" title="Zufälliges Level">🎲 Zufall</button>
+                <button class="btn-nav-level btn-nav-generate" id="btn-crossclimb-generate" title="Neues Level algorithmisch generieren">⚡ Neu generieren</button>
                 <span class="game-pill-badge" id="crossclimb-status-badge">Sprossen: 0/5 gelöst</span>
               </div>
               <div class="toolbar-right">
@@ -1698,7 +1701,7 @@
             <div class="daily-banner-right">
               <div class="daily-countdown-card">
                 <span class="countdown-eyebrow">FORTSCHRITT</span>
-                <div class="countdown-clock" id="zip-daily-countdown">0 / 14</div>
+                <div class="countdown-clock" id="zip-daily-countdown">Level 1</div>
                 <button class="btn-inline-next" id="btn-zip-banner-next" style="margin-top: 8px;">Nächster Pfad ▶</button>
               </div>
             </div>
@@ -1711,7 +1714,8 @@
                 <button class="btn-nav-level" id="btn-zip-prev" title="Vorheriger Pfad">◀</button>
                 <select id="zip-level-select" class="select-input select-level"></select>
                 <button class="btn-nav-level" id="btn-zip-next" title="Nächster Pfad">▶</button>
-                <button class="btn-nav-level" id="btn-zip-random" title="Zufälliger Pfad">🎲 Zufall</button>
+                <button class="btn-nav-level" id="btn-zip-random" title="Zufälliges Level">🎲 Zufall</button>
+                <button class="btn-nav-level btn-nav-generate" id="btn-zip-generate" title="Neues Level algorithmisch generieren">⚡ Neu generieren</button>
                 <span class="game-pill-badge" id="zip-progress-badge">Pfad: 1/25 Felder</span>
               </div>
               <div class="toolbar-right">
@@ -1759,7 +1763,7 @@
             <div class="daily-banner-right">
               <div class="daily-countdown-card">
                 <span class="countdown-eyebrow">FORTSCHRITT</span>
-                <div class="countdown-clock" id="sudoku-daily-countdown">0 / 14</div>
+                <div class="countdown-clock" id="sudoku-daily-countdown">Level 1</div>
                 <button class="btn-inline-next" id="btn-sudoku-banner-next" style="margin-top: 8px;">Nächstes Sudoku ▶</button>
               </div>
             </div>
@@ -1772,7 +1776,8 @@
                 <button class="btn-nav-level" id="btn-sudoku-prev" title="Vorheriges Board">◀</button>
                 <select id="sudoku-level-select" class="select-input select-level"></select>
                 <button class="btn-nav-level" id="btn-sudoku-next" title="Nächstes Board">▶</button>
-                <button class="btn-nav-level" id="btn-sudoku-random" title="Zufälliges Board">🎲 Zufall</button>
+                <button class="btn-nav-level" id="btn-sudoku-random" title="Zufälliges Level">🎲 Zufall</button>
+                <button class="btn-nav-level btn-nav-generate" id="btn-sudoku-generate" title="Neues Level algorithmisch generieren">⚡ Neu generieren</button>
                 <span class="game-pill-badge" id="sudoku-timer-badge">⏱️ 00:00</span>
               </div>
               <div class="toolbar-right">
