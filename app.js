@@ -926,7 +926,9 @@
 
 
 
-    bindEvents() {
+
+
+        bindEvents() {
 
       const tabs = [this.dom.tabKanban, this.dom.tabList, this.dom.tabAnalytics];
 
@@ -5133,6 +5135,19 @@ class OrbitRiddleApp {
 
       this.activeGameMode = 'queens';
 
+      // Hints System State (Max 3 per puzzle, 10s cooldown, duplicate protection)
+      this.hintsRemaining = { queens: 3, tango: 3, pinpoint: 3, crossclimb: 3, zip: 3, sudoku: 3 };
+      this.lastHint = { queens: null, tango: null, pinpoint: null, crossclimb: null, zip: null, sudoku: null };
+      this.hintCooldown = { queens: 0, tango: 0, pinpoint: 0, crossclimb: 0, zip: 0, sudoku: 0 };
+      this.hintCooldownTimers = {};
+
+      // Delayed Live Error State
+      this.queensActiveClashes = new Set();
+      this.queensClashTimer = null;
+      this.sudokuActiveErrors = new Set();
+      this.sudokuErrorTimer = null;
+      this.tangoErrorTimer = null;
+
 
 
       // Queens State
@@ -6915,6 +6930,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
       }
 
       this.renderLevelHub(mode);
+      this.updateHintButtonUI(mode);
     }
 
 
@@ -6982,6 +6998,10 @@ btnRandom: document.getElementById('btn-riddle-random'),
     }
 
     resetQueensBoard(clearHistory = true) {
+      if (this.queensClashTimer) clearTimeout(this.queensClashTimer);
+      this.queensActiveClashes = new Set();
+      this.resetGameHints('queens');
+
       const board = this.getActiveQueensBoard();
       const size = board ? board.size : 6;
       this.queensUserGrid = Array(size).fill(null).map(() => Array(size).fill(null));
@@ -7132,8 +7152,38 @@ btnRandom: document.getElementById('btn-riddle-random'),
       }
 
       this.suite.sound.playClick();
+
+      // Clear pending error timer and reset immediate clash display
+      if (this.queensClashTimer) clearTimeout(this.queensClashTimer);
+      this.queensActiveClashes = new Set();
+      if (this.dom.queensFeedback && this.dom.queensFeedback.classList.contains('error')) {
+        this.dom.queensFeedback.className = 'game-inline-feedback';
+        this.dom.queensFeedback.textContent = '';
+      }
+
       this.renderQueens();
-      this.checkQueensStatus();
+
+      // Check if solved immediately (no delay on win)
+      const board = this.getActiveQueensBoard();
+      const size = board ? board.size : 6;
+      const { clashes, count } = this.getQueensClashes();
+      if (count === size && clashes.size === 0) {
+        this.checkQueensStatus();
+        return;
+      }
+
+      // Live error appears with small delay (650ms debounce)
+      this.queensClashTimer = setTimeout(() => {
+        const { clashes: currentClashes } = this.getQueensClashes();
+        this.queensActiveClashes = currentClashes;
+        if (currentClashes.size > 0) {
+          this.applyQueensClashesDOM();
+          if (this.dom.queensFeedback) {
+            this.dom.queensFeedback.className = 'game-inline-feedback error show clash-fade-in';
+            this.dom.queensFeedback.textContent = '⚠️ Konflikt! Kronen dürfen sich nicht berühren und nur 1 pro Zeile/Spalte/Farbzone.';
+          }
+        }
+      }, 650);
     }
 
 
@@ -7285,13 +7335,23 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
 
 
+    applyQueensClashesDOM() {
+      if (!this.dom.queensGrid) return;
+      const cells = this.dom.queensGrid.querySelectorAll('.queens-cell');
+      cells.forEach(cell => {
+        const key = `${cell.dataset.r},${cell.dataset.c}`;
+        const isClash = this.queensActiveClashes && this.queensActiveClashes.has(key);
+        cell.classList.toggle('cell-clash', isClash);
+      });
+    }
+
     renderQueens() {
       this.renderQueensBanner();
       if (!this.dom.queensGrid) return;
 
       const board = this.getActiveQueensBoard();
       const size = board.size;
-      const { clashes } = this.getQueensClashes();
+      const clashes = this.queensActiveClashes || new Set();
       const gridEl = this.dom.queensGrid;
       gridEl.innerHTML = '';
       gridEl.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
@@ -7362,8 +7422,32 @@ btnRandom: document.getElementById('btn-riddle-random'),
           if (this.queensAutoXEnabled) {
             this.autoXQueens();
           }
+          if (this.queensClashTimer) clearTimeout(this.queensClashTimer);
+          this.queensActiveClashes = new Set();
+          if (this.dom.queensFeedback && this.dom.queensFeedback.classList.contains('error')) {
+            this.dom.queensFeedback.className = 'game-inline-feedback';
+            this.dom.queensFeedback.textContent = '';
+          }
           this.renderQueens();
-          this.checkQueensStatus();
+
+          const b = this.getActiveQueensBoard();
+          const s = b ? b.size : 6;
+          const { clashes, count } = this.getQueensClashes();
+          if (count === s && clashes.size === 0) {
+            this.checkQueensStatus();
+          } else {
+            this.queensClashTimer = setTimeout(() => {
+              const { clashes: curClashes } = this.getQueensClashes();
+              this.queensActiveClashes = curClashes;
+              if (curClashes.size > 0) {
+                this.applyQueensClashesDOM();
+                if (this.dom.queensFeedback) {
+                  this.dom.queensFeedback.className = 'game-inline-feedback error show clash-fade-in';
+                  this.dom.queensFeedback.textContent = '⚠️ Konflikt! Kronen dürfen sich nicht berühren und nur 1 pro Zeile/Spalte/Farbzone.';
+                }
+              }
+            }, 650);
+          }
         }
       };
 
@@ -7474,6 +7558,9 @@ btnRandom: document.getElementById('btn-riddle-random'),
     }
 
     resetTangoBoard() {
+      if (this.tangoErrorTimer) clearTimeout(this.tangoErrorTimer);
+      this.resetGameHints('tango');
+
       const puzzle = this.getActiveTangoPuzzle();
       const size = puzzle.size;
       this.tangoUserGrid = Array(size).fill(null).map((_, r) =>
@@ -7487,11 +7574,68 @@ btnRandom: document.getElementById('btn-riddle-random'),
       this.renderTango();
     }
 
+    getTangoAnalysis() {
+      const puzzle = this.getActiveTangoPuzzle();
+      if (!puzzle) return { hasError: false, filledCount: 0 };
+      const size = puzzle.size;
+      const grid = this.tangoUserGrid;
+      let hasError = false;
+      let filledCount = 0;
+
+      for (let r = 0; r < size; r++) {
+        let sCnt = 0, mCnt = 0;
+        for (let c = 0; c < size; c++) {
+          if (grid[r][c] === 'S') sCnt++;
+          if (grid[r][c] === 'M') mCnt++;
+          if (grid[r][c] !== null) filledCount++;
+        }
+        if (sCnt > 3 || mCnt > 3) hasError = true;
+        for (let c = 0; c < size - 2; c++) {
+          if (grid[r][c] && grid[r][c] === grid[r][c+1] && grid[r][c+1] === grid[r][c+2]) {
+            hasError = true;
+          }
+        }
+      }
+
+      for (let c = 0; c < size; c++) {
+        let sCnt = 0, mCnt = 0;
+        for (let r = 0; r < size; r++) {
+          if (grid[r][c] === 'S') sCnt++;
+          if (grid[r][c] === 'M') mCnt++;
+        }
+        if (sCnt > 3 || mCnt > 3) hasError = true;
+        for (let r = 0; r < size - 2; r++) {
+          if (grid[r][c] && grid[r][c] === grid[r+1][c] && grid[r+1][c] === grid[r+2][c]) {
+            hasError = true;
+          }
+        }
+      }
+
+      puzzle.hEdges.forEach(e => {
+        const v1 = grid[e.r][e.c];
+        const v2 = grid[e.r][e.c+1];
+        if (v1 && v2) {
+          if (e.op === '=' && v1 !== v2) hasError = true;
+          if (e.op === 'x' && v1 === v2) hasError = true;
+        }
+      });
+
+      puzzle.vEdges.forEach(e => {
+        const v1 = grid[e.r][e.c];
+        const v2 = grid[e.r+1][e.c];
+        if (v1 && v2) {
+          if (e.op === '=' && v1 !== v2) hasError = true;
+          if (e.op === 'x' && v1 === v2) hasError = true;
+        }
+      });
+
+      return { hasError, filledCount };
+    }
+
     handleTangoCellClick(r, c) {
       const puzzle = this.getActiveTangoPuzzle();
-      if (puzzle.givens[r][c] !== null) return; // Locked given cell
+      if (puzzle.givens[r][c] !== null) return;
 
-      // Timer erst bei erster Interaktion starten!
       if (!this.tangoTimerStarted) {
         this.startTangoTimer();
         this.tangoTimerStarted = true;
@@ -7505,8 +7649,34 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
       this.tangoUserGrid[r][c] = next;
       this.suite.sound.playClick();
+
+      // Clear pending error timer
+      if (this.tangoErrorTimer) clearTimeout(this.tangoErrorTimer);
+      if (this.dom.tangoFeedback && this.dom.tangoFeedback.classList.contains('error')) {
+        this.dom.tangoFeedback.className = 'game-inline-feedback';
+        this.dom.tangoFeedback.textContent = '';
+      }
+
       this.renderTango();
-      this.checkTangoStatus();
+
+      // Check if solved immediately
+      const size = puzzle ? puzzle.size : 6;
+      const { hasError, filledCount } = this.getTangoAnalysis();
+      if (filledCount === size * size && !hasError) {
+        this.checkTangoStatus();
+        return;
+      }
+
+      // Live error appears with small delay (650ms debounce)
+      this.tangoErrorTimer = setTimeout(() => {
+        const curAnalysis = this.getTangoAnalysis();
+        if (curAnalysis.hasError) {
+          if (this.dom.tangoFeedback) {
+            this.dom.tangoFeedback.className = 'game-inline-feedback error show clash-fade-in';
+            this.dom.tangoFeedback.textContent = '⚠️ Bedingung verletzt! Beachte max. 2 gleiche Symbole und = / ✕.';
+          }
+        }
+      }, 650);
     }
 
 
@@ -7850,7 +8020,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
 
     resetPinpoint() {
-
+      this.resetGameHints('pinpoint');
       this.pinpointRevealedClues = 1;
 
       this.pinpointAttemptsLeft = 5;
@@ -8141,6 +8311,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
     }
 
     resetCrossclimb() {
+      this.resetGameHints('crossclimb');
       const challenge = this.getActiveCrossclimb();
       const words = challenge.words;
       const clues = challenge.clues;
@@ -8529,6 +8700,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
     }
 
     resetZip() {
+      this.resetGameHints('zip');
       const puzzle = this.getActiveZip();
       let startR = 0, startC = 0;
       for (const [coord, cp] of Object.entries(puzzle.checkpoints)) {
@@ -8829,6 +9001,10 @@ btnRandom: document.getElementById('btn-riddle-random'),
     }
 
     resetSudoku() {
+      if (this.sudokuErrorTimer) clearTimeout(this.sudokuErrorTimer);
+      this.sudokuActiveErrors = new Set();
+      this.resetGameHints('sudoku');
+
       const puzzle = this.getActiveSudoku();
       this.sudokuUserGrid = Array(6).fill(0).map((_, r) =>
         Array(6).fill(0).map((_, c) => puzzle.givens[r][c])
@@ -8852,6 +9028,16 @@ btnRandom: document.getElementById('btn-riddle-random'),
       this.renderSudoku();
     }
 
+    applySudokuErrorsDOM() {
+      if (!this.dom.sudokuGrid) return;
+      const cells = this.dom.sudokuGrid.querySelectorAll('.sudoku-cell');
+      cells.forEach(cell => {
+        const key = `${cell.dataset.r},${cell.dataset.c}`;
+        const isErr = this.sudokuActiveErrors && this.sudokuActiveErrors.has(key);
+        cell.classList.toggle('error', isErr);
+      });
+    }
+
     inputSudokuNumber(num) {
       if (!this.sudokuTimerStarted) {
         this.startSudokuTimer();
@@ -8860,12 +9046,46 @@ btnRandom: document.getElementById('btn-riddle-random'),
       if (!this.sudokuSelectedCell) return;
       const { r, c } = this.sudokuSelectedCell;
       const puzzle = this.getActiveSudoku();
-      if (puzzle.givens[r][c] !== 0) return; // Given cell is locked
+      if (puzzle.givens[r][c] !== 0) return;
 
       this.sudokuUserGrid[r][c] = num;
       this.suite.sound.playPop();
+
+      // Clear pending error timer
+      if (this.sudokuErrorTimer) clearTimeout(this.sudokuErrorTimer);
+      this.sudokuActiveErrors = new Set();
+      if (this.dom.sudokuFeedback && this.dom.sudokuFeedback.classList.contains('error')) {
+        this.dom.sudokuFeedback.className = 'game-inline-feedback';
+        this.dom.sudokuFeedback.textContent = '';
+      }
+
       this.renderSudoku();
-      this.checkSudokuStatus();
+
+      // Check if solved immediately
+      const errors = this.getSudokuErrors();
+      let filledCount = 0;
+      for (let ro = 0; ro < 6; ro++) {
+        for (let co = 0; co < 6; co++) {
+          if (this.sudokuUserGrid[ro][co] !== 0) filledCount++;
+        }
+      }
+      if (filledCount === 36 && errors.size === 0) {
+        this.checkSudokuStatus();
+        return;
+      }
+
+      // Live error appears with small delay (650ms debounce)
+      this.sudokuErrorTimer = setTimeout(() => {
+        const currentErrors = this.getSudokuErrors();
+        this.sudokuActiveErrors = currentErrors;
+        if (currentErrors.size > 0) {
+          this.applySudokuErrorsDOM();
+          if (this.dom.sudokuFeedback) {
+            this.dom.sudokuFeedback.className = 'game-inline-feedback error show clash-fade-in';
+            this.dom.sudokuFeedback.textContent = '⚠️ Duplikat gefunden in Zeile, Spalte oder 2×3-Block!';
+          }
+        }
+      }, 650);
     }
 
     getSudokuErrors() {
@@ -9004,9 +9224,11 @@ btnRandom: document.getElementById('btn-riddle-random'),
           const val = this.sudokuUserGrid[r][c];
           const isSel = this.sudokuSelectedCell && this.sudokuSelectedCell.r === r && this.sudokuSelectedCell.c === c;
           const isSameNum = selVal && selVal !== 0 && val === selVal;
-          const isErr = errors.has(`${r},${c}`);
+          const isErr = this.sudokuActiveErrors && this.sudokuActiveErrors.has(`${r},${c}`);
 
           cell.className = `sudoku-cell ${isGiven ? 'given' : ''} ${isSel ? 'selected' : ''} ${isSameNum ? 'same-num' : ''} ${isErr ? 'error' : ''}`;
+          cell.dataset.r = r;
+          cell.dataset.c = c;
 
           // Block borders (2 rows x 3 cols)
           if (r === 1 || r === 3) cell.classList.add('block-border-bottom');
@@ -9035,6 +9257,325 @@ init() {
       else if (this.activeGameMode === 'sudoku') this.renderSudoku();
     }
 
+
+    // ==========================================
+    // HINT & COOLDOWN SYSTEM
+    // ==========================================
+
+    resetGameHints(game) {
+      if (!this.hintsRemaining) this.hintsRemaining = {};
+      if (!this.lastHint) this.lastHint = {};
+      if (!this.hintCooldown) this.hintCooldown = {};
+      if (!this.hintCooldownTimers) this.hintCooldownTimers = {};
+
+      if (this.hintCooldownTimers[game]) {
+        clearInterval(this.hintCooldownTimers[game]);
+        this.hintCooldownTimers[game] = null;
+      }
+      this.hintsRemaining[game] = 3;
+      this.lastHint[game] = null;
+      this.hintCooldown[game] = 0;
+      this.updateHintButtonUI(game);
+
+      // Also clear active delayed errors
+      if (game === 'queens') {
+        if (this.queensClashTimer) clearTimeout(this.queensClashTimer);
+        this.queensActiveClashes = new Set();
+      } else if (game === 'sudoku') {
+        if (this.sudokuErrorTimer) clearTimeout(this.sudokuErrorTimer);
+        this.sudokuActiveErrors = new Set();
+      } else if (game === 'tango') {
+        if (this.tangoErrorTimer) clearTimeout(this.tangoErrorTimer);
+      }
+    }
+
+    startHintCooldown(game, seconds = 10) {
+      if (!this.hintCooldownTimers) this.hintCooldownTimers = {};
+      if (this.hintCooldownTimers[game]) {
+        clearInterval(this.hintCooldownTimers[game]);
+      }
+      this.hintCooldown[game] = seconds;
+      this.updateHintButtonUI(game);
+
+      this.hintCooldownTimers[game] = setInterval(() => {
+        this.hintCooldown[game] -= 1;
+        if (this.hintCooldown[game] <= 0) {
+          clearInterval(this.hintCooldownTimers[game]);
+          this.hintCooldownTimers[game] = null;
+          this.hintCooldown[game] = 0;
+        }
+        this.updateHintButtonUI(game);
+      }, 1000);
+    }
+
+    updateHintButtonUI(game) {
+      const btn = document.getElementById(`btn-${game}-hint`);
+      if (!btn) return;
+      const remaining = this.hintsRemaining ? (this.hintsRemaining[game] ?? 3) : 3;
+      const cd = this.hintCooldown ? (this.hintCooldown[game] || 0) : 0;
+
+      if (cd > 0) {
+        btn.disabled = true;
+        btn.classList.add('cooldown');
+        btn.classList.remove('exhausted');
+        btn.innerHTML = `<span>⏳ ${cd}s...</span>`;
+        btn.title = `Hinweis lädt auf (${cd}s Cooldown)`;
+      } else if (remaining <= 0) {
+        btn.disabled = true;
+        btn.classList.remove('cooldown');
+        btn.classList.add('exhausted');
+        btn.innerHTML = `<span>💡 0 übrig</span>`;
+        btn.title = `Keine Hinweise mehr für dieses Rätsel übrig (Max. 3 pro Rätsel)`;
+      } else {
+        btn.disabled = false;
+        btn.classList.remove('cooldown', 'exhausted');
+        btn.innerHTML = `<span>💡 Hinweis (${remaining})</span>`;
+        btn.title = `Erhalte einen klugen Hinweis (${remaining} von 3 übrig)`;
+      }
+    }
+
+    useHint(game) {
+      const remaining = this.hintsRemaining ? (this.hintsRemaining[game] ?? 3) : 3;
+      const cd = this.hintCooldown ? (this.hintCooldown[game] || 0) : 0;
+
+      if (cd > 0) {
+        this.suite.showToast(`⏳ Hinweis lädt noch auf (${cd}s verbleibend)...`, 'info');
+        return;
+      }
+
+      if (remaining <= 0) {
+        this.suite.showToast(`🚫 Keine Hinweise mehr für dieses Rätsel übrig (Max. 3 pro Rätsel)!`, 'warning');
+        return;
+      }
+
+      const hint = this.computeGameHint(game);
+      if (!hint) {
+        this.suite.showToast(`💡 Kein weiterer Hinweis verfügbar – du bist bereits am Ziel!`, 'info');
+        return;
+      }
+
+      // Check if duplicate: "wenn der gleiche hinweis 2-mal gegeben werden würde, dann zählt er kein 2. mal"
+      const prevHint = this.lastHint ? this.lastHint[game] : null;
+      const isDuplicate = prevHint && prevHint.key === hint.key;
+
+      if (isDuplicate) {
+        // Gleicher Hinweis: Zählt NICHT ab!
+        this.suite.sound.playPop();
+        this.suite.showToast(`💡 Erinnerung: ${hint.text} (Gleicher Hinweis – zählt nicht ab! Noch ${remaining} übrig)`, 'info');
+      } else {
+        // Neuer Hinweis: Zählt 1 Hinweis ab!
+        this.hintsRemaining[game] = Math.max(0, remaining - 1);
+        this.lastHint[game] = hint;
+        this.suite.sound.playSuccess();
+        this.suite.showToast(`💡 Hinweis (${this.hintsRemaining[game]} übrig): ${hint.text}`, 'success');
+      }
+
+      // Highlight target element if present
+      if (hint.highlight) {
+        this.highlightHintCell(game, hint.highlight);
+      }
+
+      // Start 10-second cooldown
+      this.startHintCooldown(game, 10);
+      this.updateHintButtonUI(game);
+    }
+
+    highlightHintCell(game, highlight) {
+      let cell = null;
+      if (game === 'queens') {
+        cell = this.dom.queensGrid?.querySelector(`.queens-cell[data-r="${highlight.r}"][data-c="${highlight.c}"]`);
+      } else if (game === 'tango') {
+        cell = this.dom.tangoGrid?.querySelector(`.tango-cell[data-r="${highlight.r}"][data-c="${highlight.c}"]`);
+      } else if (game === 'sudoku') {
+        cell = this.dom.sudokuGrid?.querySelector(`.sudoku-cell[data-r="${highlight.r}"][data-c="${highlight.c}"]`);
+      } else if (game === 'zip') {
+        cell = this.dom.zipGrid?.querySelector(`.zip-cell[data-r="${highlight.r}"][data-c="${highlight.c}"]`);
+      }
+
+      if (cell) {
+        cell.classList.add('hint-highlight-pulse');
+        setTimeout(() => {
+          cell.classList.remove('hint-highlight-pulse');
+        }, 3600);
+      }
+    }
+
+    computeGameHint(game) {
+      if (game === 'queens') {
+        const board = this.getActiveQueensBoard();
+        if (!board) return null;
+        const size = board.size;
+        const solution = board.solution; // Array of [r, c]
+
+        // 1. Check if user placed an incorrect queen
+        for (let r = 0; r < size; r++) {
+          for (let c = 0; c < size; c++) {
+            if (this.queensUserGrid[r][c] === 'Q') {
+              const isCorrect = solution.some(([sr, sc]) => sr === r && sc === c);
+              if (!isCorrect) {
+                return {
+                  key: `queens_wrong_${r}_${c}`,
+                  text: `Die Krone bei Zeile ${r + 1}, Spalte ${c + 1} ist an der falschen Stelle. Entferne sie!`,
+                  highlight: { r, c }
+                };
+              }
+            }
+          }
+        }
+
+        // 2. Find a missing queen from solution
+        for (const [sr, sc] of solution) {
+          if (this.queensUserGrid[sr][sc] !== 'Q') {
+            return {
+              key: `queens_place_${sr}_${sc}`,
+              text: `In Zeile ${sr + 1}, Spalte ${sc + 1} gehört sicher eine Krone 👑!`,
+              highlight: { r: sr, c: sc }
+            };
+          }
+        }
+        return { key: 'queens_done', text: 'Alle Kronen sind bereits richtig platziert!', highlight: null };
+      }
+
+      if (game === 'tango') {
+        const puzzle = this.getActiveTangoPuzzle();
+        if (!puzzle) return null;
+        const size = puzzle.size;
+        const sol = puzzle.solution;
+
+        // 1. Check if any entered cell is wrong
+        for (let r = 0; r < size; r++) {
+          for (let c = 0; c < size; c++) {
+            const cur = this.tangoUserGrid[r][c];
+            if (cur !== null && cur !== sol[r][c]) {
+              const rightSym = sol[r][c] === 'S' ? 'Sonne ☀️' : 'Mond 🌙';
+              return {
+                key: `tango_wrong_${r}_${c}`,
+                text: `In Zeile ${r + 1}, Spalte ${c + 1} gehört ein(e) ${rightSym}!`,
+                highlight: { r, c }
+              };
+            }
+          }
+        }
+
+        // 2. Find an empty cell
+        for (let r = 0; r < size; r++) {
+          for (let c = 0; c < size; c++) {
+            if (this.tangoUserGrid[r][c] === null) {
+              const rightSym = sol[r][c] === 'S' ? 'Sonne ☀️' : 'Mond 🌙';
+              return {
+                key: `tango_fill_${r}_${c}`,
+                text: `Tipp: In Zeile ${r + 1}, Spalte ${c + 1} gehört ein(e) ${rightSym}!`,
+                highlight: { r, c }
+              };
+            }
+          }
+        }
+        return { key: 'tango_done', text: 'Das Tango-Board ist vollständig!', highlight: null };
+      }
+
+      if (game === 'sudoku') {
+        const puzzle = this.getActiveSudoku();
+        if (!puzzle) return null;
+        const sol = puzzle.solution;
+
+        // 1. Check for wrong numbers
+        for (let r = 0; r < 6; r++) {
+          for (let c = 0; c < 6; c++) {
+            const val = this.sudokuUserGrid[r][c];
+            if (val !== 0 && val !== sol[r][c]) {
+              return {
+                key: `sudoku_wrong_${r}_${c}`,
+                text: `Die Zahl ${val} in Zeile ${r + 1}, Spalte ${c + 1} ist falsch. Richtig ist ${sol[r][c]}!`,
+                highlight: { r, c }
+              };
+            }
+          }
+        }
+
+        // 2. Find empty cell
+        for (let r = 0; r < 6; r++) {
+          for (let c = 0; c < 6; c++) {
+            if (this.sudokuUserGrid[r][c] === 0) {
+              return {
+                key: `sudoku_fill_${r}_${c}`,
+                text: `In Zeile ${r + 1}, Spalte ${c + 1} gehört die Ziffer ${sol[r][c]}!`,
+                highlight: { r, c }
+              };
+            }
+          }
+        }
+        return { key: 'sudoku_done', text: 'Das Sudoku ist komplett gelöst!', highlight: null };
+      }
+
+      if (game === 'zip') {
+        const puzzle = this.getActiveZip();
+        if (!puzzle || !puzzle.solution) return null;
+        const solution = puzzle.solution; // Array of { r, c }
+        const curPath = this.zipPath || [];
+
+        // Check if user path diverged
+        for (let i = 0; i < curPath.length; i++) {
+          if (curPath[i].r !== solution[i].r || curPath[i].c !== solution[i].c) {
+            return {
+              key: `zip_diverge_${i}`,
+              text: `Pfad ist bei Schritt #${i + 1} abgewichen. Nutze 'Schritt zurück'!`,
+              highlight: { r: curPath[i].r, c: curPath[i].c }
+            };
+          }
+        }
+
+        // Next step in path
+        const nextIdx = curPath.length;
+        if (nextIdx < solution.length) {
+          const nextStep = solution[nextIdx];
+          return {
+            key: `zip_next_${nextStep.r}_${nextStep.c}`,
+            text: `Nächster Wegpunkt: Gehe auf Zeile ${nextStep.r + 1}, Spalte ${nextStep.c + 1}!`,
+            highlight: { r: nextStep.r, c: nextStep.c }
+          };
+        }
+        return { key: 'zip_done', text: 'Der Pfad ist bereits vollständig verbunden!', highlight: null };
+      }
+
+      if (game === 'crossclimb') {
+        const puzzle = this.getActiveCrossclimb();
+        if (!puzzle) return null;
+
+        // Check unrevealed ladder rungs
+        const rungInputs = document.querySelectorAll('#crossclimb-ladder-list .crossclimb-input');
+        for (let i = 0; i < rungInputs.length; i++) {
+          const inp = rungInputs[i];
+          const expected = puzzle.words[i];
+          if (inp && (!inp.value || inp.value.trim().toUpperCase() !== expected.toUpperCase())) {
+            const hintLetter = expected.slice(0, 2);
+            return {
+              key: `crossclimb_word_${i}`,
+              text: `Sprosse #${i + 1} (${expected.length} Buchstaben): Beginnt mit '${hintLetter}...'`,
+              highlight: null
+            };
+          }
+        }
+        return {
+          key: 'crossclimb_sort',
+          text: 'Alle Wörter erraten! Ordne sie nun so an, dass benachbarte Sprossen sich in genau 1 Buchstaben unterscheiden.',
+          highlight: null
+        };
+      }
+
+      if (game === 'pinpoint') {
+        const puzzle = this.getActivePinpointChallenge();
+        if (!puzzle) return null;
+        const secret = (puzzle.keywords && puzzle.keywords[0]) || puzzle.category;
+        const firstLetter = secret.charAt(0).toUpperCase();
+        return {
+          key: `pinpoint_hint_${puzzle.id}`,
+          text: `Tipp zum gesuchten Begriff: Startet mit '${firstLetter}...', Kategorie: '${puzzle.category}'!`,
+          highlight: null
+        };
+      }
+
+      return null;
+    }
 
     bindEvents() {
 
@@ -9089,6 +9630,14 @@ init() {
 
 
       // Queens Bindings
+
+      // Hint button bindings for all 6 games
+      ['queens', 'tango', 'pinpoint', 'crossclimb', 'zip', 'sudoku'].forEach(g => {
+        const hintBtn = document.getElementById(`btn-${g}-hint`);
+        if (hintBtn) {
+          hintBtn.addEventListener('click', () => this.useHint(g));
+        }
+      });
 
       if (this.dom.queensLevelSelect) {
 
