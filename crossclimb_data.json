@@ -1,0 +1,254 @@
+[
+  {
+    "id": "crossclimb-1",
+    "title": "Crossclimb #1: Kalt bis Bild",
+    "words": [
+      "KALT",
+      "WALT",
+      "WALD",
+      "WILD",
+      "BILD"
+    ],
+    "clues": [
+      "Niedrige Temperatur, Gegenteil von warm",
+      "Vorname des berühmten Micky-Maus-Erfinders Disney",
+      "Ort voller Bäume, Moos und Waldtieren",
+      "In freier Natur lebend, nicht zahm",
+      "Gemälde, Foto oder grafische Abbildung"
+    ]
+  },
+  {
+    "id": "crossclimb-2",
+    "title": "Crossclimb #2: Sand bis Rind",
+    "words": [
+      "SAND",
+      "HAND",
+      "HUND",
+      "RUND",
+      "RIND"
+    ],
+    "clues": [
+      "Feinkörniges Gestein an Meeresstränden und in Wüsten",
+      "Körperteil am Ende des Arms mit fünf Fingern",
+      "Der treueste vierbeinige Freund des Menschen",
+      "Geometrische Kreis- oder Kugelform ohne Ecken",
+      "Großes Nutztier auf der Weide, das Milch gibt"
+    ]
+  },
+  {
+    "id": "crossclimb-3",
+    "title": "Crossclimb #3: Boot bis Pest",
+    "words": [
+      "BOOT",
+      "ROOT",
+      "ROST",
+      "POST",
+      "PEST"
+    ],
+    "clues": [
+      "Kleines Wasserfahrzeug zum Rudern oder Segeln",
+      "Höchste Administrator-Rechte in Unix/Linux-Systemen",
+      "Rötlich-braunes Oxidationsprodukt auf feuchtem Eisen",
+      "Briefe, Pakete oder die zuständige Zustellorganisation",
+      "Historische europäische Seuche im finsteren Mittelalter"
+    ]
+  },
+  {
+    "id": "crossclimb-4",
+    "title": "Crossclimb #4: Gold bis Helm",
+    "words": [
+      "GOLD",
+      "GELD",
+      "FELD",
+      "HELD",
+      "HELM"
+    ],
+    "clues": [
+      "Glänzendes gelbes Edelmetall mit hoher Dichte",
+      "Gesetzliches Zahlungsmittel in Form von Münzen und Scheinen",
+      "Große landwirtschaftliche Ackerfläche für Weizen oder Mais",
+      "Mutige Hauptfigur in Geschichten, die andere rettet",
+      "Fester Schutz für den Kopf beim Fahrrad- oder Skifahren"
+    ]
+  },
+  {
+    "id": "crossclimb-5",
+    "title": "Crossclimb #5: Wind bis Dank",
+    "words": [
+      "WIND",
+      "WAND",
+      "BAND",
+      "BANK",
+      "DANK"
+    ],
+    "clues": [
+      "Spürbare Luftbewegung in der Atmosphäre",
+      "Vertikale gemauerte Begrenzung eines Zimmers",
+      "Gruppe von Musikern oder ein flexibles Stoffband",
+      "Sitzgelegenheit im Park oder Institut für Finanzen",
+      "Ausdruck der Anerkennung und Verbundenheit"
+    ]
+  },
+  {
+    "id": "crossclimb-6",
+    "title": "Crossclimb #6: Ball bis Helm",
+    "words": [
+      "BALL",
+      "FALL",
+      "FELL",
+      "HELL",
+      "HELM"
+    ],
+    "clues": [
+      "Rundes Sportgerät zum Kicken, Werfen oder Schlagen",
+      "Das Herabgleiten nach unten oder ein kniffliger Kriminalfall",
+      "Dichtes Haarkleid von Säugetieren wie Füchsen oder Bären",
+      "Voller Licht, das Gegenteil von finster",
+      "Kopfbedeckung zum Schutz auf Baustellen"
+    ]
+  },
+  {
+    "id": "crossclimb-7",
+    "title": "Crossclimb #7: Kind bis Bunt",
+    "words": [
+      "KIND",
+      "RIND",
+      "RUND",
+      "BUND",
+      "BUNT"
+    ],
+    "clues": [
+      "Junger Mensch in den ersten Lebensjahren",
+      "Wiederkäuer mit Hörnern auf der Alm",
+      "Kreisförmig geschwungen ohne Kanten",
+      "Zusammenschluss, Föderation oder Hosenbund",
+      "Farbenfroh mit vielen leuchtenden Tönen"
+    ]
+  },
+  {
+    "id": "crossclimb-8",
+    "title": "Crossclimb #8: Haus bis Fahl",
+    "words": [
+      "HAUS",
+      "MAUS",
+      "MAUL",
+      "FAUL",
+      "FAHL"
+    ],
+    "clues": [
+      "Festes Gebäude mit Dach zum Wohnen",
+      "Kleines Nagetier mit langem Schwanz oder PC-Zeiger",
+      "Mundöffnung von Raubtieren oder Hunden",
+      "Träge ohne Antrieb, das Gegenteil von fleißig",
+      "Blass, kraftlos oder von fahlem Mondlicht erhellt"
+    ]
+  },
+  {
+    "id": "crossclimb-9",
+    "title": "Crossclimb #9: Zeit bis Wort",
+    "words": [
+      "ZEIT",
+      "ZELT",
+      "WELT",
+      "WERT",
+      "WORT"
+    ],
+    "clues": [
+      "Fortlaufende Dimension aus Vergangenheit, Gegenwart und Zukunft",
+      "Tragbare Stoffunterkunft zum Campen in der Natur",
+      "Unser Planet Erde mit allen Kontinenten und Meeren",
+      "Kostbarkeit, Bedeutung oder bezifferter Preis",
+      "Sinnhafte sprachliche Einheit aus mehreren Buchstaben"
+    ]
+  },
+  {
+    "id": "crossclimb-10",
+    "title": "Crossclimb #10: Buch bis Nach",
+    "words": [
+      "BUCH",
+      "BACH",
+      "DACH",
+      "FACH",
+      "NACH"
+    ],
+    "clues": [
+      "Gebundenes Werk mit beschriebenen oder bedruckten Seiten",
+      "Natürlicher kleiner Wasserlauf im Gebirge oder Wald",
+      "Oberste schützende Abdeckung eines Gebäudes gegen Regen",
+      "Unterrichtsgebiet in der Schule oder Ablagefach im Schrank",
+      "Zeitlich oder räumlich folgend, Gegenteil von vor"
+    ]
+  },
+  {
+    "id": "crossclimb-11",
+    "title": "Crossclimb #11: Meer bis Hier",
+    "words": [
+      "MEER",
+      "HEER",
+      "TEER",
+      "TIER",
+      "HIER"
+    ],
+    "clues": [
+      "Riesige Salzwassermasse der Weltmeere",
+      "Große militärische Truppe von Soldaten zu Lande",
+      "Zähflüssiger schwarzer Stoff für den Straßenbau",
+      "Lebewesen mit eigenem Bewusstsein und Instinkten",
+      "Genau an diesem gegenwärtigen Standort"
+    ]
+  },
+  {
+    "id": "crossclimb-12",
+    "title": "Crossclimb #12: Torf bis Born",
+    "words": [
+      "TORF",
+      "DORF",
+      "DORN",
+      "KORN",
+      "BORN"
+    ],
+    "clues": [
+      "Brennbares getrocknetes Moormaterial",
+      "Ländliche Siedlungsgemeinschaft, kleiner als eine Stadt",
+      "Spitzer stechender Auswuchs am Stängel einer Rose",
+      "Reife Samenkörner von Getreide auf dem Halm",
+      "Poetisches altes Wort für eine sprudelnde Quelle"
+    ]
+  },
+  {
+    "id": "crossclimb-13",
+    "title": "Crossclimb #13: Wein bis Fern",
+    "words": [
+      "WEIN",
+      "BEIN",
+      "DEIN",
+      "FEIN",
+      "FERN"
+    ],
+    "clues": [
+      "Fermentiertes alkoholisches Getränk aus Weintrauben",
+      "Gliedmaße zum Stehen, Gehen und Laufen",
+      "Possessivpronomen der zweiten Person Singular",
+      "Zart, elegant, hochwertig oder von feiner Struktur",
+      "In weiter Distanz am fernen Horizont"
+    ]
+  },
+  {
+    "id": "crossclimb-14",
+    "title": "Crossclimb #14: Luft bis Rest",
+    "words": [
+      "LUFT",
+      "LUST",
+      "LAST",
+      "RAST",
+      "REST"
+    ],
+    "clues": [
+      "Unsichtbares Gasgemisch aus Stickstoff und Sauerstoff zum Atmen",
+      "Innere Freude, Verlangen und Begeisterung",
+      "Schweres Gewicht, das getragen werden muss",
+      "Erholsame Pause während einer anstrengenden Wanderung",
+      "Der verbleibende Teil, der am Schluss noch übrig ist"
+    ]
+  }
+]

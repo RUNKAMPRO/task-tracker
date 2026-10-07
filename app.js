@@ -1,4751 +1,10231 @@
-/**
- * OrbitSuite • Integrated Productivity OS & Multi-App Framework
- * Modules: OrbitHub, OrbitTask, OrbitNotes, OrbitFocus, OrbitHabits, OrbitTools
- * Zero-dependency, offline-first client architecture with Web Audio synthesizer & Canvas Confetti.
- */
-
-(() => {
-  'use strict';
-
-  // ==========================================================================
-  // SHARED AUDIO SYNTHESIZER & AMBIENT ENGINE (Web Audio API)
-  // ==========================================================================
-  class SoundManager {
-    constructor() {
-      this.enabled = localStorage.getItem('orbitsuite_sound_enabled') !== 'false';
-      this.ctx = null;
-      this.ambientSource = null;
-      this.ambientGain = null;
-      this.currentAmbientType = 'off';
-      this.ambientVolume = 0.5;
-    }
-
-    init() {
-      if (!this.ctx && (window.AudioContext || window.webkitAudioContext)) {
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        this.ctx = new AudioCtx();
-      }
-      if (this.ctx && this.ctx.state === 'suspended') {
-        this.ctx.resume();
-      }
-    }
-
-    toggle() {
-      this.enabled = !this.enabled;
-      localStorage.setItem('orbitsuite_sound_enabled', this.enabled);
-      if (!this.enabled && this.currentAmbientType !== 'off') {
-        this.stopAmbient();
-      }
-      return this.enabled;
-    }
-
-    playPop() {
-      if (!this.enabled) return;
-      this.init();
-      if (!this.ctx) return;
-      try {
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        const now = this.ctx.currentTime;
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(480, now);
-        osc.frequency.exponentialRampToValueAtTime(960, now + 0.07);
-        gain.gain.setValueAtTime(0.12, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start(now);
-        osc.stop(now + 0.08);
-      } catch (e) { console.warn(e); }
-    }
-
-    playSuccess() {
-      if (!this.enabled) return;
-      this.init();
-      if (!this.ctx) return;
-      try {
-        const now = this.ctx.currentTime;
-        const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
-        notes.forEach((freq, idx) => {
-          const osc = this.ctx.createOscillator();
-          const gain = this.ctx.createGain();
-          const startTime = now + idx * 0.06;
-          osc.type = 'triangle';
-          osc.frequency.setValueAtTime(freq, startTime);
-          gain.gain.setValueAtTime(0.15, startTime);
-          gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.28);
-          osc.connect(gain);
-          gain.connect(this.ctx.destination);
-          osc.start(startTime);
-          osc.stop(startTime + 0.3);
-        });
-      } catch (e) { console.warn(e); }
-    }
-
-    playTrash() {
-      if (!this.enabled) return;
-      this.init();
-      if (!this.ctx) return;
-      try {
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        const now = this.ctx.currentTime;
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(260, now);
-        osc.frequency.exponentialRampToValueAtTime(110, now + 0.12);
-        gain.gain.setValueAtTime(0.1, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start(now);
-        osc.stop(now + 0.13);
-      } catch (e) { console.warn(e); }
-    }
-
-    playError() {
-      if (!this.enabled) return;
-      this.init();
-      if (!this.ctx) return;
-      try {
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        const now = this.ctx.currentTime;
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(180, now);
-        osc.frequency.exponentialRampToValueAtTime(110, now + 0.16);
-        gain.gain.setValueAtTime(0.08, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start(now);
-        osc.stop(now + 0.16);
-      } catch (e) { console.warn(e); }
-    }
-
-    playChime() {
-      if (!this.enabled) return;
-      this.init();
-      if (!this.ctx) return;
-      try {
-        const now = this.ctx.currentTime;
-        const chords = [587.33, 880.00, 1174.66, 1760.00]; // D5, A5, D6, A6
-        chords.forEach((freq, i) => {
-          const osc = this.ctx.createOscillator();
-          const gain = this.ctx.createGain();
-          const t = now + i * 0.1;
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(freq, t);
-          gain.gain.setValueAtTime(0.18, t);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
-          osc.connect(gain);
-          gain.connect(this.ctx.destination);
-          osc.start(t);
-          osc.stop(t + 1.25);
-        });
-      } catch (e) { console.warn(e); }
-    }
-
-    // --- Procedural Ambient Synthesizer ---
-    startAmbient(type, volume = 0.5) {
-      this.stopAmbient();
-      if (type === 'off' || !this.enabled) {
-        this.currentAmbientType = 'off';
-        return;
-      }
-      this.init();
-      if (!this.ctx) return;
-
-      this.currentAmbientType = type;
-      this.ambientVolume = volume;
-
-      this.ambientGain = this.ctx.createGain();
-      this.ambientGain.gain.setValueAtTime(volume * 0.15, this.ctx.currentTime);
-      this.ambientGain.connect(this.ctx.destination);
-
-      if (type === 'rain') {
-        // Procedural pink noise with low-pass filtering
-        const bufferSize = this.ctx.sampleRate * 2;
-        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-        const data = buffer.getChannelData(0);
-        let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
-        for (let i = 0; i < bufferSize; i++) {
-          const white = Math.random() * 2 - 1;
-          b0 = 0.99886 * b0 + white * 0.0555179;
-          b1 = 0.99332 * b1 + white * 0.0750759;
-          b2 = 0.96900 * b2 + white * 0.1538520;
-          b3 = 0.86650 * b3 + white * 0.3104856;
-          b4 = 0.55000 * b4 + white * 0.5329522;
-          b5 = -0.7616 * b5 - white * 0.0168980;
-          data[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.11;
-          b6 = white * 0.115926;
-        }
-        const noiseSource = this.ctx.createBufferSource();
-        noiseSource.buffer = buffer;
-        noiseSource.loop = true;
-
-        const filter = this.ctx.createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(950, this.ctx.currentTime);
-
-        noiseSource.connect(filter);
-        filter.connect(this.ambientGain);
-        noiseSource.start();
-        this.ambientSource = noiseSource;
-      } else if (type === 'zen') {
-        // Warm 432Hz meditative chord
-        const osc1 = this.ctx.createOscillator();
-        const osc2 = this.ctx.createOscillator();
-        osc1.type = 'sine';
-        osc1.frequency.setValueAtTime(216, this.ctx.currentTime); // A3
-        osc2.type = 'triangle';
-        osc2.frequency.setValueAtTime(432, this.ctx.currentTime); // A4
-
-        const filter = this.ctx.createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(600, this.ctx.currentTime);
-
-        osc1.connect(filter);
-        osc2.connect(filter);
-        filter.connect(this.ambientGain);
-        osc1.start();
-        osc2.start();
-        this.ambientSource = {
-          stop: () => {
-            try { osc1.stop(); osc2.stop(); } catch (e) {}
-          }
-        };
-      } else if (type === 'white') {
-        // Pure White Noise
-        const bufferSize = this.ctx.sampleRate * 2;
-        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-        const data = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-          data[i] = (Math.random() * 2 - 1) * 0.15;
-        }
-        const noise = this.ctx.createBufferSource();
-        noise.buffer = buffer;
-        noise.loop = true;
-        noise.connect(this.ambientGain);
-        noise.start();
-        this.ambientSource = noise;
-      }
-    }
-
-    setAmbientVolume(volume) {
-      this.ambientVolume = volume;
-      if (this.ambientGain && this.ctx) {
-        this.ambientGain.gain.setTargetAtTime(volume * 0.15, this.ctx.currentTime, 0.05);
-      }
-    }
-
-    stopAmbient() {
-      if (this.ambientSource) {
-        try { this.ambientSource.stop(); } catch (e) {}
-        this.ambientSource = null;
-      }
-      this.currentAmbientType = 'off';
-    }
-  }
-
-  // ==========================================================================
-  // SHARED CONFETTI PARTICLE SYSTEM (Canvas)
-  // ==========================================================================
-  class ConfettiManager {
-    constructor(canvasId) {
-      this.canvas = document.getElementById(canvasId);
-      this.ctx = this.canvas ? this.canvas.getContext('2d') : null;
-      this.particles = [];
-      this.animating = false;
-      this.resize();
-      window.addEventListener('resize', () => this.resize());
-    }
-
-    resize() {
-      if (!this.canvas) return;
-      this.canvas.width = window.innerWidth;
-      this.canvas.height = window.innerHeight;
-    }
-
-    fire() {
-      if (!this.canvas || !this.ctx) return;
-      const colors = ['#6366f1', '#8b5cf6', '#ec4899', '#38bdf8', '#10b981', '#f59e0b', '#f43f5e'];
-      const count = 90;
-      for (let i = 0; i < count; i++) {
-        this.particles.push({
-          x: window.innerWidth * (0.35 + Math.random() * 0.3),
-          y: window.innerHeight * 0.45,
-          vx: (Math.random() - 0.5) * 16,
-          vy: (Math.random() - 0.9) * 15 - 4,
-          size: Math.random() * 8 + 4,
-          color: colors[Math.floor(Math.random() * colors.length)],
-          rotation: Math.random() * 360,
-          rotationSpeed: (Math.random() - 0.5) * 12,
-          opacity: 1,
-          gravity: 0.35,
-          drag: 0.96
-        });
-      }
-      if (!this.animating) {
-        this.animating = true;
-        this.loop();
-      }
-    }
-
-    loop() {
-      if (!this.particles.length) {
-        this.animating = false;
-        if (this.ctx) this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        return;
-      }
-      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-      for (let i = this.particles.length - 1; i >= 0; i--) {
-        const p = this.particles[i];
-        p.vx *= p.drag;
-        p.vy = p.vy * p.drag + p.gravity;
-        p.x += p.vx;
-        p.y += p.vy;
-        p.rotation += p.rotationSpeed;
-        p.opacity -= 0.012;
-
-        if (p.opacity <= 0 || p.y > this.canvas.height + 20) {
-          this.particles.splice(i, 1);
-          continue;
-        }
-
-        this.ctx.save();
-        this.ctx.translate(p.x, p.y);
-        this.ctx.rotate((p.rotation * Math.PI) / 180);
-        this.ctx.globalAlpha = Math.max(0, p.opacity);
-        this.ctx.fillStyle = p.color;
-        this.ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
-        this.ctx.restore();
-      }
-      requestAnimationFrame(() => this.loop());
-    }
-  }
-
-  // Helper date function
-  function getTodayString(offsetDays = 0) {
-    const d = new Date();
-    d.setDate(d.getDate() + offsetDays);
-    return d.toISOString().split('T')[0];
-  }
-
-  function escapeHtml(str) {
-    if (!str) return '';
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
-  }
-
-  // ==========================================================================
-  // 1. ORBITTASK MODULE (PRO TASK & KANBAN TRACKER)
-  // ==========================================================================
-  const DEFAULT_DEMO_TASKS = [];
-
-  class OrbitTaskApp {
-    constructor(suite) {
-      this.suite = suite;
-      this.sound = suite.sound;
-      this.confetti = suite.confetti;
-      this.STORAGE_KEY = 'orbittask_tasks_v2';
-      this.tasks = this.loadTasks();
-      this.activeView = 'kanban';
-      this.searchQuery = '';
-      this.filterType = 'all';
-      this.filterVal = 'all';
-      this.selectedTag = null;
-      this.sortBy = 'createdAt-desc';
-      this.currentEditingSubtasks = [];
-      this.lastDeletedTask = null;
-
-      // DOM References
-      this.dom = {
-        tabKanban: document.getElementById('tab-kanban'),
-        tabList: document.getElementById('tab-list'),
-        tabAnalytics: document.getElementById('tab-analytics'),
-        viewKanbanPanel: document.getElementById('view-kanban-panel'),
-        viewListPanel: document.getElementById('view-list-panel'),
-        viewAnalyticsPanel: document.getElementById('view-analytics-panel'),
-        globalSearch: document.getElementById('global-search-input'),
-        clearSearchBtn: document.getElementById('clear-search-btn'),
-        filterChips: document.querySelectorAll('#controls-strip .filter-chip'),
-        tagFiltersContainer: document.getElementById('tag-filters'),
-        sortSelect: document.getElementById('sort-select'),
-        valTotalTasks: document.getElementById('val-total-tasks'),
-        valInProgress: document.getElementById('val-in-progress'),
-        valCompleted: document.getElementById('val-completed'),
-        valCompletionRate: document.getElementById('val-completion-rate'),
-        valOverdue: document.getElementById('val-overdue'),
-        colBacklog: document.getElementById('container-backlog'),
-        colTodo: document.getElementById('container-todo'),
-        colInprogress: document.getElementById('container-inprogress'),
-        colReview: document.getElementById('container-review'),
-        colDone: document.getElementById('container-done'),
-        countBacklog: document.getElementById('count-backlog'),
-        countTodo: document.getElementById('count-todo'),
-        countInprogress: document.getElementById('count-inprogress'),
-        countReview: document.getElementById('count-review'),
-        countDone: document.getElementById('count-done'),
-        listItemsBody: document.getElementById('list-items-body'),
-        radialCircle: document.getElementById('analytics-radial-circle'),
-        radialPercent: document.getElementById('analytics-radial-percent'),
-        progDetails: document.getElementById('analytics-progress-details'),
-        statusBars: document.getElementById('analytics-status-bars'),
-        priorityGrid: document.getElementById('analytics-priority-grid'),
-        catList: document.getElementById('analytics-categories-list'),
-        modal: document.getElementById('task-modal'),
-        modalTitle: document.getElementById('modal-title'),
-        modalCloseBtn: document.getElementById('modal-close-btn'),
-        modalCancelBtn: document.getElementById('btn-modal-cancel'),
-        taskForm: document.getElementById('task-form'),
-        inputFormId: document.getElementById('task-form-id'),
-        inputTitle: document.getElementById('task-input-title'),
-        inputDesc: document.getElementById('task-input-desc'),
-        inputStatus: document.getElementById('task-input-status'),
-        inputPriority: document.getElementById('task-input-priority'),
-        inputCategory: document.getElementById('task-input-category'),
-        inputDueDate: document.getElementById('task-input-duedate'),
-        subtaskInputText: document.getElementById('subtask-input-text'),
-        btnAddSubtask: document.getElementById('btn-add-subtask'),
-        modalSubtasksList: document.getElementById('modal-subtasks-list'),
-        modalSubtasksCount: document.getElementById('modal-subtasks-count'),
-        btnCreateTask: document.getElementById('btn-create-task'),
-        btnMoreOptions: document.getElementById('btn-more-options'),
-        moreOptionsMenu: document.getElementById('more-options-menu'),
-        optLoadDemo: document.getElementById('opt-load-demo'),
-        optExportJson: document.getElementById('opt-export-json'),
-        inputImportJson: document.getElementById('input-import-json'),
-        optClearAll: document.getElementById('opt-clear-all')
-      };
-
-      this.init();
-    }
-
-    init() {
-      this.bindEvents();
-      this.render();
-    }
-
-    loadTasks() {
-      try {
-        const raw = localStorage.getItem(this.STORAGE_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed)) {
-            const cleaned = parsed.filter(t => !['task-1', 'task-2', 'task-3', 'task-4', 'task-5', 'task-6'].includes(t.id));
-            if (cleaned.length !== parsed.length) {
-              this.saveTasks(cleaned);
-            }
-            return cleaned;
-          }
-        }
-      } catch (err) {
-        console.error('Error loading tasks:', err);
-      }
-      return [];
-    }
-
-    saveTasks(tasks = this.tasks) {
-      try {
-        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(tasks));
-        if (this.suite && this.suite.hubApp) {
-          this.suite.hubApp.render();
-        }
-      } catch (err) {
-        console.error('Error saving tasks:', err);
-      }
-    }
-
-    bindEvents() {
-      const tabs = [this.dom.tabKanban, this.dom.tabList, this.dom.tabAnalytics];
-      tabs.forEach(tab => {
-        if (!tab) return;
-        tab.addEventListener('click', () => {
-          tabs.forEach(t => t.classList.remove('active'));
-          tab.classList.add('active');
-          this.activeView = tab.dataset.view;
-          this.switchView(this.activeView);
-          this.sound.playPop();
-        });
-      });
-
-      document.querySelectorAll('.btn-quick-add').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const targetStatus = btn.dataset.status;
-          this.openCreateModal(targetStatus);
-        });
-      });
-
-      if (this.dom.btnCreateTask) {
-        this.dom.btnCreateTask.addEventListener('click', () => this.openCreateModal());
-      }
-      if (this.dom.modalCloseBtn) {
-        this.dom.modalCloseBtn.addEventListener('click', () => this.closeModal());
-      }
-      if (this.dom.modalCancelBtn) {
-        this.dom.modalCancelBtn.addEventListener('click', () => this.closeModal());
-      }
-      if (this.dom.modal) {
-        this.dom.modal.addEventListener('click', (e) => {
-          if (e.target === this.dom.modal) this.closeModal();
-        });
-      }
-
-      if (this.dom.btnAddSubtask) {
-        this.dom.btnAddSubtask.addEventListener('click', () => this.addModalSubtask());
-      }
-      if (this.dom.subtaskInputText) {
-        this.dom.subtaskInputText.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            this.addModalSubtask();
-          }
-        });
-      }
-
-      if (this.dom.taskForm) {
-        this.dom.taskForm.addEventListener('submit', (e) => {
-          e.preventDefault();
-          this.saveModalTask();
-        });
-      }
-
-      if (this.dom.globalSearch) {
-        this.dom.globalSearch.addEventListener('input', (e) => {
-          this.searchQuery = e.target.value.trim().toLowerCase();
-          if (this.dom.clearSearchBtn) {
-            this.dom.clearSearchBtn.style.display = this.searchQuery ? 'block' : 'none';
-          }
-          this.render();
-        });
-      }
-
-      if (this.dom.clearSearchBtn) {
-        this.dom.clearSearchBtn.addEventListener('click', () => {
-          this.dom.globalSearch.value = '';
-          this.searchQuery = '';
-          this.dom.clearSearchBtn.style.display = 'none';
-          this.render();
-        });
-      }
-
-      this.dom.filterChips.forEach(chip => {
-        chip.addEventListener('click', () => {
-          this.dom.filterChips.forEach(c => c.classList.remove('active'));
-          chip.classList.add('active');
-          this.filterType = chip.dataset.filterType;
-          this.filterVal = chip.dataset.filterVal;
-          this.sound.playPop();
-          this.render();
-        });
-      });
-
-      if (this.dom.sortSelect) {
-        this.dom.sortSelect.addEventListener('change', (e) => {
-          this.sortBy = e.target.value;
-          this.render();
-        });
-      }
-
-      if (this.dom.btnMoreOptions) {
-        this.dom.btnMoreOptions.addEventListener('click', (e) => {
-          e.stopPropagation();
-          this.dom.moreOptionsMenu.classList.toggle('hidden');
-        });
-      }
-
-      document.addEventListener('click', () => {
-        if (this.dom.moreOptionsMenu) this.dom.moreOptionsMenu.classList.add('hidden');
-      });
-
-      if (this.dom.optLoadDemo) {
-        this.dom.optLoadDemo.addEventListener('click', () => {
-          if (confirm('Möchtest du die Demo-Aufgaben zurücksetzen? Aktuelle Aufgaben werden überschrieben.')) {
-            this.tasks = [...DEFAULT_DEMO_TASKS];
-            this.saveTasks();
-            this.suite.showToast('Demo-Aufgaben erfolgreich geladen!');
-            this.render();
-            this.sound.playSuccess();
-          }
-        });
-      }
-
-      if (this.dom.optExportJson) {
-        this.dom.optExportJson.addEventListener('click', () => this.exportTasksJson());
-      }
-
-      if (this.dom.inputImportJson) {
-        this.dom.inputImportJson.addEventListener('change', (e) => {
-          const file = e.target.files[0];
-          if (file) this.importTasksJson(file);
-          e.target.value = '';
-        });
-      }
-
-      if (this.dom.optClearAll) {
-        this.dom.optClearAll.addEventListener('click', () => {
-          if (confirm('Bist du sicher? Alle Aufgaben werden unwiderruflich gelöscht!')) {
-            this.tasks = [];
-            this.saveTasks();
-            this.suite.showToast('Alle Aufgaben wurden gelöscht.', 'warning');
-            this.render();
-            this.sound.playTrash();
-          }
-        });
-      }
-
-      this.initKanbanDragDrop();
-    }
-
-    switchView(view) {
-      if (this.dom.viewKanbanPanel) this.dom.viewKanbanPanel.classList.toggle('active', view === 'kanban');
-      if (this.dom.viewListPanel) this.dom.viewListPanel.classList.toggle('active', view === 'list');
-      if (this.dom.viewAnalyticsPanel) this.dom.viewAnalyticsPanel.classList.toggle('active', view === 'analytics');
-      this.render();
-    }
-
-    initKanbanDragDrop() {
-      const columns = [
-        this.dom.colBacklog,
-        this.dom.colTodo,
-        this.dom.colInprogress,
-        this.dom.colReview,
-        this.dom.colDone
-      ];
-
-      columns.forEach(col => {
-        if (!col) return;
-        const colParent = col.closest('.kanban-column');
-        if (!colParent) return;
-
-        colParent.addEventListener('dragover', (e) => {
-          e.preventDefault();
-          e.dataTransfer.dropEffect = 'move';
-          colParent.classList.add('drag-over');
-        });
-
-        colParent.addEventListener('dragleave', (e) => {
-          if (!colParent.contains(e.relatedTarget)) {
-            colParent.classList.remove('drag-over');
-          }
-        });
-
-        colParent.addEventListener('drop', (e) => {
-          e.preventDefault();
-          colParent.classList.remove('drag-over');
-          const taskId = e.dataTransfer.getData('text/plain');
-          const newStatus = col.dataset.status;
-          if (taskId && newStatus) {
-            this.updateTaskStatus(taskId, newStatus);
-          }
-        });
-      });
-    }
-
-    updateTaskStatus(taskId, newStatus) {
-      const task = this.tasks.find(t => t.id === taskId);
-      if (!task || task.status === newStatus) return;
-
-      task.status = newStatus;
-      task.updatedAt = new Date().toISOString();
-
-      if (newStatus === 'done') {
-        if (task.subtasks) task.subtasks.forEach(s => s.completed = true);
-        this.confetti.fire();
-        this.sound.playSuccess();
-        this.suite.showToast(`Aufgabe "${task.title}" abgeschlossen! 🎉`);
-      } else {
-        this.sound.playPop();
-      }
-
-      this.saveTasks();
-      this.render();
-    }
-
-    getFilteredTasks() {
-      const todayStr = getTodayString(0);
-
-      return this.tasks.filter(task => {
-        if (this.searchQuery) {
-          const inTitle = task.title.toLowerCase().includes(this.searchQuery);
-          const inDesc = (task.description || '').toLowerCase().includes(this.searchQuery);
-          const inCat = (task.category || '').toLowerCase().includes(this.searchQuery);
-          const inSub = (task.subtasks || []).some(s => s.title.toLowerCase().includes(this.searchQuery));
-          if (!inTitle && !inDesc && !inCat && !inSub) return false;
-        }
-
-        if (this.filterType === 'priority') {
-          if (task.priority !== this.filterVal) return false;
-        } else if (this.filterType === 'time') {
-          if (this.filterVal === 'today') {
-            if (task.dueDate !== todayStr) return false;
-          } else if (this.filterVal === 'overdue') {
-            if (!task.dueDate || task.dueDate >= todayStr || task.status === 'done') return false;
-          }
-        }
-
-        if (this.selectedTag && task.category !== this.selectedTag) {
-          return false;
-        }
-
-        return true;
-      }).sort((a, b) => {
-        if (this.sortBy === 'createdAt-desc') {
-          return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
-        } else if (this.sortBy === 'dueDate-asc') {
-          if (!a.dueDate) return 1;
-          if (!b.dueDate) return -1;
-          return a.dueDate.localeCompare(b.dueDate);
-        } else if (this.sortBy === 'priority-desc') {
-          const pOrder = { urgent: 4, high: 3, medium: 2, low: 1 };
-          return (pOrder[b.priority] || 0) - (pOrder[a.priority] || 0);
-        } else if (this.sortBy === 'title-asc') {
-          return a.title.localeCompare(b.title);
-        }
-        return 0;
-      });
-    }
-
-    render() {
-      this.updateMetrics();
-      this.renderTagFilters();
-
-      if (this.activeView === 'kanban') {
-        this.renderKanban();
-      } else if (this.activeView === 'list') {
-        this.renderList();
-      } else if (this.activeView === 'analytics') {
-        this.renderAnalytics();
-      }
-    }
-
-    updateMetrics() {
-      const total = this.tasks.length;
-      const inProgress = this.tasks.filter(t => t.status === 'inprogress').length;
-      const completed = this.tasks.filter(t => t.status === 'done').length;
-      const todayStr = getTodayString(0);
-      const overdue = this.tasks.filter(t => t.dueDate && t.dueDate < todayStr && t.status !== 'done').length;
-      const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
-
-      if (this.dom.valTotalTasks) this.dom.valTotalTasks.textContent = total;
-      if (this.dom.valInProgress) this.dom.valInProgress.textContent = inProgress;
-      if (this.dom.valCompleted) this.dom.valCompleted.textContent = completed;
-      if (this.dom.valCompletionRate) this.dom.valCompletionRate.textContent = `${rate}% Quote`;
-      if (this.dom.valOverdue) this.dom.valOverdue.textContent = overdue;
-    }
-
-    renderTagFilters() {
-      if (!this.dom.tagFiltersContainer) return;
-      const categories = {};
-      this.tasks.forEach(t => {
-        if (t.category) {
-          categories[t.category] = (categories[t.category] || 0) + 1;
-        }
-      });
-
-      const catKeys = Object.keys(categories);
-      if (!catKeys.length) {
-        this.dom.tagFiltersContainer.innerHTML = '';
-        return;
-      }
-
-      this.dom.tagFiltersContainer.innerHTML = catKeys.map(cat => {
-        const isActive = this.selectedTag === cat;
-        return `
-          <button class="tag-chip ${isActive ? 'active' : ''}" data-tag="${escapeHtml(cat)}">
-            #${escapeHtml(cat)} (${categories[cat]})
-          </button>
-        `;
-      }).join('');
-
-      this.dom.tagFiltersContainer.querySelectorAll('.tag-chip').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const tag = btn.dataset.tag;
-          this.selectedTag = (this.selectedTag === tag) ? null : tag;
-          this.sound.playPop();
-          this.render();
-        });
-      });
-    }
-
-    renderKanban() {
-      const filtered = this.getFilteredTasks();
-      const columns = {
-        backlog: { el: this.dom.colBacklog, countEl: this.dom.countBacklog, items: [] },
-        todo: { el: this.dom.colTodo, countEl: this.dom.countTodo, items: [] },
-        inprogress: { el: this.dom.colInprogress, countEl: this.dom.countInprogress, items: [] },
-        review: { el: this.dom.colReview, countEl: this.dom.countReview, items: [] },
-        done: { el: this.dom.colDone, countEl: this.dom.countDone, items: [] }
-      };
-
-      filtered.forEach(task => {
-        if (columns[task.status]) {
-          columns[task.status].items.push(task);
-        } else {
-          columns.todo.items.push(task);
-        }
-      });
-
-      Object.keys(columns).forEach(statusKey => {
-        const col = columns[statusKey];
-        if (!col.el || !col.countEl) return;
-        col.countEl.textContent = col.items.length;
-
-        if (col.items.length === 0) {
-          col.el.innerHTML = `<div class="column-empty">Keine Aufgaben vorhanden</div>`;
-          return;
-        }
-
-        col.el.innerHTML = col.items.map(task => this.createKanbanCardHtml(task)).join('');
-      });
-
-      this.bindKanbanCardEvents();
-    }
-
-    createKanbanCardHtml(task) {
-      const isDone = task.status === 'done';
-      const pClass = `priority-badge ${task.priority}`;
-      const pLabel = {
-        urgent: 'Dringend',
-        high: 'Hoch',
-        medium: 'Mittel',
-        low: 'Niedrig'
-      }[task.priority] || 'Normal';
-
-      const dueInfo = this.formatDueDate(task.dueDate, isDone);
-
-      let subtasksHtml = '';
-      if (task.subtasks && task.subtasks.length > 0) {
-        const totalSubs = task.subtasks.length;
-        const doneSubs = task.subtasks.filter(s => s.completed).length;
-        const pct = Math.round((doneSubs / totalSubs) * 100);
-        subtasksHtml = `
-          <div class="task-subtasks-preview">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
-            <div class="subtasks-mini-bar">
-              <div class="subtasks-mini-fill" style="width: ${pct}%"></div>
-            </div>
-          </div>
-        `;
-      }
-
-      return `
-        <div class="task-card ${isDone ? 'is-done' : ''}" draggable="true" data-id="${task.id}" id="card-${task.id}">
-          <div class="task-card-header">
-            <div class="card-badges">
-              <span class="${pClass}">
-                <span class="priority-badge-dot"></span>
-                ${pLabel}
-              </span>
-              ${task.category ? `<span class="category-badge">${escapeHtml(task.category)}</span>` : ''}
-            </div>
-            <button class="card-actions-btn" data-action="edit" title="Aufgabe bearbeiten" aria-label="Bearbeiten">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-            </button>
-          </div>
-
-          <h4 class="task-card-title">${escapeHtml(task.title)}</h4>
-          ${task.description ? `<p class="task-card-desc">${escapeHtml(task.description)}</p>` : ''}
-
-          ${subtasksHtml}
-
-          <div class="task-card-footer">
-            <div class="due-date-pill ${dueInfo.className}">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-              <span>${dueInfo.text}</span>
-            </div>
-
-            <button class="quick-check-btn" data-action="toggle-done" title="${isDone ? 'Als unerledigt markieren' : 'Als erledigt markieren'}" aria-label="Status umschalten">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-            </button>
-          </div>
-        </div>
-      `;
-    }
-
-    bindKanbanCardEvents() {
-      document.querySelectorAll('.task-card').forEach(card => {
-        const taskId = card.dataset.id;
-
-        card.addEventListener('dragstart', (e) => {
-          card.classList.add('dragging');
-          e.dataTransfer.setData('text/plain', taskId);
-          e.dataTransfer.effectAllowed = 'move';
-        });
-
-        card.addEventListener('dragend', () => {
-          card.classList.remove('dragging');
-        });
-
-        card.addEventListener('click', (e) => {
-          if (e.target.closest('button')) return;
-          this.openEditModal(taskId);
-        });
-
-        const editBtn = card.querySelector('[data-action="edit"]');
-        if (editBtn) {
-          editBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.openEditModal(taskId);
-          });
-        }
-
-        const checkBtn = card.querySelector('[data-action="toggle-done"]');
-        if (checkBtn) {
-          checkBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.toggleTaskCompletion(taskId);
-          });
-        }
-      });
-    }
-
-    renderList() {
-      if (!this.dom.listItemsBody) return;
-      const filtered = this.getFilteredTasks();
-
-      if (!filtered.length) {
-        this.dom.listItemsBody.innerHTML = `
-          <div style="padding: 40px; text-align: center; color: var(--text-dim);">
-            Keine Aufgaben entsprechen den aktuellen Kriterien.
-          </div>
-        `;
-        return;
-      }
-
-      this.dom.listItemsBody.innerHTML = filtered.map(task => {
-        const isDone = task.status === 'done';
-        const dueInfo = this.formatDueDate(task.dueDate, isDone);
-        const pLabel = {
-          urgent: '🚨 Dringend',
-          high: '🔥 Hoch',
-          medium: '⚡ Mittel',
-          low: '🌱 Niedrig'
-        }[task.priority] || 'Normal';
-
-        const totalSubs = task.subtasks ? task.subtasks.length : 0;
-        const doneSubs = task.subtasks ? task.subtasks.filter(s => s.completed).length : 0;
-        const subLabel = totalSubs > 0 ? `${doneSubs}/${totalSubs} fertig` : '—';
-
-        return `
-          <div class="list-row ${isDone ? 'is-done' : ''}" data-id="${task.id}">
-            <div class="list-check-col">
-              <input type="checkbox" class="list-checkbox" ${isDone ? 'checked' : ''} data-id="${task.id}" title="Erledigt umschalten">
-            </div>
-
-            <div class="list-title-col">
-              <span class="list-title" data-id="${task.id}">${escapeHtml(task.title)}</span>
-              ${task.description ? `<span class="list-desc">${escapeHtml(task.description)}</span>` : ''}
-            </div>
-
-            <div class="list-category-col">
-              ${task.category ? `<span class="category-badge">${escapeHtml(task.category)}</span>` : '<span style="color:var(--text-dim)">—</span>'}
-            </div>
-
-            <div class="list-priority-col">
-              <span class="priority-badge ${task.priority}">${pLabel}</span>
-            </div>
-
-            <div class="list-due-col">
-              <span class="due-date-pill ${dueInfo.className}">${dueInfo.text}</span>
-            </div>
-
-            <div class="list-subtasks-col" style="font-size:0.8rem; color:var(--text-muted);">
-              ${subLabel}
-            </div>
-
-            <div class="list-actions">
-              <button class="list-action-btn" data-action="edit" data-id="${task.id}" title="Bearbeiten">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-              </button>
-              <button class="list-action-btn delete" data-action="delete" data-id="${task.id}" title="Löschen">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-              </button>
-            </div>
-          </div>
-        `;
-      }).join('');
-
-      this.dom.listItemsBody.querySelectorAll('.list-checkbox').forEach(cb => {
-        cb.addEventListener('change', () => this.toggleTaskCompletion(cb.dataset.id));
-      });
-
-      this.dom.listItemsBody.querySelectorAll('.list-title').forEach(title => {
-        title.addEventListener('click', () => this.openEditModal(title.dataset.id));
-      });
-
-      this.dom.listItemsBody.querySelectorAll('[data-action="edit"]').forEach(btn => {
-        btn.addEventListener('click', () => this.openEditModal(btn.dataset.id));
-      });
-
-      this.dom.listItemsBody.querySelectorAll('[data-action="delete"]').forEach(btn => {
-        btn.addEventListener('click', () => this.deleteTask(btn.dataset.id));
-      });
-    }
-
-    renderAnalytics() {
-      if (!this.dom.radialCircle) return;
-      const total = this.tasks.length;
-      const completed = this.tasks.filter(t => t.status === 'done').length;
-      const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
-
-      const maxCircumference = 408.4;
-      const strokeOffset = maxCircumference - (rate / 100) * maxCircumference;
-      this.dom.radialCircle.style.strokeDashoffset = strokeOffset;
-      this.dom.radialPercent.textContent = `${rate}%`;
-
-      const inProg = this.tasks.filter(t => t.status === 'inprogress').length;
-      this.dom.progDetails.innerHTML = `
-        <div class="prog-stat-item">
-          <span class="prog-stat-val" style="color:#818cf8;">${total}</span>
-          <span class="prog-stat-label">Gesamt</span>
-        </div>
-        <div class="prog-stat-item">
-          <span class="prog-stat-val" style="color:#f59e0b;">${inProg}</span>
-          <span class="prog-stat-label">Aktiv</span>
-        </div>
-        <div class="prog-stat-item">
-          <span class="prog-stat-val" style="color:#10b981;">${completed}</span>
-          <span class="prog-stat-label">Fertig</span>
-        </div>
-      `;
-
-      const statuses = [
-        { key: 'backlog', label: 'Backlog', color: '#94a3b8' },
-        { key: 'todo', label: 'Zu erledigen', color: '#38bdf8' },
-        { key: 'inprogress', label: 'In Bearbeitung', color: '#f59e0b' },
-        { key: 'review', label: 'Prüfung', color: '#a855f7' },
-        { key: 'done', label: 'Erledigt', color: '#10b981' }
-      ];
-
-      this.dom.statusBars.innerHTML = statuses.map(st => {
-        const count = this.tasks.filter(t => t.status === st.key).length;
-        const pct = total > 0 ? Math.round((count / total) * 100) : 0;
-        return `
-          <div class="status-bar-row">
-            <div class="bar-meta">
-              <span style="color:${st.color};">${st.label}</span>
-              <span style="color:var(--text-muted);">${count} (${pct}%)</span>
-            </div>
-            <div class="bar-track">
-              <div class="bar-fill" style="width:${pct}%; background:${st.color};"></div>
-            </div>
-          </div>
-        `;
-      }).join('');
-
-      const priorities = [
-        { key: 'urgent', name: 'Dringend', color: '#f43f5e' },
-        { key: 'high', name: 'Hoch', color: '#f97316' },
-        { key: 'medium', name: 'Mittel', color: '#eab308' },
-        { key: 'low', name: 'Niedrig', color: '#10b981' }
-      ];
-
-      this.dom.priorityGrid.innerHTML = priorities.map(pr => {
-        const count = this.tasks.filter(t => t.priority === pr.key).length;
-        return `
-          <div class="priority-box">
-            <div class="priority-box-info">
-              <span class="priority-box-name">${pr.name}</span>
-              <span class="priority-box-count">${count}</span>
-            </div>
-            <span class="priority-box-indicator" style="background:${pr.color}; box-shadow: 0 0 10px ${pr.color};"></span>
-          </div>
-        `;
-      }).join('');
-
-      const catCounts = {};
-      this.tasks.forEach(t => {
-        const cat = t.category || 'Ohne Kategorie';
-        catCounts[cat] = (catCounts[cat] || 0) + 1;
-      });
-
-      const catListHtml = Object.keys(catCounts).map(cat => {
-        const count = catCounts[cat];
-        const doneCount = this.tasks.filter(t => (t.category || 'Ohne Kategorie') === cat && t.status === 'done').length;
-        return `
-          <div class="category-row">
-            <div class="cat-row-name">
-              <span style="color:#818cf8;">📁</span>
-              <span>${escapeHtml(cat)}</span>
-            </div>
-            <div class="cat-row-stats">
-              <span>${doneCount}/${count} erledigt</span>
-              <span class="cat-count-badge">${count}</span>
-            </div>
-          </div>
-        `;
-      }).join('');
-
-      this.dom.catList.innerHTML = catListHtml || '<div style="color:var(--text-dim); text-align:center;">Keine Kategorien vorhanden.</div>';
-    }
-
-    openCreateModal(defaultStatus = 'todo') {
-      if (!this.dom.modal) return;
-      this.dom.modalTitle.textContent = 'Neue Aufgabe erstellen';
-      this.dom.inputFormId.value = '';
-      this.dom.taskForm.reset();
-      this.dom.inputStatus.value = defaultStatus;
-      this.dom.inputPriority.value = 'medium';
-      this.currentEditingSubtasks = [];
-      this.renderModalSubtasks();
-      this.dom.modal.classList.remove('hidden');
-      setTimeout(() => this.dom.inputTitle && this.dom.inputTitle.focus(), 50);
-      this.sound.playPop();
-    }
-
-    openEditModal(taskId) {
-      const task = this.tasks.find(t => t.id === taskId);
-      if (!task || !this.dom.modal) return;
-
-      this.dom.modalTitle.textContent = 'Aufgabe bearbeiten';
-      this.dom.inputFormId.value = task.id;
-      this.dom.inputTitle.value = task.title;
-      this.dom.inputDesc.value = task.description || '';
-      this.dom.inputStatus.value = task.status;
-      this.dom.inputPriority.value = task.priority;
-      this.dom.inputCategory.value = task.category || '';
-      this.dom.inputDueDate.value = task.dueDate || '';
-
-      this.currentEditingSubtasks = task.subtasks ? JSON.parse(JSON.stringify(task.subtasks)) : [];
-      this.renderModalSubtasks();
-
-      this.dom.modal.classList.remove('hidden');
-      setTimeout(() => this.dom.inputTitle && this.dom.inputTitle.focus(), 50);
-      this.sound.playPop();
-    }
-
-    closeModal() {
-      if (!this.dom.modal) return;
-      this.dom.modal.classList.add('hidden');
-      this.dom.taskForm.reset();
-      this.currentEditingSubtasks = [];
-    }
-
-    addModalSubtask() {
-      const title = this.dom.subtaskInputText.value.trim();
-      if (!title) return;
-
-      this.currentEditingSubtasks.push({
-        id: 'sub-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
-        title: title,
-        completed: false
-      });
-
-      this.dom.subtaskInputText.value = '';
-      this.renderModalSubtasks();
-      this.sound.playPop();
-    }
-
-    renderModalSubtasks() {
-      const count = this.currentEditingSubtasks.length;
-      if (this.dom.modalSubtasksCount) {
-        this.dom.modalSubtasksCount.textContent = `${count} ${count === 1 ? 'Aufgabe' : 'Aufgaben'}`;
-      }
-
-      if (!count) {
-        this.dom.modalSubtasksList.innerHTML = '<div style="font-size:0.78rem; color:var(--text-dim); padding:6px 0;">Keine Teilaufgaben definiert.</div>';
-        return;
-      }
-
-      this.dom.modalSubtasksList.innerHTML = this.currentEditingSubtasks.map((sub, idx) => `
-        <div class="subtask-item">
-          <div class="subtask-item-left">
-            <input type="checkbox" class="subtask-cb" data-idx="${idx}" ${sub.completed ? 'checked' : ''}>
-            <span class="subtask-item-title ${sub.completed ? 'done' : ''}">${escapeHtml(sub.title)}</span>
-          </div>
-          <button type="button" class="subtask-item-remove" data-idx="${idx}" title="Entfernen">✕</button>
-        </div>
-      `).join('');
-
-      this.dom.modalSubtasksList.querySelectorAll('.subtask-cb').forEach(cb => {
-        cb.addEventListener('change', () => {
-          const idx = parseInt(cb.dataset.idx, 10);
-          this.currentEditingSubtasks[idx].completed = cb.checked;
-          this.renderModalSubtasks();
-        });
-      });
-
-      this.dom.modalSubtasksList.querySelectorAll('.subtask-item-remove').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const idx = parseInt(btn.dataset.idx, 10);
-          this.currentEditingSubtasks.splice(idx, 1);
-          this.renderModalSubtasks();
-        });
-      });
-    }
-
-    saveModalTask() {
-      const formId = this.dom.inputFormId.value;
-      const title = this.dom.inputTitle.value.trim();
-      if (!title) return;
-
-      const desc = this.dom.inputDesc.value.trim();
-      const status = this.dom.inputStatus.value;
-      const priority = this.dom.inputPriority.value;
-      const category = this.dom.inputCategory.value.trim();
-      const dueDate = this.dom.inputDueDate.value || null;
-
-      if (formId) {
-        const task = this.tasks.find(t => t.id === formId);
-        if (task) {
-          task.title = title;
-          task.description = desc;
-          task.status = status;
-          task.priority = priority;
-          task.category = category;
-          task.dueDate = dueDate;
-          task.subtasks = [...this.currentEditingSubtasks];
-          task.updatedAt = new Date().toISOString();
-          this.suite.showToast(`Aufgabe "${title}" aktualisiert!`);
-        }
-      } else {
-        const newTask = {
-          id: 'task-' + Date.now(),
-          title: title,
-          description: desc,
-          status: status,
-          priority: priority,
-          category: category,
-          dueDate: dueDate,
-          subtasks: [...this.currentEditingSubtasks],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-        this.tasks.unshift(newTask);
-        this.suite.showToast(`Neue Aufgabe "${title}" erstellt! 🚀`);
-      }
-
-      this.saveTasks();
-      this.closeModal();
-      this.render();
-      this.sound.playSuccess();
-    }
-
-    toggleTaskCompletion(taskId) {
-      const task = this.tasks.find(t => t.id === taskId);
-      if (!task) return;
-
-      if (task.status === 'done') {
-        task.status = 'todo';
-        if (task.subtasks) task.subtasks.forEach(s => s.completed = false);
-        this.sound.playPop();
-        this.suite.showToast(`Aufgabe wieder auf "Zu erledigen" gesetzt.`);
-      } else {
-        task.status = 'done';
-        if (task.subtasks) task.subtasks.forEach(s => s.completed = true);
-        this.confetti.fire();
-        this.sound.playSuccess();
-        this.suite.showToast(`Aufgabe "${task.title}" abgeschlossen! 🎉`);
-      }
-
-      task.updatedAt = new Date().toISOString();
-      this.saveTasks();
-      this.render();
-    }
-
-    deleteTask(taskId) {
-      const idx = this.tasks.findIndex(t => t.id === taskId);
-      if (idx === -1) return;
-
-      const deleted = this.tasks.splice(idx, 1)[0];
-      this.lastDeletedTask = { task: deleted, index: idx };
-      this.saveTasks();
-      this.sound.playTrash();
-      this.render();
-      this.suite.showToast(`Aufgabe "${deleted.title}" gelöscht.`);
-    }
-
-    exportTasksJson() {
-      const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(this.tasks, null, 2));
-      const downloadAnchor = document.createElement('a');
-      downloadAnchor.setAttribute('href', dataStr);
-      downloadAnchor.setAttribute('download', `orbittask-backup-${getTodayString(0)}.json`);
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      downloadAnchor.remove();
-      this.suite.showToast('Daten erfolgreich als JSON exportiert!');
-    }
-
-    importTasksJson(file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const imported = JSON.parse(e.target.result);
-          if (Array.isArray(imported)) {
-            this.tasks = imported;
-            this.saveTasks();
-            this.suite.showToast(`${imported.length} Aufgaben erfolgreich importiert!`);
-            this.render();
-            this.sound.playSuccess();
-          } else {
-            alert('Ungültiges Format: Die JSON-Datei muss ein Array von Aufgaben enthalten.');
-          }
-        } catch (err) {
-          alert('Fehler beim Lesen der JSON-Datei: ' + err.message);
-        }
-      };
-      reader.readAsText(file);
-    }
-
-    formatDueDate(dueDateStr, isDone) {
-      if (!dueDateStr) return { text: 'Keine Fälligkeit', className: 'upcoming' };
-      const todayStr = getTodayString(0);
-      const tomorrowStr = getTodayString(1);
-
-      if (isDone) {
-        return { text: dueDateStr, className: 'upcoming' };
-      }
-
-      if (dueDateStr < todayStr) {
-        return { text: `Überfällig (${dueDateStr})`, className: 'overdue' };
-      } else if (dueDateStr === todayStr) {
-        return { text: 'Heute fällig', className: 'today' };
-      } else if (dueDateStr === tomorrowStr) {
-        return { text: 'Morgen fällig', className: 'upcoming' };
-      }
-      return { text: dueDateStr, className: 'upcoming' };
-    }
-  }
-
-  // ==========================================================================
-  // 2. ORBITNOTES MODULE (RICH QUICK-NOTES & MARKDOWN)
-  // ==========================================================================
-  const DEFAULT_DEMO_NOTES = [];
-
-  class OrbitNotesApp {
-    constructor(suite) {
-      this.suite = suite;
-      this.STORAGE_KEY = 'orbitsuite_notes_v1';
-      this.notes = this.loadNotes();
-      this.activeFilter = 'all';
-      this.searchQuery = '';
-
-      this.dom = {
-        searchInput: document.getElementById('notes-search-input'),
-        btnCreateNote: document.getElementById('btn-create-note'),
-        cardsContainer: document.getElementById('notes-cards-container'),
-        countSummary: document.getElementById('notes-count-summary'),
-        filterChips: document.querySelectorAll('.notes-filter-chip'),
-        modal: document.getElementById('note-modal'),
-        modalTitle: document.getElementById('note-modal-title'),
-        modalClose: document.getElementById('note-modal-close'),
-        form: document.getElementById('note-form'),
-        formId: document.getElementById('note-form-id'),
-        inputTitle: document.getElementById('note-input-title'),
-        inputContent: document.getElementById('note-input-content'),
-        inputCategory: document.getElementById('note-input-category'),
-        inputPinned: document.getElementById('note-input-pinned'),
-        btnCancel: document.getElementById('btn-note-cancel')
-      };
-
-      this.init();
-    }
-
-    init() {
-      this.bindEvents();
-      this.render();
-    }
-
-    loadNotes() {
-      try {
-        const raw = localStorage.getItem(this.STORAGE_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed)) {
-            const cleaned = parsed.filter(n => !['note-1', 'note-2', 'note-3', 'note-4'].includes(n.id));
-            if (cleaned.length !== parsed.length) {
-              this.saveNotes(cleaned);
-            }
-            return cleaned;
-          }
-        }
-      } catch (e) { console.warn(e); }
-      return [];
-    }
-
-    saveNotes(notes = this.notes) {
-      try {
-        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(notes));
-        if (this.suite && this.suite.hubApp) {
-          this.suite.hubApp.render();
-        }
-      } catch (e) { console.warn(e); }
-    }
-
-    bindEvents() {
-      if (this.dom.btnCreateNote) {
-        this.dom.btnCreateNote.addEventListener('click', () => this.openCreateModal());
-      }
-      if (this.dom.modalClose) {
-        this.dom.modalClose.addEventListener('click', () => this.closeModal());
-      }
-      if (this.dom.btnCancel) {
-        this.dom.btnCancel.addEventListener('click', () => this.closeModal());
-      }
-      if (this.dom.modal) {
-        this.dom.modal.addEventListener('click', (e) => {
-          if (e.target === this.dom.modal) this.closeModal();
-        });
-      }
-      if (this.dom.form) {
-        this.dom.form.addEventListener('submit', (e) => {
-          e.preventDefault();
-          this.saveModalNote();
-        });
-      }
-
-      if (this.dom.searchInput) {
-        this.dom.searchInput.addEventListener('input', (e) => {
-          this.searchQuery = e.target.value.trim().toLowerCase();
-          this.render();
-        });
-      }
-
-      this.dom.filterChips.forEach(chip => {
-        chip.addEventListener('click', () => {
-          this.dom.filterChips.forEach(c => c.classList.remove('active'));
-          chip.classList.add('active');
-          this.activeFilter = chip.dataset.category;
-          this.suite.sound.playPop();
-          this.render();
-        });
-      });
-    }
-
-    openCreateModal() {
-      if (!this.dom.modal) return;
-      this.dom.modalTitle.textContent = 'Neue Notiz erstellen';
-      this.dom.formId.value = '';
-      this.dom.form.reset();
-      this.dom.modal.classList.remove('hidden');
-      setTimeout(() => this.dom.inputTitle && this.dom.inputTitle.focus(), 50);
-      this.suite.sound.playPop();
-    }
-
-    openEditModal(noteId) {
-      const note = this.notes.find(n => n.id === noteId);
-      if (!note || !this.dom.modal) return;
-
-      this.dom.modalTitle.textContent = 'Notiz bearbeiten';
-      this.dom.formId.value = note.id;
-      this.dom.inputTitle.value = note.title;
-      this.dom.inputContent.value = note.content;
-      this.dom.inputCategory.value = note.category;
-      this.dom.inputPinned.checked = !!note.pinned;
-
-      this.dom.modal.classList.remove('hidden');
-      setTimeout(() => this.dom.inputTitle && this.dom.inputTitle.focus(), 50);
-      this.suite.sound.playPop();
-    }
-
-    closeModal() {
-      if (!this.dom.modal) return;
-      this.dom.modal.classList.add('hidden');
-      this.dom.form.reset();
-    }
-
-    saveModalNote() {
-      const id = this.dom.formId.value;
-      const title = this.dom.inputTitle.value.trim();
-      const content = this.dom.inputContent.value.trim();
-      const category = this.dom.inputCategory.value;
-      const pinned = this.dom.inputPinned.checked;
-
-      if (!title) return;
-
-      if (id) {
-        const note = this.notes.find(n => n.id === id);
-        if (note) {
-          note.title = title;
-          note.content = content;
-          note.category = category;
-          note.pinned = pinned;
-          note.updatedAt = new Date().toISOString();
-          this.suite.showToast(`Notiz "${title}" aktualisiert!`);
-        }
-      } else {
-        const newNote = {
-          id: 'note-' + Date.now(),
-          title: title,
-          content: content,
-          category: category,
-          pinned: pinned,
-          createdAt: new Date().toISOString()
-        };
-        this.notes.unshift(newNote);
-        this.suite.showToast(`Notiz "${title}" gespeichert! 📝`);
-      }
-
-      this.saveNotes();
-      this.closeModal();
-      this.render();
-      this.suite.sound.playSuccess();
-    }
-
-    togglePin(noteId) {
-      const note = this.notes.find(n => n.id === noteId);
-      if (!note) return;
-      note.pinned = !note.pinned;
-      this.saveNotes();
-      this.suite.sound.playPop();
-      this.render();
-    }
-
-    deleteNote(noteId) {
-      const idx = this.notes.findIndex(n => n.id === noteId);
-      if (idx === -1) return;
-      const deleted = this.notes.splice(idx, 1)[0];
-      this.saveNotes();
-      this.suite.sound.playTrash();
-      this.suite.showToast(`Notiz "${deleted.title}" gelöscht.`);
-      this.render();
-    }
-
-    copyNote(noteId) {
-      const note = this.notes.find(n => n.id === noteId);
-      if (!note) return;
-      navigator.clipboard.writeText(`${note.title}\n\n${note.content}`).then(() => {
-        this.suite.showToast('In Zwischenablage kopiert! 📋');
-        this.suite.sound.playPop();
-      });
-    }
-
-    renderMarkdown(text) {
-      if (!text) return '';
-      let escaped = escapeHtml(text);
-      // Code blocks
-      escaped = escaped.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
-      // Inline code
-      escaped = escaped.replace(/`([^`]+)`/g, '<code>$1</code>');
-      // Bold
-      escaped = escaped.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-      // Italic
-      escaped = escaped.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-      // Headings
-      escaped = escaped.replace(/^### (.*$)/gim, '<h4 style="color:#fff; margin:6px 0;">$1</h4>');
-      escaped = escaped.replace(/^## (.*$)/gim, '<h3 style="color:#fff; margin:8px 0;">$1</h3>');
-      escaped = escaped.replace(/^# (.*$)/gim, '<h2 style="color:#fff; margin:10px 0;">$1</h2>');
-      // Lists
-      escaped = escaped.replace(/^- (.*$)/gim, '• $1');
-      return escaped;
-    }
-
-    render() {
-      if (!this.dom.cardsContainer) return;
-
-      const filtered = this.notes.filter(n => {
-        if (this.activeFilter !== 'all' && n.category !== this.activeFilter) return false;
-        if (this.searchQuery) {
-          const inTitle = n.title.toLowerCase().includes(this.searchQuery);
-          const inContent = n.content.toLowerCase().includes(this.searchQuery);
-          if (!inTitle && !inContent) return false;
-        }
-        return true;
-      }).sort((a, b) => {
-        if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
-        return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
-      });
-
-      if (this.dom.countSummary) {
-        this.dom.countSummary.textContent = `${filtered.length} Notizen angezeigt (${this.notes.filter(n=>n.pinned).length} angeheftet)`;
-      }
-
-      if (!filtered.length) {
-        this.dom.cardsContainer.innerHTML = `
-          <div style="grid-column: 1 / -1; padding: 50px; text-align: center; color: var(--text-dim);">
-            Keine Notizen gefunden. Klicke auf "+ Neue Notiz", um deine Gedanken festzuhalten!
-          </div>
-        `;
-        return;
-      }
-
-      this.dom.cardsContainer.innerHTML = filtered.map(note => {
-        const dateStr = note.createdAt ? note.createdAt.split('T')[0] : '';
-        return `
-          <div class="note-card ${note.pinned ? 'pinned' : ''}" data-id="${note.id}">
-            <div class="note-card-top">
-              <span class="note-tag-badge tag-${note.category}">${note.category}</span>
-              <button class="note-pin-btn ${note.pinned ? 'pinned' : ''}" data-action="pin" title="${note.pinned ? 'Lösen' : 'Anheften'}">
-                📌
-              </button>
-            </div>
-
-            <h3 class="note-title">${escapeHtml(note.title)}</h3>
-            <div class="note-content-preview">${this.renderMarkdown(note.content)}</div>
-
-            <div class="note-card-footer">
-              <span>${dateStr}</span>
-              <div class="note-card-actions">
-                <button class="note-action-btn" data-action="copy" title="Kopieren">Kopieren</button>
-                <button class="note-action-btn" data-action="edit" title="Bearbeiten">Edit</button>
-                <button class="note-action-btn" data-action="delete" title="Löschen">✕</button>
-              </div>
-            </div>
-          </div>
-        `;
-      }).join('');
-
-      // Event listeners on cards
-      this.dom.cardsContainer.querySelectorAll('.note-card').forEach(card => {
-        const id = card.dataset.id;
-        const pinBtn = card.querySelector('[data-action="pin"]');
-        const copyBtn = card.querySelector('[data-action="copy"]');
-        const editBtn = card.querySelector('[data-action="edit"]');
-        const delBtn = card.querySelector('[data-action="delete"]');
-
-        if (pinBtn) pinBtn.addEventListener('click', () => this.togglePin(id));
-        if (copyBtn) copyBtn.addEventListener('click', () => this.copyNote(id));
-        if (editBtn) editBtn.addEventListener('click', () => this.openEditModal(id));
-        if (delBtn) delBtn.addEventListener('click', () => this.deleteNote(id));
-      });
-    }
-  }
-
-  // ==========================================================================
-  // 3. ORBITFOCUS MODULE (POMODORO & FLOW STATE TIMER + AMBIENT SOUND)
-  // ==========================================================================
-  class OrbitFocusApp {
-    constructor(suite) {
-      this.suite = suite;
-      this.mode = 'pomodoro'; // pomodoro, short-break, long-break
-      this.durations = {
-        'pomodoro': 25 * 60,
-        'short-break': 5 * 60,
-        'long-break': 15 * 60
-      };
-      this.timeLeft = this.durations['pomodoro'];
-      this.isRunning = false;
-      this.timerId = null;
-      this.completedSessions = parseInt(localStorage.getItem('orbitsuite_focus_sessions') || '0', 10);
-      this.totalMinutes = parseInt(localStorage.getItem('orbitsuite_focus_minutes') || '0', 10);
-
-      this.dom = {
-        modeTabs: document.querySelectorAll('#focus-mode-tabs .focus-tab'),
-        sessionsBadge: document.getElementById('focus-sessions-count'),
-        countdownDisplay: document.getElementById('focus-countdown-display'),
-        statusLabel: document.getElementById('focus-status-label'),
-        subLabel: document.getElementById('focus-sub-label'),
-        ringProgress: document.getElementById('focus-ring-progress'),
-        btnToggle: document.getElementById('focus-btn-toggle'),
-        btnReset: document.getElementById('focus-btn-reset'),
-        btnSkip: document.getElementById('focus-btn-skip'),
-        playIcon: document.getElementById('focus-play-icon'),
-        pauseIcon: document.getElementById('focus-pause-icon'),
-        ambientButtons: document.querySelectorAll('.ambient-sound-btn'),
-        ambientVolume: document.getElementById('ambient-volume')
-      };
-
-      this.init();
-    }
-
-    init() {
-      this.bindEvents();
-      this.updateDisplay();
-    }
-
-    bindEvents() {
-      this.dom.modeTabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-          this.setMode(tab.dataset.mode);
-        });
-      });
-
-      if (this.dom.btnToggle) {
-        this.dom.btnToggle.addEventListener('click', () => this.toggle());
-      }
-      if (this.dom.btnReset) {
-        this.dom.btnReset.addEventListener('click', () => this.reset());
-      }
-      if (this.dom.btnSkip) {
-        this.dom.btnSkip.addEventListener('click', () => this.skip());
-      }
-
-      // Spacebar shortcut in Focus View
-      window.addEventListener('keydown', (e) => {
-        if (e.code === 'Space' && this.suite.activeApp === 'focus' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
-          e.preventDefault();
-          this.toggle();
-        }
-      });
-
-      // Ambient Soundscape buttons
-      this.dom.ambientButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-          this.dom.ambientButtons.forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          const sound = btn.dataset.sound;
-          const vol = this.dom.ambientVolume ? parseFloat(this.dom.ambientVolume.value) : 0.5;
-          this.suite.sound.startAmbient(sound, vol);
-        });
-      });
-
-      if (this.dom.ambientVolume) {
-        this.dom.ambientVolume.addEventListener('input', (e) => {
-          this.suite.sound.setAmbientVolume(parseFloat(e.target.value));
-        });
-      }
-    }
-
-    setMode(newMode) {
-      this.pause();
-      this.mode = newMode;
-      this.timeLeft = this.durations[newMode] || 25 * 60;
-
-      this.dom.modeTabs.forEach(t => t.classList.toggle('active', t.dataset.mode === newMode));
-
-      const labels = {
-        'pomodoro': { title: 'FOKUS-ZEIT', sub: 'Bereit für maximale Konzentration' },
-        'short-break': { title: 'KURZE PAUSE', sub: 'Durchatmen, Augen entspannen, Wasser trinken' },
-        'long-break': { title: 'LANGE PAUSE', sub: 'Erfrischen, Bewegung & Dehnen' }
-      };
-
-      if (this.dom.statusLabel) this.dom.statusLabel.textContent = labels[newMode].title;
-      if (this.dom.subLabel) this.dom.subLabel.textContent = labels[newMode].sub;
-
-      this.suite.sound.playPop();
-      this.updateDisplay();
-    }
-
-    toggle() {
-      if (this.isRunning) {
-        this.pause();
-      } else {
-        this.start();
-      }
-    }
-
-    start() {
-      this.isRunning = true;
-      if (this.dom.playIcon) this.dom.playIcon.classList.add('hidden');
-      if (this.dom.pauseIcon) this.dom.pauseIcon.classList.remove('hidden');
-
-      this.suite.sound.init();
-      this.suite.sound.playPop();
-
-      clearInterval(this.timerId);
-      this.timerId = setInterval(() => {
-        if (this.timeLeft > 0) {
-          this.timeLeft--;
-          this.updateDisplay();
-        } else {
-          this.complete();
-        }
-      }, 1000);
-    }
-
-    pause() {
-      this.isRunning = false;
-      clearInterval(this.timerId);
-      if (this.dom.playIcon) this.dom.playIcon.classList.remove('hidden');
-      if (this.dom.pauseIcon) this.dom.pauseIcon.classList.add('hidden');
-    }
-
-    reset() {
-      this.pause();
-      this.timeLeft = this.durations[this.mode];
-      this.updateDisplay();
-      this.suite.sound.playPop();
-    }
-
-    skip() {
-      this.pause();
-      if (this.mode === 'pomodoro') {
-        this.setMode('short-break');
-      } else {
-        this.setMode('pomodoro');
-      }
-    }
-
-    complete() {
-      this.pause();
-      this.suite.sound.playChime();
-      this.suite.confetti.fire();
-
-      if (this.mode === 'pomodoro') {
-        this.completedSessions++;
-        this.totalMinutes += Math.round(this.durations['pomodoro'] / 60);
-        localStorage.setItem('orbitsuite_focus_sessions', this.completedSessions);
-        localStorage.setItem('orbitsuite_focus_minutes', this.totalMinutes);
-
-        this.suite.showToast(`Pomodoro Session erfolgreich abgeschlossen! 🎉 Zeit für eine Pause.`, 'info');
-        this.setMode('short-break');
-      } else {
-        this.suite.showToast(`Pause beendet! Bereit für den nächsten Fokus-Block? ⚡`, 'info');
-        this.setMode('pomodoro');
-      }
-
-      if (this.suite && this.suite.hubApp) {
-        this.suite.hubApp.render();
-      }
-    }
-
-    updateDisplay() {
-      const mins = Math.floor(this.timeLeft / 60);
-      const secs = this.timeLeft % 60;
-      const displayStr = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-
-      if (this.dom.countdownDisplay) {
-        this.dom.countdownDisplay.textContent = displayStr;
-      }
-
-      // Ring progress calculation (Circumference 2 * PI * 140 ≈ 879.6)
-      if (this.dom.ringProgress) {
-        const total = this.durations[this.mode];
-        const fraction = (total - this.timeLeft) / total;
-        const maxOffset = 879.6;
-        this.dom.ringProgress.style.strokeDashoffset = maxOffset * (1 - fraction);
-      }
-
-      if (this.dom.sessionsBadge) {
-        this.dom.sessionsBadge.textContent = `🍅 ${this.completedSessions % 4} / 4 Sessions heute`;
-      }
-    }
-  }
-
-  // ==========================================================================
-  // 4. ORBITHABITS MODULE (DAILY HABIT & STREAK TRACKER)
-  // ==========================================================================
-  const DEFAULT_DEMO_HABITS = [];
-
-  class OrbitHabitsApp {
-    constructor(suite) {
-      this.suite = suite;
-      this.STORAGE_KEY = 'orbitsuite_habits_v1';
-      this.habits = this.loadHabits();
-      this.todayIndex = (new Date().getDay() + 6) % 7; // 0 = Monday, 6 = Sunday
-
-      this.dom = {
-        btnCreateHabit: document.getElementById('btn-create-habit'),
-        listBody: document.getElementById('habits-list-body'),
-        weekLabel: document.getElementById('habits-week-label'),
-        todayPercent: document.getElementById('habits-today-percent'),
-        todayProgressFill: document.getElementById('habits-today-progress-fill'),
-        completionText: document.getElementById('habits-completion-text'),
-        modal: document.getElementById('habit-modal'),
-        modalClose: document.getElementById('habit-modal-close'),
-        btnCancel: document.getElementById('btn-habit-cancel'),
-        form: document.getElementById('habit-form'),
-        inputTitle: document.getElementById('habit-input-title'),
-        inputCategory: document.getElementById('habit-input-category')
-      };
-
-      this.init();
-    }
-
-    init() {
-      this.bindEvents();
-      this.render();
-    }
-
-    loadHabits() {
-      try {
-        const raw = localStorage.getItem(this.STORAGE_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed)) {
-            const cleaned = parsed.filter(h => !['hab-1', 'hab-2', 'hab-3', 'hab-4'].includes(h.id));
-            if (cleaned.length !== parsed.length) {
-              this.saveHabits(cleaned);
-            }
-            return cleaned;
-          }
-        }
-      } catch (e) { console.warn(e); }
-      return [];
-    }
-
-    saveHabits(habits = this.habits) {
-      try {
-        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(habits));
-        if (this.suite && this.suite.hubApp) {
-          this.suite.hubApp.render();
-        }
-      } catch (e) { console.warn(e); }
-    }
-
-    bindEvents() {
-      if (this.dom.btnCreateHabit) {
-        this.dom.btnCreateHabit.addEventListener('click', () => this.openModal());
-      }
-      if (this.dom.modalClose) {
-        this.dom.modalClose.addEventListener('click', () => this.closeModal());
-      }
-      if (this.dom.btnCancel) {
-        this.dom.btnCancel.addEventListener('click', () => this.closeModal());
-      }
-      if (this.dom.modal) {
-        this.dom.modal.addEventListener('click', (e) => {
-          if (e.target === this.dom.modal) this.closeModal();
-        });
-      }
-      if (this.dom.form) {
-        this.dom.form.addEventListener('submit', (e) => {
-          e.preventDefault();
-          this.saveModalHabit();
-        });
-      }
-    }
-
-    openModal() {
-      if (!this.dom.modal) return;
-      this.dom.form.reset();
-      this.dom.modal.classList.remove('hidden');
-      setTimeout(() => this.dom.inputTitle && this.dom.inputTitle.focus(), 50);
-      this.suite.sound.playPop();
-    }
-
-    closeModal() {
-      if (!this.dom.modal) return;
-      this.dom.modal.classList.add('hidden');
-    }
-
-    saveModalHabit() {
-      const title = this.dom.inputTitle.value.trim();
-      const category = this.dom.inputCategory.value;
-      if (!title) return;
-
-      const newHabit = {
-        id: 'hab-' + Date.now(),
-        name: title,
-        category: category,
-        checks: [false, false, false, false, false, false, false],
-        streak: 0
-      };
-
-      this.habits.push(newHabit);
-      this.saveHabits();
-      this.closeModal();
-      this.render();
-      this.suite.sound.playSuccess();
-      this.suite.showToast(`Gewohnheit "${title}" angelegt! 🎯`);
-    }
-
-    toggleDayCheck(habitId, dayIndex) {
-      const habit = this.habits.find(h => h.id === habitId);
-      if (!habit) return;
-
-      habit.checks[dayIndex] = !habit.checks[dayIndex];
-
-      // Calculate streak
-      let streak = 0;
-      for (let i = dayIndex; i >= 0; i--) {
-        if (habit.checks[i]) streak++;
-        else break;
-      }
-      habit.streak = streak;
-
-      this.saveHabits();
-      this.suite.sound.playPop();
-      this.render();
-
-      // Check if all today habits done
-      const todayTotal = this.habits.length;
-      const todayDone = this.habits.filter(h => h.checks[this.todayIndex]).length;
-      if (todayTotal > 0 && todayDone === todayTotal && habit.checks[this.todayIndex]) {
-        this.suite.confetti.fire();
-        this.suite.sound.playSuccess();
-        this.suite.showToast('Fantastisch! Alle heutigen Gewohnheiten erledigt! 🏆');
-      }
-    }
-
-    deleteHabit(habitId) {
-      const idx = this.habits.findIndex(h => h.id === habitId);
-      if (idx === -1) return;
-      const deleted = this.habits.splice(idx, 1)[0];
-      this.saveHabits();
-      this.suite.sound.playTrash();
-      this.suite.showToast(`Gewohnheit "${deleted.name}" entfernt.`);
-      this.render();
-    }
-
-    render() {
-      if (!this.dom.listBody) return;
-
-      const totalToday = this.habits.length;
-      const doneToday = this.habits.filter(h => h.checks[this.todayIndex]).length;
-      const pct = totalToday > 0 ? Math.round((doneToday / totalToday) * 100) : 0;
-
-      if (this.dom.todayPercent) this.dom.todayPercent.textContent = `${pct}%`;
-      if (this.dom.todayProgressFill) this.dom.todayProgressFill.style.width = `${pct}%`;
-      if (this.dom.completionText) {
-        this.dom.completionText.textContent = `${doneToday} von ${totalToday} Gewohnheiten heute erledigt`;
-      }
-
-      if (this.habits.length === 0) {
-        this.dom.listBody.innerHTML = `
-          <div style="padding: 40px; text-align: center; color: var(--text-dim);">
-            Noch keine Gewohnheiten angelegt. Klicke auf "+ Neue Gewohnheit", um deine erste Routine zu starten!
-          </div>
-        `;
-        return;
-      }
-
-      this.dom.listBody.innerHTML = this.habits.map(habit => {
-        const doneInWeek = habit.checks.filter(Boolean).length;
-        const weekScore = `${doneInWeek}/7 (${Math.round((doneInWeek / 7) * 100)}%)`;
-
-        const dayButtons = habit.checks.map((isChecked, dayIdx) => {
-          const isToday = dayIdx === this.todayIndex;
-          return `
-            <button class="day-check-btn ${isChecked ? 'checked' : ''} ${isToday ? 'today' : ''}" 
-                    data-habit="${habit.id}" data-day="${dayIdx}" 
-                    title="${['Mo','Di','Mi','Do','Fr','Sa','So'][dayIdx]}: ${isChecked ? 'Erledigt' : 'Offen'}">
-              ${isChecked ? '✓' : ''}
-            </button>
-          `;
-        }).join('');
-
-        return `
-          <div class="habit-row" data-id="${habit.id}">
-            <div class="habit-title-box">
-              <span class="habit-name">${escapeHtml(habit.name)}</span>
-              <span class="habit-cat">${habit.category}</span>
-            </div>
-            <div>
-              <span class="streak-pill">🔥 ${habit.streak}d</span>
-            </div>
-            ${dayButtons}
-            <div class="habit-week-score">${weekScore}</div>
-            <div>
-              <button class="btn-habit-del" data-action="delete" data-id="${habit.id}" title="Löschen">✕</button>
-            </div>
-          </div>
-        `;
-      }).join('');
-
-      this.dom.listBody.querySelectorAll('.day-check-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const hId = btn.dataset.habit;
-          const dIdx = parseInt(btn.dataset.day, 10);
-          this.toggleDayCheck(hId, dIdx);
-        });
-      });
-
-      this.dom.listBody.querySelectorAll('[data-action="delete"]').forEach(btn => {
-        btn.addEventListener('click', () => this.deleteHabit(btn.dataset.id));
-      });
-    }
-  }
-
-  // ==========================================================================
-  // 5. ORBITTOOLS MODULE (DEVELOPER & PRODUCTIVITY TOOLS)
-  // ==========================================================================
-  class OrbitToolsApp {
-    constructor(suite) {
-      this.suite = suite;
-      this.activeTool = 'json';
-
-      this.dom = {
-        subnavTabs: document.querySelectorAll('#tools-subnav .tool-tab'),
-        panels: {
-          json: document.getElementById('tool-panel-json'),
-          text: document.getElementById('tool-panel-text'),
-          inspector: document.getElementById('tool-panel-inspector'),
-          uuid: document.getElementById('tool-panel-uuid')
-        },
-        // JSON Studio
-        jsonInput: document.getElementById('json-input'),
-        jsonOutput: document.getElementById('json-output'),
-        btnJsonBeautify: document.getElementById('btn-json-beautify'),
-        btnJsonMinify: document.getElementById('btn-json-minify'),
-        btnJsonSample: document.getElementById('btn-json-sample'),
-        btnJsonCopy: document.getElementById('btn-json-copy'),
-        jsonValStatus: document.getElementById('json-val-status'),
-        // Text Converter
-        textConvInput: document.getElementById('text-conv-input'),
-        convUpper: document.getElementById('conv-upper'),
-        convLower: document.getElementById('conv-lower'),
-        convTitle: document.getElementById('conv-title'),
-        convCamel: document.getElementById('conv-camel'),
-        convKebab: document.getElementById('conv-kebab'),
-        convSnake: document.getElementById('conv-snake'),
-        // Text Inspector
-        textInspectInput: document.getElementById('text-inspect-input'),
-        statWords: document.getElementById('stat-words'),
-        statCharsAll: document.getElementById('stat-chars-all'),
-        statCharsNoSpace: document.getElementById('stat-chars-nospace'),
-        statSentences: document.getElementById('stat-sentences'),
-        statParagraphs: document.getElementById('stat-paragraphs'),
-        statReadingTime: document.getElementById('stat-reading-time'),
-        // UUID & Timestamp
-        btnGenUuid: document.getElementById('btn-gen-uuid'),
-        valUuid: document.getElementById('val-uuid'),
-        btnRefreshTime: document.getElementById('btn-refresh-time'),
-        valUnixSec: document.getElementById('val-unix-sec'),
-        valUnixMs: document.getElementById('val-unix-ms'),
-        valIso: document.getElementById('val-iso')
-      };
-
-      this.init();
-    }
-
-    init() {
-      this.bindEvents();
-      this.generateNewUuid();
-      this.updateTimestamps();
-    }
-
-    bindEvents() {
-      this.dom.subnavTabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-          this.dom.subnavTabs.forEach(t => t.classList.remove('active'));
-          tab.classList.add('active');
-          this.switchTool(tab.dataset.tool);
-          this.suite.sound.playPop();
-        });
-      });
-
-      // JSON Actions
-      if (this.dom.btnJsonBeautify) {
-        this.dom.btnJsonBeautify.addEventListener('click', () => this.beautifyJson());
-      }
-      if (this.dom.btnJsonMinify) {
-        this.dom.btnJsonMinify.addEventListener('click', () => this.minifyJson());
-      }
-      if (this.dom.btnJsonSample) {
-        this.dom.btnJsonSample.addEventListener('click', () => this.loadJsonSample());
-      }
-      if (this.dom.btnJsonCopy) {
-        this.dom.btnJsonCopy.addEventListener('click', () => {
-          if (this.dom.jsonOutput && this.dom.jsonOutput.value) {
-            navigator.clipboard.writeText(this.dom.jsonOutput.value);
-            this.suite.showToast('JSON in Zwischenablage kopiert! 📋');
-          }
-        });
-      }
-      if (this.dom.jsonInput) {
-        this.dom.jsonInput.addEventListener('input', () => this.validateJsonInput());
-      }
-
-      // Text Converter
-      if (this.dom.textConvInput) {
-        this.dom.textConvInput.addEventListener('input', (e) => this.convertText(e.target.value));
-      }
-
-      // Text Inspector
-      if (this.dom.textInspectInput) {
-        this.dom.textInspectInput.addEventListener('input', (e) => this.inspectText(e.target.value));
-      }
-
-      // UUID & Timestamp
-      if (this.dom.btnGenUuid) {
-        this.dom.btnGenUuid.addEventListener('click', () => {
-          this.generateNewUuid();
-          this.suite.sound.playPop();
-        });
-      }
-      if (this.dom.btnRefreshTime) {
-        this.dom.btnRefreshTime.addEventListener('click', () => {
-          this.updateTimestamps();
-          this.suite.sound.playPop();
-        });
-      }
-
-      // Universal Copy Chips
-      document.querySelectorAll('.btn-copy-chip').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const targetId = btn.dataset.copyTarget;
-          const input = document.getElementById(targetId);
-          if (input && input.value) {
-            navigator.clipboard.writeText(input.value);
-            this.suite.showToast('In Zwischenablage kopiert! 📋');
-            this.suite.sound.playPop();
-          }
-        });
-      });
-    }
-
-    switchTool(toolKey) {
-      this.activeTool = toolKey;
-      Object.keys(this.dom.panels).forEach(key => {
-        if (this.dom.panels[key]) {
-          this.dom.panels[key].classList.toggle('active', key === toolKey);
-        }
-      });
-    }
-
-    beautifyJson() {
-      const raw = this.dom.jsonInput.value.trim();
-      if (!raw) return;
-      try {
-        const parsed = JSON.parse(raw);
-        this.dom.jsonOutput.value = JSON.stringify(parsed, null, 2);
-        this.dom.jsonValStatus.className = 'json-validation-badge valid';
-        this.dom.jsonValStatus.textContent = 'Gültiges JSON (2 Spaces)';
-        this.suite.sound.playSuccess();
-      } catch (e) {
-        this.dom.jsonValStatus.className = 'json-validation-badge invalid';
-        this.dom.jsonValStatus.textContent = 'Syntaxfehler: ' + e.message;
-        this.suite.sound.playTrash();
-      }
-    }
-
-    minifyJson() {
-      const raw = this.dom.jsonInput.value.trim();
-      if (!raw) return;
-      try {
-        const parsed = JSON.parse(raw);
-        this.dom.jsonOutput.value = JSON.stringify(parsed);
-        this.dom.jsonValStatus.className = 'json-validation-badge valid';
-        this.dom.jsonValStatus.textContent = 'Minifiziertes JSON';
-        this.suite.sound.playSuccess();
-      } catch (e) {
-        this.dom.jsonValStatus.className = 'json-validation-badge invalid';
-        this.dom.jsonValStatus.textContent = 'Syntaxfehler: ' + e.message;
-        this.suite.sound.playTrash();
-      }
-    }
-
-    loadJsonSample() {
-      const sample = {
-        app: "OrbitSuite",
-        version: "3.0",
-        author: "Orbit Systems",
-        settings: {
-          darkMode: true,
-          soundEnabled: true,
-          theme: "Glassmorphism"
-        },
-        modules: ["OrbitTask", "OrbitNotes", "OrbitFocus", "OrbitHabits", "OrbitTools"],
-        metrics: {
-          tasksCompleted: 42,
-          focusScore: 98.5
-        }
-      };
-      this.dom.jsonInput.value = JSON.stringify(sample, null, 2);
-      this.beautifyJson();
-    }
-
-    validateJsonInput() {
-      const raw = this.dom.jsonInput.value.trim();
-      if (!raw) {
-        this.dom.jsonValStatus.className = 'json-validation-badge';
-        this.dom.jsonValStatus.textContent = 'Bereit';
-        return;
-      }
-      try {
-        JSON.parse(raw);
-        this.dom.jsonValStatus.className = 'json-validation-badge valid';
-        this.dom.jsonValStatus.textContent = 'Gültiges JSON';
-      } catch (e) {
-        this.dom.jsonValStatus.className = 'json-validation-badge invalid';
-        this.dom.jsonValStatus.textContent = 'Ungültig';
-      }
-    }
-
-    convertText(text) {
-      if (!text) {
-        ['Upper', 'Lower', 'Title', 'Camel', 'Kebab', 'Snake'].forEach(t => {
-          if (this.dom['conv' + t]) this.dom['conv' + t].value = '';
-        });
-        return;
-      }
-
-      this.dom.convUpper.value = text.toUpperCase();
-      this.dom.convLower.value = text.toLowerCase();
-
-      // Title Case
-      this.dom.convTitle.value = text.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
-
-      // Words array for programming cases
-      const words = text.match(/[A-Za-z0-9]+/g) || [];
-
-      // camelCase
-      this.dom.convCamel.value = words.map((w, i) => i === 0 ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join('');
-
-      // kebab-case
-      this.dom.convKebab.value = words.map(w => w.toLowerCase()).join('-');
-
-      // snake_case
-      this.dom.convSnake.value = words.map(w => w.toLowerCase()).join('_');
-    }
-
-    inspectText(text) {
-      const charsAll = text.length;
-      const charsNoSpace = text.replace(/\s/g, '').length;
-      const words = (text.trim().match(/\S+/g) || []).length;
-      const sentences = (text.match(/[^.!?]+[.!?]+/g) || []).length || (text.trim() ? 1 : 0);
-      const paragraphs = text.split(/\n+/).filter(p => p.trim().length > 0).length;
-
-      // Reading time (~200 words per minute)
-      const totalSeconds = Math.ceil((words / 200) * 60);
-      const rMins = Math.floor(totalSeconds / 60);
-      const rSecs = totalSeconds % 60;
-
-      this.dom.statWords.textContent = words;
-      this.dom.statCharsAll.textContent = charsAll;
-      this.dom.statCharsNoSpace.textContent = charsNoSpace;
-      this.dom.statSentences.textContent = sentences;
-      this.dom.statParagraphs.textContent = paragraphs;
-      this.dom.statReadingTime.textContent = `${rMins}m ${rSecs}s`;
-    }
-
-    generateNewUuid() {
-      let uuid = '';
-      if (window.crypto && window.crypto.randomUUID) {
-        uuid = window.crypto.randomUUID();
-      } else {
-        uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-          const r = Math.random() * 16 | 0;
-          const v = c === 'x' ? r : (r & 0x3 | 0x8);
-          return v.toString(16);
-        });
-      }
-      if (this.dom.valUuid) this.dom.valUuid.value = uuid;
-    }
-
-    updateTimestamps() {
-      const now = new Date();
-      if (this.dom.valUnixSec) this.dom.valUnixSec.value = Math.floor(now.getTime() / 1000);
-      if (this.dom.valUnixMs) this.dom.valUnixMs.value = now.getTime();
-      if (this.dom.valIso) this.dom.valIso.value = now.toISOString();
-    }
-  }
-
-  // ==========================================================================
-  // 5. ORBITRÄTSEL MODULE (DENKSPORT & PUZZLE STUDIO)
-  // ==========================================================================
-  class OrbitRiddleApp {
-    constructor(suite) {
-      this.suite = suite;
-            this.queensData = [{"id": "queens-1", "title": "Queens Tages-Board #1", "size": 6, "regions": [[1, 2, 0, 0, 0, 0], [1, 2, 2, 2, 0, 0], [1, 2, 2, 2, 2, 3], [4, 2, 4, 4, 3, 3], [4, 4, 4, 4, 3, 5], [4, 4, 4, 4, 3, 5]], "solution": [[0, 3], [1, 0], [2, 2], [3, 4], [4, 1], [5, 5]]}, {"id": "queens-2", "title": "Queens Tages-Board #2", "size": 6, "regions": [[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 1, 1], [2, 3, 0, 0, 1, 1], [2, 3, 3, 4, 4, 4], [5, 5, 4, 4, 4, 4], [5, 5, 5, 4, 4, 4]], "solution": [[0, 3], [1, 5], [2, 0], [3, 2], [4, 4], [5, 1]]}, {"id": "queens-3", "title": "Queens Tages-Board #3", "size": 6, "regions": [[1, 1, 1, 0, 0, 2], [1, 1, 1, 1, 1, 2], [3, 3, 1, 1, 4, 2], [3, 3, 1, 4, 4, 4], [3, 3, 4, 4, 4, 4], [3, 4, 4, 4, 5, 5]], "solution": [[0, 3], [1, 1], [2, 5], [3, 0], [4, 2], [5, 4]]}, {"id": "queens-4", "title": "Queens Tages-Board #4", "size": 6, "regions": [[1, 1, 1, 0, 0, 0], [1, 1, 1, 1, 2, 0], [1, 1, 1, 1, 2, 0], [3, 1, 1, 1, 2, 2], [3, 1, 1, 4, 2, 2], [3, 5, 5, 4, 2, 2]], "solution": [[0, 5], [1, 2], [2, 4], [3, 0], [4, 3], [5, 1]]}, {"id": "queens-5", "title": "Queens Tages-Board #5", "size": 6, "regions": [[2, 2, 0, 0, 1, 1], [2, 2, 2, 2, 1, 3], [2, 2, 2, 2, 2, 3], [2, 2, 2, 2, 2, 3], [4, 2, 5, 3, 3, 3], [4, 5, 5, 5, 5, 3]], "solution": [[0, 2], [1, 4], [2, 1], [3, 5], [4, 0], [5, 3]]}, {"id": "queens-6", "title": "Queens Tages-Board #6", "size": 6, "regions": [[0, 0, 1, 1, 1, 1], [2, 0, 3, 1, 1, 1], [2, 2, 3, 3, 1, 1], [3, 3, 3, 1, 1, 1], [5, 5, 5, 1, 1, 4], [5, 5, 5, 5, 4, 4]], "solution": [[0, 1], [1, 4], [2, 0], [3, 2], [4, 5], [5, 3]]}, {"id": "queens-7", "title": "Queens Tages-Board #7", "size": 6, "regions": [[0, 0, 1, 1, 1, 1], [0, 0, 0, 1, 1, 1], [0, 2, 1, 1, 1, 1], [2, 2, 3, 3, 4, 1], [2, 2, 5, 5, 4, 4], [5, 5, 5, 5, 5, 4]], "solution": [[0, 0], [1, 4], [2, 1], [3, 3], [4, 5], [5, 2]]}, {"id": "queens-8", "title": "Queens Tages-Board #8", "size": 6, "regions": [[0, 0, 1, 1, 3, 2], [1, 1, 1, 3, 3, 2], [3, 3, 3, 3, 3, 2], [3, 3, 3, 3, 3, 3], [4, 4, 4, 4, 5, 3], [4, 4, 4, 4, 5, 5]], "solution": [[0, 0], [1, 2], [2, 5], [3, 3], [4, 1], [5, 4]]}, {"id": "queens-9", "title": "Queens Tages-Board #9", "size": 6, "regions": [[0, 0, 2, 2, 3, 1], [0, 0, 2, 2, 3, 1], [0, 2, 2, 2, 3, 3], [4, 2, 5, 2, 3, 3], [4, 5, 5, 5, 5, 5], [5, 5, 5, 5, 5, 5]], "solution": [[0, 1], [1, 5], [2, 2], [3, 4], [4, 0], [5, 3]]}, {"id": "queens-10", "title": "Queens Tages-Board #10", "size": 6, "regions": [[1, 1, 0, 0, 0, 0], [1, 0, 0, 0, 0, 2], [1, 1, 0, 2, 2, 2], [1, 3, 3, 2, 2, 4], [5, 5, 3, 2, 2, 4], [5, 5, 3, 2, 2, 4]], "solution": [[0, 3], [1, 0], [2, 4], [3, 2], [4, 5], [5, 1]]}, {"id": "queens-11", "title": "Queens Tages-Board #11", "size": 6, "regions": [[1, 1, 3, 3, 3, 0], [3, 1, 3, 3, 2, 0], [3, 1, 3, 2, 2, 0], [3, 3, 3, 3, 3, 3], [4, 4, 3, 3, 3, 3], [4, 5, 5, 5, 5, 5]], "solution": [[0, 5], [1, 1], [2, 4], [3, 2], [4, 0], [5, 3]]}, {"id": "queens-12", "title": "Queens Tages-Board #12", "size": 6, "regions": [[0, 0, 0, 1, 1, 1], [0, 0, 2, 1, 1, 1], [3, 4, 2, 1, 1, 1], [3, 4, 4, 4, 1, 1], [3, 4, 4, 4, 4, 4], [4, 4, 4, 4, 5, 5]], "solution": [[0, 1], [1, 4], [2, 2], [3, 0], [4, 3], [5, 5]]}, {"id": "queens-13", "title": "Queens Tages-Board #13", "size": 6, "regions": [[1, 1, 2, 2, 0, 0], [1, 2, 2, 2, 2, 3], [2, 2, 2, 2, 3, 3], [2, 2, 2, 4, 3, 3], [2, 2, 2, 4, 3, 3], [5, 5, 4, 4, 4, 4]], "solution": [[0, 4], [1, 0], [2, 2], [3, 5], [4, 3], [5, 1]]}, {"id": "queens-14", "title": "Queens Tages-Board #14", "size": 6, "regions": [[1, 0, 0, 3, 3, 3], [1, 0, 0, 3, 3, 3], [1, 4, 2, 2, 3, 3], [4, 4, 4, 5, 3, 3], [4, 4, 4, 5, 5, 5], [4, 4, 4, 5, 5, 5]], "solution": [[0, 2], [1, 0], [2, 3], [3, 5], [4, 1], [5, 4]]}];
-      this.tangoData = [{"id": "tango-1", "title": "Tango Tages-Board #1", "size": 6, "givens": [["S", null, null, "S", null, "M"], [null, null, null, null, null, null], [null, null, null, null, null, null], [null, null, "M", null, null, null], ["S", null, "S", null, null, null], [null, null, null, "S", null, null]], "hEdges": [{"r": 5, "c": 0, "op": "x"}, {"r": 2, "c": 3, "op": "x"}, {"r": 3, "c": 4, "op": "="}, {"r": 2, "c": 2, "op": "x"}], "vEdges": [{"r": 0, "c": 5, "op": "="}, {"r": 0, "c": 0, "op": "="}, {"r": 2, "c": 3, "op": "x"}], "solution": [["S", "M", "S", "S", "M", "M"], ["S", "M", "S", "M", "S", "M"], ["M", "S", "M", "S", "M", "S"], ["M", "S", "M", "M", "S", "S"], ["S", "M", "S", "M", "S", "M"], ["M", "S", "M", "S", "M", "S"]]}, {"id": "tango-2", "title": "Tango Tages-Board #2", "size": 6, "givens": [[null, null, null, null, null, null], [null, null, null, "M", null, null], [null, null, null, "S", null, null], [null, "M", null, "S", null, null], [null, null, null, null, null, null], ["S", null, "M", null, null, null]], "hEdges": [{"r": 5, "c": 4, "op": "x"}, {"r": 1, "c": 4, "op": "="}, {"r": 3, "c": 4, "op": "="}, {"r": 2, "c": 2, "op": "="}], "vEdges": [{"r": 3, "c": 4, "op": "x"}, {"r": 0, "c": 5, "op": "="}, {"r": 0, "c": 1, "op": "x"}], "solution": [["M", "M", "S", "S", "M", "S"], ["M", "S", "M", "M", "S", "S"], ["S", "M", "S", "S", "M", "M"], ["S", "M", "S", "S", "M", "M"], ["M", "S", "M", "M", "S", "S"], ["S", "S", "M", "M", "S", "M"]]}, {"id": "tango-3", "title": "Tango Tages-Board #3", "size": 6, "givens": [[null, null, "S", null, null, null], ["S", null, null, null, null, null], [null, null, null, null, null, "M"], [null, null, null, null, null, null], ["S", null, null, null, "S", null], [null, null, null, null, "S", "S"]], "hEdges": [{"r": 1, "c": 1, "op": "="}, {"r": 4, "c": 1, "op": "="}, {"r": 5, "c": 1, "op": "x"}], "vEdges": [{"r": 3, "c": 4, "op": "x"}, {"r": 0, "c": 3, "op": "="}], "solution": [["S", "M", "S", "S", "M", "M"], ["S", "M", "M", "S", "M", "S"], ["M", "S", "S", "M", "S", "M"], ["M", "S", "S", "M", "M", "S"], ["S", "M", "M", "S", "S", "M"], ["M", "S", "M", "M", "S", "S"]]}, {"id": "tango-4", "title": "Tango Tages-Board #4", "size": 6, "givens": [[null, null, null, null, null, "M"], [null, null, null, null, null, "S"], ["S", null, null, null, null, "S"], [null, null, null, null, null, "M"], ["S", null, null, null, null, null], [null, null, null, null, "M", null]], "hEdges": [{"r": 3, "c": 1, "op": "x"}, {"r": 2, "c": 3, "op": "x"}, {"r": 5, "c": 1, "op": "="}, {"r": 2, "c": 2, "op": "x"}], "vEdges": [{"r": 0, "c": 0, "op": "="}, {"r": 4, "c": 4, "op": "x"}], "solution": [["M", "S", "S", "M", "S", "M"], ["M", "S", "S", "M", "M", "S"], ["S", "M", "M", "S", "M", "S"], ["M", "S", "M", "S", "S", "M"], ["S", "M", "S", "M", "S", "M"], ["S", "M", "M", "S", "M", "S"]]}, {"id": "tango-5", "title": "Tango Tages-Board #5", "size": 6, "givens": [[null, null, null, null, "S", null], [null, "S", null, "M", null, null], [null, null, "S", null, null, null], [null, null, null, null, null, "S"], [null, null, null, "S", null, null], [null, null, "S", null, null, null]], "hEdges": [{"r": 3, "c": 2, "op": "x"}, {"r": 0, "c": 0, "op": "="}, {"r": 2, "c": 0, "op": "="}, {"r": 4, "c": 3, "op": "="}], "vEdges": [{"r": 3, "c": 2, "op": "x"}, {"r": 4, "c": 0, "op": "x"}, {"r": 3, "c": 3, "op": "x"}], "solution": [["S", "S", "M", "M", "S", "M"], ["S", "S", "M", "M", "S", "M"], ["M", "M", "S", "S", "M", "S"], ["M", "S", "S", "M", "M", "S"], ["S", "M", "M", "S", "S", "M"], ["M", "M", "S", "S", "M", "S"]]}, {"id": "tango-6", "title": "Tango Tages-Board #6", "size": 6, "givens": [[null, null, null, null, null, "M"], [null, "S", null, null, null, null], ["M", null, null, null, null, null], [null, null, null, null, null, null], ["M", null, "S", "M", null, null], [null, null, null, null, null, "S"]], "hEdges": [{"r": 3, "c": 3, "op": "="}, {"r": 2, "c": 2, "op": "="}, {"r": 5, "c": 2, "op": "="}], "vEdges": [{"r": 0, "c": 1, "op": "="}, {"r": 3, "c": 0, "op": "x"}], "solution": [["S", "S", "M", "M", "S", "M"], ["S", "S", "M", "M", "S", "M"], ["M", "M", "S", "S", "M", "S"], ["S", "M", "M", "S", "S", "M"], ["M", "S", "S", "M", "M", "S"], ["M", "M", "S", "S", "M", "S"]]}, {"id": "tango-7", "title": "Tango Tages-Board #7", "size": 6, "givens": [[null, null, null, null, null, null], ["S", null, null, "S", null, null], [null, null, null, null, null, null], [null, null, null, null, "M", null], [null, null, null, null, null, "M"], ["M", null, null, null, "M", null]], "hEdges": [{"r": 4, "c": 1, "op": "="}, {"r": 5, "c": 2, "op": "x"}, {"r": 4, "c": 0, "op": "x"}, {"r": 1, "c": 4, "op": "="}], "vEdges": [{"r": 0, "c": 1, "op": "="}, {"r": 0, "c": 0, "op": "x"}], "solution": [["M", "M", "S", "M", "S", "S"], ["S", "M", "S", "S", "M", "M"], ["S", "S", "M", "M", "S", "M"], ["M", "S", "S", "M", "M", "S"], ["S", "M", "M", "S", "S", "M"], ["M", "S", "M", "S", "M", "S"]]}, {"id": "tango-8", "title": "Tango Tages-Board #8", "size": 6, "givens": [[null, null, "S", null, null, "S"], [null, null, "S", null, null, null], [null, null, "M", null, null, null], [null, "M", null, null, null, null], [null, null, null, null, null, null], [null, null, null, "S", null, "M"]], "hEdges": [{"r": 1, "c": 3, "op": "="}, {"r": 2, "c": 4, "op": "x"}, {"r": 2, "c": 2, "op": "="}], "vEdges": [{"r": 0, "c": 2, "op": "="}, {"r": 1, "c": 2, "op": "x"}, {"r": 4, "c": 0, "op": "="}], "solution": [["M", "M", "S", "S", "M", "S"], ["M", "S", "S", "M", "M", "S"], ["S", "S", "M", "M", "S", "M"], ["M", "M", "S", "S", "M", "S"], ["S", "S", "M", "M", "S", "M"], ["S", "M", "M", "S", "S", "M"]]}, {"id": "tango-9", "title": "Tango Tages-Board #9", "size": 6, "givens": [[null, null, null, null, null, "S"], [null, "S", null, null, null, null], [null, null, "M", null, null, null], [null, null, null, "S", null, null], ["S", null, null, null, null, null], ["M", null, null, null, null, null]], "hEdges": [{"r": 1, "c": 1, "op": "x"}, {"r": 0, "c": 1, "op": "="}, {"r": 4, "c": 3, "op": "x"}, {"r": 3, "c": 0, "op": "="}], "vEdges": [{"r": 1, "c": 4, "op": "="}, {"r": 4, "c": 2, "op": "x"}, {"r": 0, "c": 5, "op": "x"}], "solution": [["M", "S", "S", "M", "M", "S"], ["S", "S", "M", "M", "S", "M"], ["S", "M", "M", "S", "S", "M"], ["M", "M", "S", "S", "M", "S"], ["S", "S", "M", "M", "S", "M"], ["M", "M", "S", "S", "M", "S"]]}, {"id": "tango-11", "title": "Tango Tages-Board #11", "size": 6, "givens": [[null, null, null, null, null, "M"], [null, null, null, null, null, null], [null, null, null, null, null, null], ["S", null, null, null, "S", "M"], [null, null, null, null, null, null], [null, "S", null, null, null, null]], "hEdges": [{"r": 5, "c": 0, "op": "x"}, {"r": 2, "c": 2, "op": "="}, {"r": 1, "c": 2, "op": "x"}], "vEdges": [{"r": 3, "c": 5, "op": "="}, {"r": 2, "c": 2, "op": "="}, {"r": 0, "c": 4, "op": "="}], "solution": [["S", "M", "S", "S", "M", "M"], ["M", "S", "S", "M", "M", "S"], ["M", "S", "M", "M", "S", "S"], ["S", "M", "M", "S", "S", "M"], ["S", "M", "S", "S", "M", "M"], ["M", "S", "M", "M", "S", "S"]]}, {"id": "tango-12", "title": "Tango Tages-Board #12", "size": 6, "givens": [[null, null, null, null, null, null], [null, "M", null, null, null, null], [null, null, null, null, "M", null], [null, null, "M", null, null, null], [null, null, null, null, null, "S"], [null, null, "M", null, null, null]], "hEdges": [{"r": 1, "c": 1, "op": "="}, {"r": 1, "c": 0, "op": "x"}, {"r": 0, "c": 4, "op": "="}, {"r": 3, "c": 4, "op": "="}], "vEdges": [{"r": 4, "c": 0, "op": "="}, {"r": 4, "c": 2, "op": "x"}, {"r": 4, "c": 4, "op": "="}], "solution": [["S", "M", "S", "S", "M", "M"], ["S", "M", "M", "S", "S", "M"], ["M", "S", "S", "M", "M", "S"], ["S", "S", "M", "S", "M", "M"], ["M", "M", "S", "M", "S", "S"], ["M", "S", "M", "M", "S", "S"]]}, {"id": "tango-13", "title": "Tango Tages-Board #13", "size": 6, "givens": [[null, null, null, "M", null, "S"], [null, null, null, null, null, null], [null, null, null, null, null, null], ["M", null, null, null, null, null], ["S", "M", "M", null, null, null], [null, null, null, null, null, "M"]], "hEdges": [{"r": 3, "c": 4, "op": "="}, {"r": 1, "c": 2, "op": "="}, {"r": 5, "c": 4, "op": "x"}], "vEdges": [{"r": 1, "c": 4, "op": "="}, {"r": 3, "c": 1, "op": "="}, {"r": 3, "c": 5, "op": "="}], "solution": [["M", "S", "M", "M", "S", "S"], ["S", "M", "S", "S", "M", "M"], ["S", "S", "M", "S", "M", "M"], ["M", "M", "S", "M", "S", "S"], ["S", "M", "M", "S", "M", "S"], ["M", "S", "S", "M", "S", "M"]]}, {"id": "tango-13", "title": "Tango Tages-Board #13", "size": 6, "givens": [[null, null, null, null, "M", null], [null, null, null, null, null, "S"], ["S", null, "M", null, null, null], [null, null, null, null, null, "M"], [null, null, "S", "S", null, null], [null, null, "M", null, null, null]], "hEdges": [{"r": 3, "c": 2, "op": "="}, {"r": 4, "c": 2, "op": "="}, {"r": 5, "c": 1, "op": "x"}, {"r": 3, "c": 3, "op": "x"}, {"r": 5, "c": 0, "op": "="}], "vEdges": [{"r": 1, "c": 5, "op": "x"}, {"r": 2, "c": 2, "op": "="}, {"r": 0, "c": 3, "op": "x"}, {"r": 1, "c": 3, "op": "="}], "solution": [["M", "S", "S", "M", "M", "S"], ["M", "M", "S", "S", "M", "S"], ["S", "M", "M", "S", "S", "M"], ["S", "S", "M", "M", "S", "M"], ["M", "M", "S", "S", "M", "S"], ["S", "S", "M", "M", "S", "M"]]}, {"id": "tango-14", "title": "Tango Tages-Board #14", "size": 6, "givens": [[null, null, null, null, null, null], [null, null, null, null, null, null], [null, "S", null, "M", null, null], [null, null, null, null, null, null], [null, "M", "S", null, null, null], [null, "S", "S", null, null, null]], "hEdges": [{"r": 5, "c": 1, "op": "="}, {"r": 5, "c": 3, "op": "="}, {"r": 3, "c": 2, "op": "="}, {"r": 0, "c": 4, "op": "x"}, {"r": 4, "c": 4, "op": "="}], "vEdges": [{"r": 2, "c": 2, "op": "x"}, {"r": 3, "c": 4, "op": "x"}, {"r": 1, "c": 2, "op": "x"}, {"r": 0, "c": 4, "op": "="}], "solution": [["S", "M", "M", "S", "S", "M"], ["S", "M", "M", "S", "S", "M"], ["M", "S", "S", "M", "M", "S"], ["M", "S", "M", "M", "S", "S"], ["S", "M", "S", "S", "M", "M"], ["M", "S", "S", "M", "M", "S"]]}];
-      this.pinpointData = [{"id": "pinpoint-1", "title": "Pinpoint #1", "category": "Schachfiguren", "clues": ["Turm", "Springer", "Läufer", "Dame", "König"], "keywords": ["schachfiguren", "schach", "figuren beim schach", "schach figuren", "schachspiel"]}, {"id": "pinpoint-2", "title": "Pinpoint #2", "category": "Kaffeespezialitäten", "clues": ["Espresso", "Cappuccino", "Flat White", "Latte Macchiato", "Americano"], "keywords": ["kaffee", "kaffeespezialitäten", "kaffeearten", "kaffeegetränke", "kaffeesorten"]}, {"id": "pinpoint-3", "title": "Pinpoint #3", "category": "Dinge mit Tasten", "clues": ["Taschenrechner", "Klavier", "Fernbedienung", "Tastatur", "Geldautomat"], "keywords": ["tasten", "dinge mit tasten", "geräte mit tasten", "hat tasten", "tasteninstrumente und geräte"]}, {"id": "pinpoint-4", "title": "Pinpoint #4", "category": "Web-Browser", "clues": ["Safari", "Firefox", "Opera", "Edge", "Chrome"], "keywords": ["browser", "webbrowser", "web browser", "internet browser"]}, {"id": "pinpoint-5", "title": "Pinpoint #5", "category": "Hauptstädte in Europa", "clues": ["Lissabon", "Madrid", "Rom", "Wien", "Berlin"], "keywords": ["hauptstädte", "hauptstädte europas", "europäische hauptstädte", "europäische städte", "hauptstadt"]}, {"id": "pinpoint-6", "title": "Pinpoint #6", "category": "Programmiersprachen", "clues": ["Rust", "Go", "Ruby", "Python", "JavaScript"], "keywords": ["programmiersprachen", "coding", "programmiersprache", "code sprachen", "sprachen"]}, {"id": "pinpoint-7", "title": "Pinpoint #7", "category": "Planeten unseres Sonnensystems", "clues": ["Merkur", "Venus", "Mars", "Jupiter", "Saturn"], "keywords": ["planeten", "sonnensystem", "unser sonnensystem", "planeten unseres sonnensystems"]}, {"id": "pinpoint-8", "title": "Pinpoint #8", "category": "Musikinstrumente im Orchester", "clues": ["Fagott", "Oboe", "Bratsche", "Cello", "Querflöte"], "keywords": ["orchester", "musikinstrumente", "instrumente", "orchesterinstrumente"]}, {"id": "pinpoint-9", "title": "Pinpoint #9", "category": "Zutaten für Pizzateig", "clues": ["Hefe", "Olivenöl", "Salz", "Wasser", "Mehl"], "keywords": ["pizza", "pizzateig", "zutaten pizzateig", "teig zutaten", "pizzateig zutaten"]}, {"id": "pinpoint-10", "title": "Pinpoint #10", "category": "Edelmetalle", "clues": ["Platin", "Palladium", "Rhodium", "Silber", "Gold"], "keywords": ["edelmetalle", "edelmetall", "wertvolle metalle", "metalle"]}, {"id": "pinpoint-11", "title": "Pinpoint #11", "category": "Deutsche Bundesländer", "clues": ["Saarland", "Hessen", "Sachsen", "Bayern", "Nordrhein-Westfalen"], "keywords": ["bundesländer", "deutsche bundesländer", "länder deutschlands", "bundesland"]}, {"id": "pinpoint-12", "title": "Pinpoint #12", "category": "Video- und Daten-Schnittstellen", "clues": ["VGA", "DVI", "DisplayPort", "HDMI", "USB-C"], "keywords": ["anschlüsse", "schnittstellen", "kabel", "videoanschlüsse", "stecker"]}, {"id": "pinpoint-13", "title": "Pinpoint #13", "category": "Welt-Währungen", "clues": ["Yen", "Pfund", "Franken", "Dollar", "Euro"], "keywords": ["währungen", "währung", "geld", "währungseinheiten", "devisen"]}, {"id": "pinpoint-14", "title": "Pinpoint #14", "category": "Bekannte Social-Media-Netzwerke", "clues": ["Reddit", "Pinterest", "X", "Instagram", "LinkedIn"], "keywords": ["social media", "soziale netzwerke", "soziale medien", "netzwerke", "social network"]}];
-      this.activeGameMode = 'queens';
-
-      // Queens State
-      this.queensCurrentLevel = 'daily';
-      this.queensUserGrid = Array(6).fill(null).map(() => Array(6).fill(null));
-      this.queensHistory = [];
-      this.queensMoves = 0;
-      this.queensTime = 0;
-      this.queensTimerInterval = null;
-
-      // Tango State
-      this.tangoCurrentLevel = 'daily';
-      this.tangoUserGrid = Array(6).fill(null).map(() => Array(6).fill(null));
-      this.tangoTime = 0;
-      this.tangoTimerInterval = null;
-
-      // Pinpoint State
-      this.pinpointCurrentLevel = 'daily';
-      this.pinpointRevealedClues = 1;
-      this.pinpointAttemptsLeft = 5;
-      this.pinpointIsSolved = false;
-this.defaultRiddles = [{"id": "opt-riddle-1", "title": "Die Raven-Matrix der Formen", "category": "Muster", "difficulty": "Einfach", "visualSvg": "<svg viewBox=\"0 0 320 320\" width=\"100%\" height=\"240\" xmlns=\"http://www.w3.org/2000/svg\"><defs><filter id=\"glow-p\" x=\"-20%\" y=\"-20%\" width=\"140%\" height=\"140%\"><feGaussianBlur stdDeviation=\"3\" result=\"blur\"/><feMerge><feMergeNode in=\"blur\"/><feMergeNode in=\"SourceGraphic\"/></feMerge></filter></defs><rect x=\"15\" y=\"15\" width=\"85\" height=\"85\" rx=\"10\" fill=\"#1e293b\" stroke=\"#334155\" stroke-width=\"2\"/><rect x=\"117\" y=\"15\" width=\"85\" height=\"85\" rx=\"10\" fill=\"#1e293b\" stroke=\"#334155\" stroke-width=\"2\"/><rect x=\"220\" y=\"15\" width=\"85\" height=\"85\" rx=\"10\" fill=\"#1e293b\" stroke=\"#334155\" stroke-width=\"2\"/><rect x=\"15\" y=\"117\" width=\"85\" height=\"85\" rx=\"10\" fill=\"#1e293b\" stroke=\"#334155\" stroke-width=\"2\"/><rect x=\"117\" y=\"117\" width=\"85\" height=\"85\" rx=\"10\" fill=\"#1e293b\" stroke=\"#334155\" stroke-width=\"2\"/><rect x=\"220\" y=\"117\" width=\"85\" height=\"85\" rx=\"10\" fill=\"#1e293b\" stroke=\"#334155\" stroke-width=\"2\"/><rect x=\"15\" y=\"220\" width=\"85\" height=\"85\" rx=\"10\" fill=\"#1e293b\" stroke=\"#334155\" stroke-width=\"2\"/><rect x=\"117\" y=\"220\" width=\"85\" height=\"85\" rx=\"10\" fill=\"#1e293b\" stroke=\"#334155\" stroke-width=\"2\"/><rect x=\"220\" y=\"220\" width=\"85\" height=\"85\" rx=\"10\" fill=\"#2e1065\" stroke=\"#a855f7\" stroke-width=\"2.5\" stroke-dasharray=\"4 4\"/><circle cx=\"57\" cy=\"57\" r=\"28\" fill=\"rgba(56,189,248,0.12)\" stroke=\"#38bdf8\" stroke-width=\"2.5\"/><circle cx=\"57\" cy=\"57\" r=\"4\" fill=\"#38bdf8\"/><circle cx=\"160\" cy=\"57\" r=\"28\" fill=\"rgba(56,189,248,0.12)\" stroke=\"#38bdf8\" stroke-width=\"2.5\"/><circle cx=\"151\" cy=\"57\" r=\"4\" fill=\"#38bdf8\"/><circle cx=\"169\" cy=\"57\" r=\"4\" fill=\"#38bdf8\"/><circle cx=\"262\" cy=\"57\" r=\"28\" fill=\"rgba(56,189,248,0.12)\" stroke=\"#38bdf8\" stroke-width=\"2.5\"/><circle cx=\"250\" cy=\"57\" r=\"4\" fill=\"#38bdf8\"/><circle cx=\"262\" cy=\"57\" r=\"4\" fill=\"#38bdf8\"/><circle cx=\"274\" cy=\"57\" r=\"4\" fill=\"#38bdf8\"/><rect x=\"35\" y=\"137\" width=\"44\" height=\"44\" rx=\"4\" fill=\"rgba(245,158,11,0.12)\" stroke=\"#f59e0b\" stroke-width=\"2.5\"/><circle cx=\"57\" cy=\"159\" r=\"4\" fill=\"#f59e0b\"/><rect x=\"138\" y=\"137\" width=\"44\" height=\"44\" rx=\"4\" fill=\"rgba(245,158,11,0.12)\" stroke=\"#f59e0b\" stroke-width=\"2.5\"/><circle cx=\"151\" cy=\"159\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"169\" cy=\"159\" r=\"4\" fill=\"#f59e0b\"/><rect x=\"240\" y=\"137\" width=\"44\" height=\"44\" rx=\"4\" fill=\"rgba(245,158,11,0.12)\" stroke=\"#f59e0b\" stroke-width=\"2.5\"/><circle cx=\"250\" cy=\"159\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"262\" cy=\"159\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"274\" cy=\"159\" r=\"4\" fill=\"#f59e0b\"/><polygon points=\"57,235 32,282 82,282\" fill=\"rgba(16,185,129,0.12)\" stroke=\"#10b981\" stroke-width=\"2.5\"/><circle cx=\"57\" cy=\"265\" r=\"4\" fill=\"#10b981\"/><polygon points=\"160,235 135,282 185,282\" fill=\"rgba(16,185,129,0.12)\" stroke=\"#10b981\" stroke-width=\"2.5\"/><circle cx=\"152\" cy=\"265\" r=\"4\" fill=\"#10b981\"/><circle cx=\"168\" cy=\"265\" r=\"4\" fill=\"#10b981\"/><text x=\"262\" y=\"278\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"44\" font-weight=\"bold\" fill=\"#c084fc\" text-anchor=\"middle\" filter=\"url(#glow-p)\">?</text></svg>", "question": "Welche geometrische Form und wie viele Punkte gehören in das Feld mit dem Fragezeichen (?)?", "hint": "Untersuche die geometrischen Formen zeilenweise und die Punktanzahl spaltenweise.", "solutionTitle": "Dreieck mit 3 Punkten", "solutionExplanation": "Zeile 1 enthält Kreise, Zeile 2 Quadrate, Zeile 3 Dreiecke. Spalte 1 hat 1 Punkt, Spalte 2 hat 2 Punkte, Spalte 3 hat 3 Punkte. In das Zielfeld gehört daher ein Dreieck mit 3 Punkten.", "keywords": ["dreieck", "3", "dreieck mit 3 punkten", "dreieck 3", "dreieck 3 punkte", "dreieck mit drei punkten", "3 punkte"]}, {"id": "opt-riddle-2", "title": "Das fraktale Dreiecks-Gitter", "category": "Geometrie", "difficulty": "Mittel", "visualSvg": "<svg viewBox=\"0 0 360 260\" width=\"100%\" height=\"240\" xmlns=\"http://www.w3.org/2000/svg\"><defs><linearGradient id=\"tri-grad\" x1=\"0%\" y1=\"0%\" x2=\"100%\" y2=\"100%\"><stop offset=\"0%\" stop-color=\"#10b981\" stop-opacity=\"0.25\"/><stop offset=\"100%\" stop-color=\"#064e3b\" stop-opacity=\"0.1\"/></linearGradient></defs><polygon points=\"180,20 40,240 320,240\" fill=\"url(#tri-grad)\" stroke=\"#10b981\" stroke-width=\"3\"/><line x1=\"133.3\" y1=\"93.3\" x2=\"226.7\" y2=\"93.3\" stroke=\"#34d399\" stroke-width=\"2\"/><line x1=\"86.7\" y1=\"166.7\" x2=\"273.3\" y2=\"166.7\" stroke=\"#34d399\" stroke-width=\"2\"/><line x1=\"133.3\" y1=\"93.3\" x2=\"86.7\" y2=\"166.7\" stroke=\"#34d399\" stroke-width=\"2\"/><line x1=\"226.7\" y1=\"93.3\" x2=\"273.3\" y2=\"166.7\" stroke=\"#34d399\" stroke-width=\"2\"/><line x1=\"133.3\" y1=\"93.3\" x2=\"180\" y2=\"166.7\" stroke=\"#34d399\" stroke-width=\"2\"/><line x1=\"226.7\" y1=\"93.3\" x2=\"180\" y2=\"166.7\" stroke=\"#34d399\" stroke-width=\"2\"/><line x1=\"86.7\" y1=\"166.7\" x2=\"133.3\" y2=\"240\" stroke=\"#34d399\" stroke-width=\"2\"/><line x1=\"180\" y1=\"166.7\" x2=\"133.3\" y2=\"240\" stroke=\"#34d399\" stroke-width=\"2\"/><line x1=\"180\" y1=\"166.7\" x2=\"226.7\" y2=\"240\" stroke=\"#34d399\" stroke-width=\"2\"/><line x1=\"273.3\" y1=\"166.7\" x2=\"226.7\" y2=\"240\" stroke=\"#34d399\" stroke-width=\"2\"/></svg>", "question": "Wie viele aufrechte und zusammengesetzte Dreiecke verbergen sich insgesamt in dieser Figur?", "hint": "Zähle die 9 kleinen 1×1-Dreiecke, die 3 mittleren 2×2-Dreiecke sowie das 1 große Gesamtdreieck.", "solutionTitle": "Exakt 13 Dreiecke", "solutionExplanation": "9 kleine Dreiecke (1x1) + 3 mittlere Dreiecke (aus je 4 Teilflächen zusammengesetzt) + 1 großes Außendreieck (3x3) = insgesamt 13 Dreiecke.", "keywords": ["13", "dreizehn", "13 dreiecke"]}, {"id": "opt-riddle-3", "title": "Kosmisches Symbol-Gleichungssystem", "category": "Gleichung", "difficulty": "Mittel", "visualSvg": "<svg viewBox=\"0 0 380 230\" width=\"100%\" height=\"240\" xmlns=\"http://www.w3.org/2000/svg\"><style>.math-row { font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; fill: #f8fafc; } .symbol { font-size: 26px; } .op { fill: #94a3b8; font-size: 22px; font-weight: 500; } .res { fill: #38bdf8; font-weight: 700; } .target { fill: #f43f5e; font-weight: 900; font-size: 24px; }</style><rect x=\"15\" y=\"10\" width=\"350\" height=\"44\" rx=\"8\" fill=\"#1e293b\" stroke=\"#334155\"/><text x=\"35\" y=\"40\" class=\"symbol\">🚀</text><text x=\"75\" y=\"40\" class=\"op\">+</text><text x=\"100\" y=\"40\" class=\"symbol\">🚀</text><text x=\"140\" y=\"40\" class=\"op\">+</text><text x=\"165\" y=\"40\" class=\"symbol\">🚀</text><text x=\"210\" y=\"40\" class=\"op\">=</text><text x=\"245\" y=\"40\" class=\"math-row res\">30</text><rect x=\"15\" y=\"64\" width=\"350\" height=\"44\" rx=\"8\" fill=\"#1e293b\" stroke=\"#334155\"/><text x=\"35\" y=\"94\" class=\"symbol\">🚀</text><text x=\"75\" y=\"94\" class=\"op\">+</text><text x=\"100\" y=\"94\" class=\"symbol\">🛸</text><text x=\"140\" y=\"94\" class=\"op\">+</text><text x=\"165\" y=\"94\" class=\"symbol\">🛸</text><text x=\"210\" y=\"94\" class=\"op\">=</text><text x=\"245\" y=\"94\" class=\"math-row res\">20</text><rect x=\"15\" y=\"118\" width=\"350\" height=\"44\" rx=\"8\" fill=\"#1e293b\" stroke=\"#334155\"/><text x=\"35\" y=\"148\" class=\"symbol\">🛸</text><text x=\"75\" y=\"148\" class=\"op\">+</text><text x=\"100\" y=\"148\" class=\"symbol\">⭐</text><text x=\"140\" y=\"148\" class=\"op\">+</text><text x=\"165\" y=\"148\" class=\"symbol\">⭐</text><text x=\"210\" y=\"148\" class=\"op\">=</text><text x=\"245\" y=\"148\" class=\"math-row res\">9</text><rect x=\"15\" y=\"172\" width=\"350\" height=\"48\" rx=\"8\" fill=\"#2a1532\" stroke=\"#f43f5e\" stroke-width=\"2\"/><text x=\"35\" y=\"204\" class=\"symbol\">🚀</text><text x=\"75\" y=\"204\" class=\"op\">+</text><text x=\"100\" y=\"204\" class=\"symbol\">⭐</text><text x=\"140\" y=\"204\" class=\"op\">×</text><text x=\"165\" y=\"204\" class=\"symbol\">🛸</text><text x=\"210\" y=\"204\" class=\"op\">=</text><text x=\"250\" y=\"206\" class=\"math-row target\">?</text></svg>", "question": "Welche Zahl ersetzt das Fragezeichen (?)? Vorsicht: Achte auf Punkt- vor Strichrechnung!", "hint": "3 Raketen = 30 -> Rakete = 10. Berechne Ufo und Stern, und multipliziere am Schluss vor der Addition.", "solutionTitle": "Die Lösung ist 20", "solutionExplanation": "🚀 = 10 (30 / 3). 🛸 = 5 ((20 - 10) / 2). ⭐ = 2 ((9 - 5) / 2). Letzte Zeile: 10 + (2 × 5) = 10 + 10 = 20 (Multiplikation vor Addition!).", "keywords": ["20", "zwanzig"]}, {"id": "opt-riddle-4", "title": "Müller-Lyer Linientäuschung", "category": "Illusion", "difficulty": "Einfach", "visualSvg": "<svg viewBox=\"0 0 380 200\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\"><defs><filter id=\"glow-line\"><feGaussianBlur stdDeviation=\"2\" result=\"b\"/><feMerge><feMergeNode in=\"b\"/><feMergeNode in=\"SourceGraphic\"/></feMerge></filter></defs><text x=\"30\" y=\"65\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"16\" font-weight=\"700\" fill=\"#38bdf8\">Linie A:</text><line x1=\"90\" y1=\"60\" x2=\"310\" y2=\"60\" stroke=\"#fff\" stroke-width=\"4\" filter=\"url(#glow-line)\"/><line x1=\"65\" y1=\"40\" x2=\"90\" y2=\"60\" stroke=\"#38bdf8\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><line x1=\"65\" y1=\"80\" x2=\"90\" y2=\"60\" stroke=\"#38bdf8\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><line x1=\"335\" y1=\"40\" x2=\"310\" y2=\"60\" stroke=\"#38bdf8\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><line x1=\"335\" y1=\"80\" x2=\"310\" y2=\"60\" stroke=\"#38bdf8\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><text x=\"30\" y=\"145\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"16\" font-weight=\"700\" fill=\"#f59e0b\">Linie B:</text><line x1=\"90\" y1=\"140\" x2=\"310\" y2=\"140\" stroke=\"#fff\" stroke-width=\"4\" filter=\"url(#glow-line)\"/><line x1=\"115\" y1=\"120\" x2=\"90\" y2=\"140\" stroke=\"#f59e0b\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><line x1=\"115\" y1=\"160\" x2=\"90\" y2=\"140\" stroke=\"#f59e0b\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><line x1=\"285\" y1=\"120\" x2=\"310\" y2=\"140\" stroke=\"#f59e0b\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><line x1=\"285\" y1=\"160\" x2=\"310\" y2=\"140\" stroke=\"#f59e0b\" stroke-width=\"3.5\" stroke-linecap=\"round\"/></svg>", "question": "Welche der beiden horizontalen Linien (Linie A oder Linie B) ist in Wirklichkeit länger?", "hint": "Lass dich nicht von den Pfeilspitzen an den Enden täuschen – betrachte nur die weißen horizontalen Linien.", "solutionTitle": "Beide Linien sind exakt gleich lang!", "solutionExplanation": "Die 1889 von Franz Müller-Lyer entdeckte geometrisch-optische Täuschung: Nach außen zeigende Pfeilflügel lassen eine Strecke deutlich kürzer wirken als nach innen zeigende Flügel, obwohl beide Horizontalen exakt 220 Pixel lang sind.", "keywords": ["gleich", "beide gleich", "gleich lang", "beide", "keine", "identisch", "sie sind gleich lang"]}, {"id": "opt-riddle-5", "title": "Streichholz-Gleichung: 6 + 4 = 4", "category": "Streichholz", "difficulty": "Einfach", "visualSvg": "<svg viewBox=\"0 0 380 200\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\"><defs><g id=\"h-match\"><rect x=\"0\" y=\"2\" width=\"46\" height=\"8\" rx=\"2\" fill=\"#d97706\"/><circle cx=\"4\" cy=\"6\" r=\"5\" fill=\"#ef4444\"/></g><g id=\"v-match\"><rect x=\"2\" y=\"0\" width=\"8\" height=\"46\" rx=\"2\" fill=\"#d97706\"/><circle cx=\"6\" cy=\"4\" r=\"5\" fill=\"#ef4444\"/></g></defs><use href=\"#h-match\" x=\"40\" y=\"30\"/><use href=\"#v-match\" x=\"34\" y=\"36\"/><use href=\"#v-match\" x=\"34\" y=\"86\"/><use href=\"#h-match\" x=\"40\" y=\"80\"/><use href=\"#v-match\" x=\"80\" y=\"86\"/><use href=\"#h-match\" x=\"40\" y=\"130\"/><use href=\"#h-match\" x=\"110\" y=\"80\"/><use href=\"#v-match\" x=\"129\" y=\"61\"/><use href=\"#v-match\" x=\"175\" y=\"36\"/><use href=\"#h-match\" x=\"180\" y=\"80\"/><use href=\"#v-match\" x=\"220\" y=\"36\"/><use href=\"#v-match\" x=\"220\" y=\"86\"/><use href=\"#h-match\" x=\"250\" y=\"72\"/><use href=\"#h-match\" x=\"250\" y=\"92\"/><use href=\"#v-match\" x=\"315\" y=\"36\"/><use href=\"#h-match\" x=\"320\" y=\"80\"/><use href=\"#v-match\" x=\"360\" y=\"36\"/><use href=\"#v-match\" x=\"360\" y=\"86\"/><text x=\"190\" y=\"180\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"14\" fill=\"#94a3b8\" text-anchor=\"middle\">Bewege genau 1 Streichholz!</text></svg>", "question": "Bewege genau 1 Streichholz, um diese Gleichung mathematisch wahr zu machen. Welche Rechnung entsteht?", "hint": "Nimm das mittlere Streichholz der 6 und mache daraus eine 0 (oder verändere das Plus in ein Minus).", "solutionTitle": "0 + 4 = 4 (oder 8 - 4 = 4)", "solutionExplanation": "Entferne das mittlere Querstäbchen der 6 und setze es oben rechts ein, um aus der 6 eine 0 zu machen: 0 + 4 = 4! Alternativ: Nimm das vertikale Holz des Pluszeichens und schließe die 6 zu einer 8: 8 - 4 = 4.", "keywords": ["0+4=4", "0 + 4 = 4", "0+4", "8-4=4", "8 - 4 = 4", "5+4=9", "5 + 4 = 9"]}, {"id": "opt-riddle-6", "title": "Isometrische 3D-Würfelpyramide", "category": "Raumdenken", "difficulty": "Mittel", "visualSvg": "<svg viewBox=\"0 0 360 260\" width=\"100%\" height=\"240\" xmlns=\"http://www.w3.org/2000/svg\"><defs><g id=\"iso-cube\"><polygon points=\"0,0 26,-15 52,0 26,15\" fill=\"#38bdf8\" stroke=\"#0284c7\" stroke-width=\"1.2\"/><polygon points=\"0,0 26,15 26,45 0,30\" fill=\"#0284c7\" stroke=\"#0369a1\" stroke-width=\"1.2\"/><polygon points=\"26,15 52,0 52,30 26,45\" fill=\"#0369a1\" stroke=\"#075985\" stroke-width=\"1.2\"/></g></defs><g transform=\"translate(154, 180)\"><use href=\"#iso-cube\"/></g><g transform=\"translate(128, 165)\"><use href=\"#iso-cube\"/></g><g transform=\"translate(180, 165)\"><use href=\"#iso-cube\"/></g><g transform=\"translate(102, 150)\"><use href=\"#iso-cube\"/></g><g transform=\"translate(154, 150)\"><use href=\"#iso-cube\"/></g><g transform=\"translate(206, 150)\"><use href=\"#iso-cube\"/></g><g transform=\"translate(128, 135)\"><use href=\"#iso-cube\"/></g><g transform=\"translate(180, 135)\"><use href=\"#iso-cube\"/></g><g transform=\"translate(154, 120)\"><use href=\"#iso-cube\"/></g><g transform=\"translate(154, 135)\"><use href=\"#iso-cube\"/></g><g transform=\"translate(128, 120)\"><use href=\"#iso-cube\"/></g><g transform=\"translate(180, 120)\"><use href=\"#iso-cube\"/></g><g transform=\"translate(154, 105)\"><use href=\"#iso-cube\"/></g><g transform=\"translate(154, 75)\"><use href=\"#iso-cube\"/></g></svg>", "question": "Aus wie vielen gleich großen Würfeln besteht diese 3D-Pyramide insgesamt (inklusive aller verdeckten Stützwürfel)?", "hint": "Zähle ebenenweise von oben nach unten: 1 (Spitze) + 4 (mittlere Ebene) + 9 (Grundfläche).", "solutionTitle": "Genau 14 Würfel", "solutionExplanation": "1. Ebene (oben): 1 Würfel (1×1). 2. Ebene (Mitte): 4 Würfel (2×2). 3. Ebene (unten): 9 Würfel (3×3). 1 + 4 + 9 = 14 Würfel insgesamt.", "keywords": ["14", "vierzehn", "14 wuerfel", "14 würfel"]}, {"id": "opt-riddle-7", "title": "Die Ebbinghaus-Größentäuschung", "category": "Illusion", "difficulty": "Einfach", "visualSvg": "<svg viewBox=\"0 0 380 210\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\"><g transform=\"translate(100, 105)\"><circle cx=\"0\" cy=\"-62\" r=\"28\" fill=\"#334155\" stroke=\"#475569\"/><circle cx=\"54\" cy=\"-31\" r=\"28\" fill=\"#334155\" stroke=\"#475569\"/><circle cx=\"54\" cy=\"31\" r=\"28\" fill=\"#334155\" stroke=\"#475569\"/><circle cx=\"0\" cy=\"62\" r=\"28\" fill=\"#334155\" stroke=\"#475569\"/><circle cx=\"-54\" cy=\"31\" r=\"28\" fill=\"#334155\" stroke=\"#475569\"/><circle cx=\"-54\" cy=\"-31\" r=\"28\" fill=\"#334155\" stroke=\"#475569\"/><circle cx=\"0\" cy=\"0\" r=\"22\" fill=\"#f97316\" stroke=\"#fb923c\" stroke-width=\"2\"/><text x=\"0\" y=\"5\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"14\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">A</text></g><g transform=\"translate(280, 105)\"><circle cx=\"0\" cy=\"-38\" r=\"10\" fill=\"#334155\" stroke=\"#475569\"/><circle cx=\"27\" cy=\"-27\" r=\"10\" fill=\"#334155\" stroke=\"#475569\"/><circle cx=\"38\" cy=\"0\" r=\"10\" fill=\"#334155\" stroke=\"#475569\"/><circle cx=\"27\" cy=\"27\" r=\"10\" fill=\"#334155\" stroke=\"#475569\"/><circle cx=\"0\" cy=\"38\" r=\"10\" fill=\"#334155\" stroke=\"#475569\"/><circle cx=\"-27\" cy=\"27\" r=\"10\" fill=\"#334155\" stroke=\"#475569\"/><circle cx=\"-38\" cy=\"0\" r=\"10\" fill=\"#334155\" stroke=\"#475569\"/><circle cx=\"-27\" cy=\"-27\" r=\"10\" fill=\"#334155\" stroke=\"#475569\"/><circle cx=\"0\" cy=\"0\" r=\"22\" fill=\"#f97316\" stroke=\"#fb923c\" stroke-width=\"2\"/><text x=\"0\" y=\"5\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"14\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">B</text></g></svg>", "question": "Welcher der beiden inneren orangen Kreise (A oder B) besitzt den größeren Durchmesser?", "hint": "Das menschliche Gehirn schätzt Größen immer im relativen Kontrast zur Umgebung ab.", "solutionTitle": "Beide Kreise sind absolut gleich groß!", "solutionExplanation": "Die Ebbinghaus-Täuschung (Titchener-Kreise): Kreis A wirkt optisch geschrumpft, weil er von riesigen Kreisen umgeben ist. Kreis B wirkt vergrößert durch die winzigen Nachbarkreise. Beide orangen Kreise haben exakt 22 Pixel Radius.", "keywords": ["gleich", "beide gleich", "gleich gross", "gleich groß", "beide", "keiner", "identisch"]}, {"id": "opt-riddle-8", "title": "Die rotierende Zeiger-Sequenz", "category": "Muster", "difficulty": "Mittel", "visualSvg": "<svg viewBox=\"0 0 420 140\" width=\"100%\" height=\"160\" xmlns=\"http://www.w3.org/2000/svg\"><g transform=\"translate(45, 60)\"><circle cx=\"0\" cy=\"0\" r=\"34\" fill=\"#1e293b\" stroke=\"#475569\" stroke-width=\"2\"/><line x1=\"0\" y1=\"0\" x2=\"0\" y2=\"-25\" stroke=\"#38bdf8\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><circle cx=\"0\" cy=\"0\" r=\"3.5\" fill=\"#38bdf8\"/><text x=\"0\" y=\"52\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"12\" fill=\"#94a3b8\" text-anchor=\"middle\">12:00</text></g><g transform=\"translate(130, 60)\"><circle cx=\"0\" cy=\"0\" r=\"34\" fill=\"#1e293b\" stroke=\"#475569\" stroke-width=\"2\"/><line x1=\"0\" y1=\"0\" x2=\"17.7\" y2=\"-17.7\" stroke=\"#38bdf8\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><circle cx=\"0\" cy=\"0\" r=\"3.5\" fill=\"#38bdf8\"/><text x=\"0\" y=\"52\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"12\" fill=\"#94a3b8\" text-anchor=\"middle\">1:30</text></g><g transform=\"translate(215, 60)\"><circle cx=\"0\" cy=\"0\" r=\"34\" fill=\"#1e293b\" stroke=\"#475569\" stroke-width=\"2\"/><line x1=\"0\" y1=\"0\" x2=\"17.7\" y2=\"17.7\" stroke=\"#38bdf8\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><circle cx=\"0\" cy=\"0\" r=\"3.5\" fill=\"#38bdf8\"/><text x=\"0\" y=\"52\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"12\" fill=\"#94a3b8\" text-anchor=\"middle\">4:30</text></g><g transform=\"translate(300, 60)\"><circle cx=\"0\" cy=\"0\" r=\"34\" fill=\"#1e293b\" stroke=\"#475569\" stroke-width=\"2\"/><line x1=\"0\" y1=\"0\" x2=\"-25\" y2=\"0\" stroke=\"#38bdf8\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><circle cx=\"0\" cy=\"0\" r=\"3.5\" fill=\"#38bdf8\"/><text x=\"0\" y=\"52\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"12\" fill=\"#94a3b8\" text-anchor=\"middle\">9:00</text></g><g transform=\"translate(385, 60)\"><circle cx=\"0\" cy=\"0\" r=\"34\" fill=\"#2e1065\" stroke=\"#a855f7\" stroke-width=\"2.5\" stroke-dasharray=\"4 3\"/><text x=\"0\" y=\"8\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"28\" font-weight=\"900\" fill=\"#c084fc\" text-anchor=\"middle\">?</text><text x=\"0\" y=\"52\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"12\" fill=\"#c084fc\" text-anchor=\"middle\">Ziel</text></g></svg>", "question": "Auf welche Uhrzeit (oder wie viel Grad) zeigt der Zeiger der 5. Uhr, wenn das Muster fortgesetzt wird?", "hint": "Die Drehung vergrößert sich in jedem Schritt um 45 Grad: +45°, dann +90°, dann +135° ... Wie viel Grad Drehung folgt nun?", "solutionTitle": "3:00 Uhr (oder 90 Grad)", "solutionExplanation": "Die Winkelschritte wachsen linear: +45° (1:30), +90° (4:30), +135° (9:00). Der nächste Schritt beträgt +180°: 270° + 180° = 450° ≡ 90°, was exakt 3:00 Uhr entspricht.", "keywords": ["3:00", "3 uhr", "3", "drei uhr", "03:00", "90 grad", "90°"]}, {"id": "opt-riddle-9", "title": "Das 3x3 Schachbrett-Raster", "category": "Geometrie", "difficulty": "Mittel", "visualSvg": "<svg viewBox=\"0 0 300 260\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\"><defs><pattern id=\"checkers\" width=\"40\" height=\"40\" patternUnits=\"userSpaceOnUse\"><rect width=\"20\" height=\"20\" fill=\"rgba(56,189,248,0.08)\"/><rect x=\"20\" y=\"20\" width=\"20\" height=\"20\" fill=\"rgba(56,189,248,0.08)\"/></pattern></defs><rect x=\"60\" y=\"25\" width=\"180\" height=\"180\" rx=\"4\" fill=\"url(#checkers)\" stroke=\"#38bdf8\" stroke-width=\"3\"/><line x1=\"120\" y1=\"25\" x2=\"120\" y2=\"205\" stroke=\"#38bdf8\" stroke-width=\"2.5\"/><line x1=\"180\" y1=\"25\" x2=\"180\" y2=\"205\" stroke=\"#38bdf8\" stroke-width=\"2.5\"/><line x1=\"60\" y1=\"85\" x2=\"240\" y2=\"85\" stroke=\"#38bdf8\" stroke-width=\"2.5\"/><line x1=\"60\" y1=\"145\" x2=\"240\" y2=\"145\" stroke=\"#38bdf8\" stroke-width=\"2.5\"/><text x=\"150\" y=\"235\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"14\" fill=\"#94a3b8\" text-anchor=\"middle\">Zähle 1×1, 2×2 und 3×3 Quadrate</text></svg>", "question": "Wie viele Quadrate aller Größen (1×1, 2×2, 3×3) befinden sich insgesamt in diesem 3×3-Gitter?", "hint": "Vergiss nicht die vier 2×2-Quadrate und das große 3×3-Außenquadrat.", "solutionTitle": "Genau 14 Quadrate", "solutionExplanation": "In einem 3×3-Gitter gibt es: 9 kleine Quadrate (1×1) + 4 mittlere Quadrate (2×2) + 1 großes Quadrat (3×3). 9 + 4 + 1 = 14 Quadrate (Formel: 1² + 2² + 3² = 14).", "keywords": ["14", "vierzehn", "14 quadrate"]}, {"id": "opt-riddle-10", "title": "Additive RGB-Farbmischung", "category": "Illusion", "difficulty": "Einfach", "visualSvg": "<svg viewBox=\"0 0 340 250\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"170\" cy=\"85\" r=\"60\" fill=\"#ef4444\" fill-opacity=\"0.75\"/><circle cx=\"130\" cy=\"155\" r=\"60\" fill=\"#22c55e\" fill-opacity=\"0.75\"/><circle cx=\"210\" cy=\"155\" r=\"60\" fill=\"#3b82f6\" fill-opacity=\"0.75\"/><text x=\"170\" y=\"50\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#fca5a5\" text-anchor=\"middle\">ROT</text><text x=\"85\" y=\"195\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#86efac\" text-anchor=\"middle\">GRÜN</text><text x=\"255\" y=\"195\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#93c5fd\" text-anchor=\"middle\">BLAU</text><circle cx=\"170\" cy=\"132\" r=\"16\" fill=\"#0f172a\" stroke=\"#fff\" stroke-width=\"2\"/><text x=\"170\" y=\"139\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"18\" font-weight=\"900\" fill=\"#fff\" text-anchor=\"middle\">?</text></svg>", "question": "Welche Lichtfarbe entsteht im Zentrum (?), wenn alle drei Lichtquellen (Rot, Grün, Blau) aufeinandertreffen?", "hint": "Hier geht es um die additive Lichtmischung von Bildschirmen (RGB), nicht um Farbkasten-Pigmente.", "solutionTitle": "Weiß (Weißes Licht)", "solutionExplanation": "Bei additiver Farbmischung (wie bei Pixeln oder Bühnen-Scheinwerfern) erzeugen alle drei Grundfarben bei voller Intensität pures Weiß. (Rot + Grün = Gelb, Grün + Blau = Cyan, Rot + Blau = Magenta, alle drei = Weiß).", "keywords": ["weiss", "weiß", "white", "lichtweiss", "weißes licht"]}, {"id": "opt-riddle-11", "title": "Würfel-Netz Faltung", "category": "Raumdenken", "difficulty": "Mittel", "visualSvg": "<svg viewBox=\"0 0 360 220\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\"><style>.net-box { fill: #1e293b; stroke: #38bdf8; stroke-width: 2; rx: 4; } .net-sym { font-size: 26px; }</style><rect x=\"155\" y=\"15\" width=\"50\" height=\"50\" class=\"net-box\"/><text x=\"180\" y=\"50\" text-anchor=\"middle\" class=\"net-sym\">🔺</text><rect x=\"55\" y=\"65\" width=\"50\" height=\"50\" class=\"net-box\" stroke=\"#f59e0b\" stroke-width=\"3\"/><text x=\"80\" y=\"100\" text-anchor=\"middle\" class=\"net-sym\">⚪</text><rect x=\"105\" y=\"65\" width=\"50\" height=\"50\" class=\"net-box\"/><text x=\"130\" y=\"100\" text-anchor=\"middle\" class=\"net-sym\">⬛</text><rect x=\"155\" y=\"65\" width=\"50\" height=\"50\" class=\"net-box\"/><text x=\"180\" y=\"100\" text-anchor=\"middle\" class=\"net-sym\">⭐</text><rect x=\"205\" y=\"65\" width=\"50\" height=\"50\" class=\"net-box\"/><text x=\"230\" y=\"100\" text-anchor=\"middle\" class=\"net-sym\">🔷</text><rect x=\"155\" y=\"115\" width=\"50\" height=\"50\" class=\"net-box\"/><text x=\"180\" y=\"150\" text-anchor=\"middle\" class=\"net-sym\">⚫</text><text x=\"180\" y=\"195\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"14\" fill=\"#94a3b8\" text-anchor=\"middle\">Welches Symbol liegt ⚪ im gefalteten Würfel gegenüber?</text></svg>", "question": "Welches Symbol liegt dem weißen Kreis (⚪) genau gegenüber, wenn dieses Netz zu einem Würfel gefaltet wird?", "hint": "In einem Band von Quadraten liegt immer jedes zweite Quadrat der Reihe gegenüber.", "solutionTitle": "Der Stern (⭐)", "solutionExplanation": "In der horizontalen Reihe liegt immer eine Fläche zwischen zwei gegenüberliegenden Seiten. Der Kreis (Position 1) und der Stern (Position 3) haben das schwarze Quadrat (Position 2) dazwischen und stehen sich im gefalteten 3D-Würfel daher genau gegenüber.", "keywords": ["stern", "star", "⭐", "der stern"]}, {"id": "opt-riddle-12", "title": "Das verzweigte Röhrensystem", "category": "Muster", "difficulty": "Mittel", "visualSvg": "<svg viewBox=\"0 0 380 230\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\"><rect x=\"175\" y=\"10\" width=\"30\" height=\"15\" fill=\"#94a3b8\" rx=\"2\"/><path d=\"M190,25 Q190,40 190,45\" stroke=\"#38bdf8\" stroke-width=\"4\" stroke-linecap=\"round\"/><rect x=\"140\" y=\"45\" width=\"100\" height=\"45\" fill=\"none\" stroke=\"#64748b\" stroke-width=\"2.5\"/><text x=\"190\" y=\"72\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"14\" font-weight=\"700\" fill=\"#94a3b8\" text-anchor=\"middle\">Tank 1</text><path d=\"M140,75 L80,75 L80,120\" fill=\"none\" stroke=\"#64748b\" stroke-width=\"6\"/><circle cx=\"80\" cy=\"100\" r=\"8\" fill=\"#ef4444\"/><text x=\"80\" y=\"104\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"11\" font-weight=\"900\" fill=\"#fff\" text-anchor=\"middle\">✕</text><path d=\"M190,90 L190,130\" fill=\"none\" stroke=\"#38bdf8\" stroke-width=\"6\"/><path d=\"M240,55 L300,55 L300,120\" fill=\"none\" stroke=\"#64748b\" stroke-width=\"6\"/><rect x=\"45\" y=\"120\" width=\"70\" height=\"55\" fill=\"none\" stroke=\"#64748b\" stroke-width=\"2.5\"/><text x=\"80\" y=\"152\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"16\" font-weight=\"700\" fill=\"#94a3b8\" text-anchor=\"middle\">2</text><rect x=\"155\" y=\"130\" width=\"70\" height=\"55\" fill=\"none\" stroke=\"#10b981\" stroke-width=\"2.5\"/><text x=\"190\" y=\"162\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"16\" font-weight=\"700\" fill=\"#10b981\" text-anchor=\"middle\">3</text><rect x=\"265\" y=\"120\" width=\"70\" height=\"55\" fill=\"none\" stroke=\"#64748b\" stroke-width=\"2.5\"/><text x=\"300\" y=\"152\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"16\" font-weight=\"700\" fill=\"#94a3b8\" text-anchor=\"middle\">4</text><text x=\"190\" y=\"215\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"14\" fill=\"#cbd5e1\" text-anchor=\"middle\">Welcher Behälter füllt sich als Allererster?</text></svg>", "question": "Welcher Behälter (2, 3 oder 4) füllt sich als Allererster vollständig mit Wasser?", "hint": "Prüfe die Verbindungsrohre: Rohr 2 ist durch eine rote Sperre verschlossen, Rohr 4 zweigt zu weit oben ab.", "solutionTitle": "Behälter 3", "solutionExplanation": "Die Zuleitung zu Tank 2 ist verstopft (rotes ✕). Die Leitung zu Tank 4 liegt am oberen Rand und wird erst bei Überlauf erreicht. Die Röhre zu Tank 3 ist tief und komplett frei – Tank 3 füllt sich zuerst.", "keywords": ["3", "drei", "behaelter 3", "behälter 3", "tank 3"]}, {"id": "opt-riddle-13", "title": "Die Ponzo-Perspektive", "category": "Illusion", "difficulty": "Einfach", "visualSvg": "<svg viewBox=\"0 0 340 230\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\"><defs><filter id=\"bar-glow\"><feGaussianBlur stdDeviation=\"2\" result=\"b\"/><feMerge><feMergeNode in=\"b\"/><feMergeNode in=\"SourceGraphic\"/></feMerge></filter></defs><line x1=\"140\" y1=\"20\" x2=\"40\" y2=\"210\" stroke=\"#475569\" stroke-width=\"4\"/><line x1=\"200\" y1=\"20\" x2=\"300\" y2=\"210\" stroke=\"#475569\" stroke-width=\"4\"/><line x1=\"135\" y1=\"35\" x2=\"205\" y2=\"35\" stroke=\"#334155\" stroke-width=\"2\"/><line x1=\"125\" y1=\"65\" x2=\"215\" y2=\"65\" stroke=\"#334155\" stroke-width=\"2.5\"/><line x1=\"110\" y1=\"105\" x2=\"230\" y2=\"105\" stroke=\"#334155\" stroke-width=\"3\"/><line x1=\"90\" y1=\"150\" x2=\"250\" y2=\"150\" stroke=\"#334155\" stroke-width=\"3.5\"/><line x1=\"60\" y1=\"200\" x2=\"280\" y2=\"200\" stroke=\"#334155\" stroke-width=\"4\"/><rect x=\"130\" y=\"58\" width=\"80\" height=\"12\" rx=\"3\" fill=\"#fbbf24\" stroke=\"#f59e0b\" filter=\"url(#bar-glow)\"/><text x=\"110\" y=\"68\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"14\" font-weight=\"700\" fill=\"#fbbf24\">A</text><rect x=\"130\" y=\"170\" width=\"80\" height=\"12\" rx=\"3\" fill=\"#fbbf24\" stroke=\"#f59e0b\" filter=\"url(#bar-glow)\"/><text x=\"110\" y=\"180\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"14\" font-weight=\"700\" fill=\"#fbbf24\">B</text></svg>", "question": "Welcher der beiden gelben Balken (A = Oben oder B = Unten) ist in realer Linienbreite länger?", "hint": "Die Schienen erzeugen eine Tiefenperspektive, die dein Gehirn täuscht.", "solutionTitle": "Beide Balken sind exakt gleich lang!", "solutionExplanation": "Die klassische Ponzo-Täuschung: Da das menschliche Sehzentrum die zusammenlaufenden Linien als Ferne interpretiert, vergrößert es Balken A unbewusst. Beide Balken sind auf den Pixel genau 80 Pixel breit.", "keywords": ["gleich", "beide gleich", "gleich lang", "beide", "keiner", "identisch"]}, {"id": "opt-riddle-14", "title": "Das magische Summen-Dreieck", "category": "Geometrie", "difficulty": "Schwer", "visualSvg": "<svg viewBox=\"0 0 340 260\" width=\"100%\" height=\"240\" xmlns=\"http://www.w3.org/2000/svg\"><defs><g id=\"num-node\"><circle cx=\"0\" cy=\"0\" r=\"18\" fill=\"#1e293b\" stroke=\"#38bdf8\" stroke-width=\"2.5\"/></g></defs><polygon points=\"170,40 50,220 290,220\" fill=\"none\" stroke=\"#475569\" stroke-width=\"2.5\"/><g transform=\"translate(170, 40)\"><use href=\"#num-node\"/><text x=\"0\" y=\"5\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"16\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">1</text></g><g transform=\"translate(230, 130)\"><use href=\"#num-node\"/><text x=\"0\" y=\"5\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"16\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">4</text></g><g transform=\"translate(290, 220)\"><use href=\"#num-node\"/><text x=\"0\" y=\"5\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"16\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">5</text></g><g transform=\"translate(170, 220)\"><use href=\"#num-node\"/><text x=\"0\" y=\"5\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"16\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">2</text></g><g transform=\"translate(110, 130)\"><use href=\"#num-node\"/><text x=\"0\" y=\"5\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"16\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">6</text></g><g transform=\"translate(50, 220)\"><circle cx=\"0\" cy=\"0\" r=\"19\" fill=\"#2e1065\" stroke=\"#a855f7\" stroke-width=\"3\"/><text x=\"0\" y=\"6\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"18\" font-weight=\"900\" fill=\"#c084fc\" text-anchor=\"middle\">?</text></g></svg>", "question": "Welche Zahl (von 1 bis 6) gehört in die linke untere Ecke (?), damit jede Seite die Summe 10 ergibt?", "hint": "Prüfe die linke Dreiecksseite: 1 + 6 + ? = 10.", "solutionTitle": "Die Zahl 3", "solutionExplanation": "Linke Kante: 1 + 6 + 3 = 10. Untere Kante: 3 + 2 + 5 = 10. Rechte Kante: 1 + 4 + 5 = 10. Jede der drei Seiten ergibt damit exakt die Zielsumme 10.", "keywords": ["3", "drei"]}, {"id": "opt-riddle-15", "title": "Die Getriebe-Kette", "category": "Muster", "difficulty": "Einfach", "visualSvg": "<svg viewBox=\"0 0 420 150\" width=\"100%\" height=\"160\" xmlns=\"http://www.w3.org/2000/svg\"><defs><g id=\"gear\"><circle cx=\"0\" cy=\"0\" r=\"28\" fill=\"#1e293b\" stroke=\"#38bdf8\" stroke-width=\"2.5\"/><circle cx=\"0\" cy=\"0\" r=\"9\" fill=\"#0f172a\" stroke=\"#38bdf8\" stroke-width=\"2\"/><line x1=\"-34\" y1=\"0\" x2=\"34\" y2=\"0\" stroke=\"#38bdf8\" stroke-width=\"3\"/><line x1=\"0\" y1=\"-34\" x2=\"0\" y2=\"34\" stroke=\"#38bdf8\" stroke-width=\"3\"/><line x1=\"-24\" y1=\"-24\" x2=\"24\" y2=\"24\" stroke=\"#38bdf8\" stroke-width=\"3\"/><line x1=\"-24\" y1=\"24\" x2=\"24\" y2=\"-24\" stroke=\"#38bdf8\" stroke-width=\"3\"/></g></defs><g transform=\"translate(50, 75)\"><use href=\"#gear\"/><text x=\"0\" y=\"5\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">A</text></g><g transform=\"translate(125, 75)\"><use href=\"#gear\"/><text x=\"0\" y=\"5\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">B</text></g><g transform=\"translate(200, 75)\"><use href=\"#gear\"/><text x=\"0\" y=\"5\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">C</text></g><g transform=\"translate(275, 75)\"><use href=\"#gear\"/><text x=\"0\" y=\"5\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">D</text></g><g transform=\"translate(350, 75)\"><use href=\"#gear\"/><text x=\"0\" y=\"5\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">E</text></g><text x=\"50\" y=\"28\" font-size=\"20\" fill=\"#10b981\" text-anchor=\"middle\">↻</text><text x=\"350\" y=\"28\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"20\" font-weight=\"900\" fill=\"#f43f5e\" text-anchor=\"middle\">?</text><text x=\"210\" y=\"138\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" fill=\"#94a3b8\" text-anchor=\"middle\">Rad A dreht im Uhrzeigersinn (↻)</text></svg>", "question": "In welche Richtung dreht sich das letzte Zahnrad E (Uhrzeigersinn oder Gegen den Uhrzeigersinn)?", "hint": "Zwei ineinandergreifende Zahnräder kehren ihre Drehrichtung um. Zähle die Schritte ungerade/gerade.", "solutionTitle": "Im Uhrzeigersinn (CW)", "solutionExplanation": "A dreht im Uhrzeigersinn -> B dreht gegen -> C im Uhrzeigersinn -> D dreht gegen -> E dreht wieder im Uhrzeigersinn. Bei einer ungeraden Kette (1, 3, 5) hat das letzte Rad stets dieselbe Drehrichtung wie das erste.", "keywords": ["uhrzeigersinn", "im uhrzeigersinn", "rechts", "cw", "wie a"]}, {"id": "opt-riddle-16", "title": "Streichholz-Quadrate: Von 4 auf 2", "category": "Streichholz", "difficulty": "Mittel", "visualSvg": "<svg viewBox=\"0 0 340 240\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\"><defs><g id=\"h-m\"><rect x=\"0\" y=\"2\" width=\"60\" height=\"8\" rx=\"2\" fill=\"#d97706\"/><circle cx=\"5\" cy=\"6\" r=\"5\" fill=\"#ef4444\"/></g><g id=\"v-m\"><rect x=\"2\" y=\"0\" width=\"8\" height=\"60\" rx=\"2\" fill=\"#d97706\"/><circle cx=\"6\" cy=\"5\" r=\"5\" fill=\"#ef4444\"/></g></defs><use href=\"#h-m\" x=\"100\" y=\"30\"/><use href=\"#h-m\" x=\"170\" y=\"30\"/><use href=\"#h-m\" x=\"100\" y=\"100\"/><use href=\"#h-m\" x=\"170\" y=\"100\"/><use href=\"#h-m\" x=\"100\" y=\"170\"/><use href=\"#h-m\" x=\"170\" y=\"170\"/><use href=\"#v-m\" x=\"90\" y=\"35\"/><use href=\"#v-m\" x=\"90\" y=\"105\"/><use href=\"#v-m\" x=\"160\" y=\"35\"/><use href=\"#v-m\" x=\"160\" y=\"105\"/><use href=\"#v-m\" x=\"230\" y=\"35\"/><use href=\"#v-m\" x=\"230\" y=\"105\"/><text x=\"170\" y=\"215\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" fill=\"#cbd5e1\" text-anchor=\"middle\">4 Quadrate aus 12 Streichhölzern</text></svg>", "question": "Wie viele Streichhölzer musst du MINDESTENS entfernen, damit genau 2 Quadrate (ohne überstehende lose Enden) übrig bleiben?", "hint": "Entferne zwei Außenhölzer einer Ecke.", "solutionTitle": "Mindestens 2 Streichhölzer", "solutionExplanation": "Wenn man 2 Hölzer einer Außenecke wegnimmt (z. B. oben und rechts des Eck-Quadrats), verschwindet dieses Quadrat vollständig und es bleiben genau 2 intakte Quadrate stehen.", "keywords": ["2", "zwei", "2 streichhoelzer", "2 streichhölzer"]}, {"id": "opt-riddle-17", "title": "Das unmögliche Penrose-Dreieck", "category": "Illusion", "difficulty": "Mittel", "visualSvg": "<svg viewBox=\"0 0 340 260\" width=\"100%\" height=\"240\" xmlns=\"http://www.w3.org/2000/svg\"><g transform=\"translate(170, 130) scale(1.15)\"><polygon points=\"-70,50 -20,50 -20,-10 30,-10 30,50 80,50 80,-70 -70,-70\" fill=\"#c084fc\" opacity=\"0.9\"/><polygon points=\"-70,50 -70,-70 -35,-50 -35,20 30,20 30,50\" fill=\"#9333ea\" opacity=\"0.9\"/><polygon points=\"80,-70 45,-50 -20,-50 -20,20 -35,20 -35,-70\" fill=\"#581c87\" opacity=\"0.9\"/><polygon points=\"-70,50 80,50 65,25 -50,25\" fill=\"#a855f7\" opacity=\"0.85\"/></g><text x=\"170\" y=\"240\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" fill=\"#cbd5e1\" text-anchor=\"middle\">Optisch unmögliche 3D-Geometrie</text></svg>", "question": "Wie viele scheinbare 90-Grad-Winkel (rechte Winkel) scheint dieser unmögliche Körper optisch zu besitzen?", "hint": "Betrachte jede der 3 Ecken des Balkendreiecks aus der jeweiligen lokalen Perspektive.", "solutionTitle": "3 rechte Winkel", "solutionExplanation": "Jede der drei Ecken des Penrose-Tribars wirkt lokal wie ein perfekter 90°-Winkel (drei rechte Winkel ergäben 270°, was in einem ebenen Dreieck mit 180° Winkelsumme geometrisch unmöglich ist).", "keywords": ["3", "drei", "3 rechte winkel", "drei rechte winkel"]}, {"id": "opt-riddle-18", "title": "Die kosmische Symbol-Waage", "category": "Gleichung", "difficulty": "Einfach", "visualSvg": "<svg viewBox=\"0 0 380 230\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\"><style>.scale-bar { stroke: #64748b; stroke-width: 3; } .scale-sym { font-size: 20px; }</style><g transform=\"translate(30, 20)\"><line x1=\"20\" y1=\"35\" x2=\"140\" y2=\"35\" class=\"scale-bar\"/><polygon points=\"80,35 70,55 90,55\" fill=\"#475569\"/><text x=\"35\" y=\"30\" class=\"scale-sym\">💎</text><text x=\"75\" y=\"30\" font-size=\"14\" fill=\"#94a3b8\">=</text><text x=\"95\" y=\"30\" class=\"scale-sym\">🪙🪙🪙</text></g><g transform=\"translate(200, 20)\"><line x1=\"20\" y1=\"35\" x2=\"140\" y2=\"35\" class=\"scale-bar\"/><polygon points=\"80,35 70,55 90,55\" fill=\"#475569\"/><text x=\"35\" y=\"30\" class=\"scale-sym\">👑</text><text x=\"75\" y=\"30\" font-size=\"14\" fill=\"#94a3b8\">=</text><text x=\"95\" y=\"30\" class=\"scale-sym\">💎💎</text></g><g transform=\"translate(115, 110)\"><rect x=\"0\" y=\"0\" width=\"160\" height=\"75\" rx=\"10\" fill=\"#1e293b\" stroke=\"#f59e0b\" stroke-width=\"2\"/><text x=\"30\" y=\"48\" font-size=\"28\">👑</text><text x=\"75\" y=\"48\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"20\" font-weight=\"700\" fill=\"#94a3b8\">=</text><text x=\"110\" y=\"48\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"28\" font-weight=\"900\" fill=\"#f59e0b\">?</text><text x=\"80\" y=\"68\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"11\" fill=\"#cbd5e1\" text-anchor=\"middle\">Wie viele Münzen (🪙)?</text></g></svg>", "question": "Wie viele Goldmünzen (🪙) werden benötigt, um 1 Krone (👑) auf der Ziel-Waage im Gleichgewicht zu halten?", "hint": "Setze den Wert eines Diamanten in Münzen in die Gleichung der Krone ein: 1 💎 = 3 🪙.", "solutionTitle": "Genau 6 Goldmünzen (🪙)", "solutionExplanation": "1 Diamant wiegt 3 Münzen. 1 Krone wiegt 2 Diamanten. Da jeder Diamant 3 Münzen wiegt: 2 × 3 = 6 Goldmünzen.", "keywords": ["6", "sechs", "6 muenzen", "6 münzen"]}, {"id": "opt-riddle-19", "title": "Das Hermann-Gitter", "category": "Illusion", "difficulty": "Einfach", "visualSvg": "<svg viewBox=\"0 0 340 250\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"340\" height=\"250\" fill=\"#0f172a\"/><g fill=\"#ffffff\"><rect x=\"30\" y=\"25\" width=\"60\" height=\"60\" rx=\"3\"/><rect x=\"105\" y=\"25\" width=\"60\" height=\"60\" rx=\"3\"/><rect x=\"180\" y=\"25\" width=\"60\" height=\"60\" rx=\"3\"/><rect x=\"255\" y=\"25\" width=\"60\" height=\"60\" rx=\"3\"/><rect x=\"30\" y=\"100\" width=\"60\" height=\"60\" rx=\"3\"/><rect x=\"105\" y=\"100\" width=\"60\" height=\"60\" rx=\"3\"/><rect x=\"180\" y=\"100\" width=\"60\" height=\"60\" rx=\"3\"/><rect x=\"255\" y=\"100\" width=\"60\" height=\"60\" rx=\"3\"/><rect x=\"30\" y=\"175\" width=\"60\" height=\"60\" rx=\"3\"/><rect x=\"105\" y=\"175\" width=\"60\" height=\"60\" rx=\"3\"/><rect x=\"180\" y=\"175\" width=\"60\" height=\"60\" rx=\"3\"/><rect x=\"255\" y=\"175\" width=\"60\" height=\"60\" rx=\"3\"/></g><text x=\"170\" y=\"244\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"12\" fill=\"#94a3b8\" text-anchor=\"middle\">Was siehst du in den dunklen Kreuzungen?</text></svg>", "question": "Welche scheinbare optische Erscheinung nimmst du an den Schnittpunkten der dunklen Straßen wahr (obwohl dort keine sind)?", "hint": "Bewege deine Augen über das Raster: An den Kreuzungen im peripheren Sehfeld blitzen flüchtige Flecken auf.", "solutionTitle": "Graue Flecken / Schattenpunkte", "solutionExplanation": "Die Hermann-Gitter-Täuschung (1870 von Ludimar Hermann entdeckt): Durch die laterale Hemmung in den retinalen Ganglienzellen des Auges erscheinen an den Schnittpunkten geisterhafte graue Punkte, die verschwinden, sobald man sie direkt fokussiert.", "keywords": ["graue punkte", "punkte", "graue flecken", "flecken", "schatten", "schattenpunkte", "punkte an kreuzungen"]}, {"id": "opt-riddle-20", "title": "Das Kanizsa-Dreieck", "category": "Illusion", "difficulty": "Einfach", "visualSvg": "<svg viewBox=\"0 0 340 250\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M170,30 L100,165\" stroke=\"#475569\" stroke-width=\"2.5\"/><path d=\"M100,165 L240,165\" stroke=\"#475569\" stroke-width=\"2.5\"/><path d=\"M240,165 L170,30\" stroke=\"#475569\" stroke-width=\"2.5\"/><path d=\"M170,55 A25,25 0 1,0 152,38 L170,55 Z\" fill=\"#38bdf8\"/><path d=\"M90,185 A25,25 0 1,0 115,185 L90,160 Z\" fill=\"#38bdf8\"/><path d=\"M250,185 A25,25 0 1,0 225,185 L250,160 Z\" fill=\"#38bdf8\"/><polygon points=\"170,180 85,60 255,60\" fill=\"#0f172a\"/><polygon points=\"170,40 90,175 250,175\" fill=\"#1e293b\" opacity=\"0.95\"/><text x=\"170\" y=\"240\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" fill=\"#cbd5e1\" text-anchor=\"middle\">Wie viele echte Umrisslinien hat das weiße Dreieck?</text></svg>", "question": "Wie viele physisch gezeichnete Außenkanten besitzt das scheinbar leuchtende zentrale weiße Dreieck in Wirklichkeit?", "hint": "Schau genau hin: Existieren die Linien des Dreiecks tatsächlich als Striche auf dem Bildschirm oder vervollständigt sie dein Gehirn?", "solutionTitle": "Genau 0 (Keine einzige Linie!)", "solutionExplanation": "Das Kanizsa-Dreieck (1955 von Gaetano Kanizsa): Das zentrale helle Dreieck existiert rein als illusorische Kontur. Das Gehirn schließt die offenen Ausschnitte der Pacman-Kreise und Winkel zu einer zusammenhängenden Gestalt.", "keywords": ["0", "null", "keine", "keine linien", "0 linien", "kein", "keine kanten", "0 kanten"]}, {"id": "opt-riddle-21", "title": "Der wendende Streichholz-Fisch", "category": "Streichholz", "difficulty": "Mittel", "visualSvg": "<svg viewBox=\"0 0 360 230\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\"><defs><g id=\"m-fish\"><rect x=\"0\" y=\"2\" width=\"55\" height=\"7\" rx=\"2\" fill=\"#d97706\"/><circle cx=\"5\" cy=\"5.5\" r=\"4.5\" fill=\"#ef4444\"/></g></defs><g transform=\"translate(180, 110)\"><g transform=\"rotate(45)\"><use href=\"#m-fish\" x=\"0\" y=\"0\"/></g><g transform=\"rotate(135)\"><use href=\"#m-fish\" x=\"0\" y=\"0\"/></g><g transform=\"rotate(225)\"><use href=\"#m-fish\" x=\"0\" y=\"0\"/></g><g transform=\"rotate(315)\"><use href=\"#m-fish\" x=\"0\" y=\"0\"/></g><g transform=\"translate(39, -39) rotate(0)\"><use href=\"#m-fish\" x=\"0\" y=\"0\"/></g><g transform=\"translate(39, 39) rotate(0)\"><use href=\"#m-fish\" x=\"0\" y=\"0\"/></g><g transform=\"translate(39, -39) rotate(90)\"><use href=\"#m-fish\" x=\"0\" y=\"0\"/></g><g transform=\"translate(39, -39) rotate(45)\"><use href=\"#m-fish\" x=\"0\" y=\"0\"/></g></g><text x=\"80\" y=\"115\" font-size=\"24\">🐟 ➔</text><text x=\"180\" y=\"210\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" fill=\"#cbd5e1\" text-anchor=\"middle\">Der Fisch schwimmt nach links. Wie viele Hölzer für Richtungswechsel?</text></svg>", "question": "Wie viele Streichhölzer musst du MINDESTENS umlegen, damit der Fisch in die genau entgegengesetzte Richtung schwimmt?", "hint": "Um die Flossen und den Schwanz umzukehren, müssen 2 Flossenhölzer und 1 Schwanzholz bewegt werden.", "solutionTitle": "Mindestens 3 Streichhölzer", "solutionExplanation": "Durch das Umlegen von genau 3 Hölzern (zwei an den äußeren Flossen und eines an der Schwanzflosse) dreht sich die gesamte Körperform um 180 Grad nach rechts.", "keywords": ["3", "drei", "3 streichhoelzer", "3 streichhölzer", "drei streichhölzer"]}, {"id": "opt-riddle-22", "title": "3D-Faltpapier mit Lochstanze", "category": "Raumdenken", "difficulty": "Mittel", "visualSvg": "<svg viewBox=\"0 0 380 220\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\"><rect x=\"30\" y=\"35\" width=\"80\" height=\"80\" fill=\"#1e293b\" stroke=\"#38bdf8\" stroke-width=\"2\"/><text x=\"70\" y=\"135\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"12\" fill=\"#94a3b8\" text-anchor=\"middle\">1. Blatt (Quadrat)</text><path d=\"M120,75 L150,75\" stroke=\"#64748b\" stroke-width=\"2\" stroke-dasharray=\"3 3\"/><rect x=\"160\" y=\"35\" width=\"40\" height=\"80\" fill=\"#1e293b\" stroke=\"#38bdf8\" stroke-width=\"2\"/><line x1=\"160\" y1=\"35\" x2=\"160\" y2=\"115\" stroke=\"#f59e0b\" stroke-width=\"2\"/><text x=\"180\" y=\"135\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"12\" fill=\"#94a3b8\" text-anchor=\"middle\">2. Mitte falten</text><path d=\"M210,75 L240,75\" stroke=\"#64748b\" stroke-width=\"2\" stroke-dasharray=\"3 3\"/><rect x=\"250\" y=\"75\" width=\"40\" height=\"40\" fill=\"#1e293b\" stroke=\"#38bdf8\" stroke-width=\"2\"/><circle cx=\"270\" cy=\"95\" r=\"7\" fill=\"#ef4444\" stroke=\"#fff\" stroke-width=\"1.5\"/><text x=\"270\" y=\"135\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"12\" fill=\"#94a3b8\" text-anchor=\"middle\">3. Nochmal falten & Loch</text><text x=\"190\" y=\"195\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"14\" font-weight=\"700\" fill=\"#38bdf8\" text-anchor=\"middle\">Wie viele Löcher hat das aufgefaltete Blatt?</text></svg>", "question": "Wie viele gestanzte Löcher besitzt das Blatt Papier, wenn es wieder vollständig zu seiner ursprünglichen Größe aufgefaltet wird?", "hint": "Das Blatt wurde 2-mal gefaltet: 1-mal halbiert (2 Schichten), dann nochmals halbiert (4 Schichten).", "solutionTitle": "Genau 4 Löcher", "solutionExplanation": "Jede Faltung verdoppelt die Lagenanzahl des Papiers. 1 Falte = 2 Lagen, 2 Falten = 4 Lagen. Die Stanze durchdringt alle 4 Lagen gleichzeitig, sodass beim Auseinanderfalten exakt 4 Löcher symmetrisch verteilt sind.", "keywords": ["4", "vier", "4 loecher", "4 löcher", "vier löcher"]}, {"id": "opt-riddle-23", "title": "Kosmische Planeten-Waage", "category": "Gleichung", "difficulty": "Einfach", "visualSvg": "<svg viewBox=\"0 0 380 230\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\"><style>.p-bar { stroke: #64748b; stroke-width: 3.5; } .p-sym { font-size: 22px; }</style><g transform=\"translate(30, 25)\"><line x1=\"20\" y1=\"35\" x2=\"140\" y2=\"35\" class=\"p-bar\"/><polygon points=\"80,35 70,55 90,55\" fill=\"#475569\"/><text x=\"35\" y=\"30\" class=\"p-sym\">🪐</text><text x=\"75\" y=\"30\" font-size=\"14\" fill=\"#94a3b8\">=</text><text x=\"95\" y=\"30\" class=\"p-sym\">🌍🌍</text></g><g transform=\"translate(200, 25)\"><line x1=\"20\" y1=\"35\" x2=\"140\" y2=\"35\" class=\"p-bar\"/><polygon points=\"80,35 70,55 90,55\" fill=\"#475569\"/><text x=\"35\" y=\"30\" class=\"p-sym\">🌍</text><text x=\"75\" y=\"30\" font-size=\"14\" fill=\"#94a3b8\">=</text><text x=\"95\" y=\"30\" class=\"p-sym\">🌕🌕🌕🌕</text></g><g transform=\"translate(115, 115)\"><rect x=\"0\" y=\"0\" width=\"160\" height=\"75\" rx=\"10\" fill=\"#1e293b\" stroke=\"#f59e0b\" stroke-width=\"2\"/><text x=\"30\" y=\"48\" font-size=\"28\">🪐</text><text x=\"75\" y=\"48\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"20\" font-weight=\"700\" fill=\"#94a3b8\">=</text><text x=\"110\" y=\"48\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"28\" font-weight=\"900\" fill=\"#f59e0b\">?</text><text x=\"80\" y=\"68\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"11\" fill=\"#cbd5e1\" text-anchor=\"middle\">Wie viele Monde (🌕)?</text></g></svg>", "question": "Wie viele Monde (🌕) wiegt 1 Saturn (🪐) laut den oberen beiden Gleichgewichtswaagen?", "hint": "1 Saturn wiegt 2 Erden. Jede Erde wiegt 4 Monde.", "solutionTitle": "Genau 8 Monde (🌕)", "solutionExplanation": "1 🪐 = 2 🌍. Da 1 🌍 = 4 🌕, wiegt 1 🪐 = 2 × 4 = 8 🌕 Monde.", "keywords": ["8", "acht", "8 monde", "acht monde"]}, {"id": "opt-riddle-24", "title": "Hexagonale Bienenwaben-Zählung", "category": "Geometrie", "difficulty": "Mittel", "visualSvg": "<svg viewBox=\"0 0 340 240\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\"><defs><polygon id=\"hex\" points=\"0,-25 21.65,-12.5 21.65,12.5 0,25 -21.65,12.5 -21.65,-12.5\" fill=\"rgba(245,158,11,0.12)\" stroke=\"#f59e0b\" stroke-width=\"2.2\"/></defs><g transform=\"translate(170, 115)\"><use href=\"#hex\" x=\"0\" y=\"0\"/><use href=\"#hex\" x=\"0\" y=\"-43.3\"/><use href=\"#hex\" x=\"0\" y=\"43.3\"/><use href=\"#hex\" x=\"37.5\" y=\"-21.65\"/><use href=\"#hex\" x=\"37.5\" y=\"21.65\"/><use href=\"#hex\" x=\"-37.5\" y=\"-21.65\"/><use href=\"#hex\" x=\"-37.5\" y=\"21.65\"/></g><text x=\"170\" y=\"220\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" fill=\"#cbd5e1\" text-anchor=\"middle\">Wie viele Sechsecke bilden diesen Wabenring + Zentrum?</text></svg>", "question": "Aus wie vielen einzelnen regulären Sechsecken (Hexagonen) besteht diese symmetrische Wabenblüte?", "hint": "Zähle das mittlere Sechseck und alle direkt angrenzenden Waben des äußeren Rings.", "solutionTitle": "Genau 7 Sechsecke", "solutionExplanation": "1 Zentrumswabe + 6 direkt anliegende Nachbarwaben (eine an jeder der 6 Kanten des Innenhexagons) = 7 Sechsecke insgesamt.", "keywords": ["7", "sieben", "7 sechsecke", "7 waben"]}, {"id": "opt-riddle-25", "title": "Die Schröder-Treppe", "category": "Illusion", "difficulty": "Einfach", "visualSvg": "<svg viewBox=\"0 0 360 230\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"60,60 140,60 140,90 190,90 190,120 240,120 240,150 300,150 220,190 60,190\" fill=\"#1e293b\" stroke=\"#38bdf8\" stroke-width=\"2.5\"/><line x1=\"60\" y1=\"60\" x2=\"60\" y2=\"190\" stroke=\"#38bdf8\" stroke-width=\"3\"/><line x1=\"140\" y1=\"60\" x2=\"60\" y2=\"100\" stroke=\"#64748b\" stroke-width=\"1.5\"/><line x1=\"190\" y1=\"90\" x2=\"110\" y2=\"130\" stroke=\"#64748b\" stroke-width=\"1.5\"/><line x1=\"240\" y1=\"120\" x2=\"160\" y2=\"160\" stroke=\"#64748b\" stroke-width=\"1.5\"/><line x1=\"300\" y1=\"150\" x2=\"220\" y2=\"190\" stroke=\"#64748b\" stroke-width=\"1.5\"/><text x=\"180\" y=\"215\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" fill=\"#cbd5e1\" text-anchor=\"middle\">Ist Wand A oben oder Wand B oben?</text></svg>", "question": "Um wie viel Grad muss man diese reversible Treppe auf den Kopf drehen, damit sie wieder wie eine normale Treppe aussieht?", "hint": "Die Schröder-Treppe ist eine bistabile Kippfigur mit Punktsymmetrie.", "solutionTitle": "180 Grad", "solutionExplanation": "Die berühmte Schröder-Treppe (1858) ist punktsymmetrisch: Dreht man das Bild um 180 Grad, sieht man erneut eine normale Treppe, wobei die vorherige Unterseite zur neuen Oberseite wird.", "keywords": ["180", "180 grad", "180°", "auf den kopf"]}, {"id": "opt-riddle-26", "title": "Domino-Musterfolge", "category": "Muster", "difficulty": "Mittel", "visualSvg": "<svg viewBox=\"0 0 380 200\" width=\"100%\" height=\"200\" xmlns=\"http://www.w3.org/2000/svg\"><defs><g id=\"domino\"><rect x=\"0\" y=\"0\" width=\"55\" height=\"110\" rx=\"8\" fill=\"#1e293b\" stroke=\"#38bdf8\" stroke-width=\"2\"/><line x1=\"0\" y1=\"55\" x2=\"55\" y2=\"55\" stroke=\"#38bdf8\" stroke-width=\"2\"/></g></defs><g transform=\"translate(30, 30)\"><use href=\"#domino\"/><circle cx=\"27.5\" cy=\"27.5\" r=\"4.5\" fill=\"#38bdf8\"/><circle cx=\"16\" cy=\"73\" r=\"4\" fill=\"#38bdf8\"/><circle cx=\"39\" cy=\"92\" r=\"4\" fill=\"#38bdf8\"/><text x=\"27.5\" y=\"130\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"12\" fill=\"#94a3b8\" text-anchor=\"middle\">1 / 2</text></g><g transform=\"translate(115, 30)\"><use href=\"#domino\"/><circle cx=\"16\" cy=\"16\" r=\"4\" fill=\"#38bdf8\"/><circle cx=\"39\" cy=\"39\" r=\"4\" fill=\"#38bdf8\"/><circle cx=\"16\" cy=\"73\" r=\"4\" fill=\"#38bdf8\"/><circle cx=\"27.5\" cy=\"82.5\" r=\"4\" fill=\"#38bdf8\"/><circle cx=\"39\" cy=\"92\" r=\"4\" fill=\"#38bdf8\"/><text x=\"27.5\" y=\"130\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"12\" fill=\"#94a3b8\" text-anchor=\"middle\">2 / 3</text></g><g transform=\"translate(200, 30)\"><use href=\"#domino\"/><circle cx=\"16\" cy=\"16\" r=\"4\" fill=\"#38bdf8\"/><circle cx=\"27.5\" cy=\"27.5\" r=\"4\" fill=\"#38bdf8\"/><circle cx=\"39\" cy=\"39\" r=\"4\" fill=\"#38bdf8\"/><circle cx=\"16\" cy=\"70\" r=\"4\" fill=\"#38bdf8\"/><circle cx=\"39\" cy=\"70\" r=\"4\" fill=\"#38bdf8\"/><circle cx=\"16\" cy=\"95\" r=\"4\" fill=\"#38bdf8\"/><circle cx=\"39\" cy=\"95\" r=\"4\" fill=\"#38bdf8\"/><text x=\"27.5\" y=\"130\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"12\" fill=\"#94a3b8\" text-anchor=\"middle\">3 / 4</text></g><g transform=\"translate(285, 30)\"><rect x=\"0\" y=\"0\" width=\"55\" height=\"110\" rx=\"8\" fill=\"#2e1065\" stroke=\"#a855f7\" stroke-width=\"2.5\" stroke-dasharray=\"4 3\"/><text x=\"27.5\" y=\"65\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"28\" font-weight=\"900\" fill=\"#c084fc\" text-anchor=\"middle\">?</text><text x=\"27.5\" y=\"130\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"12\" fill=\"#c084fc\" text-anchor=\"middle\">Ziel</text></g></svg>", "question": "Welche Punkt-Kombination (Oben / Unten) muss der 4. Dominostein besitzen?", "hint": "Die obere Hälfte zählt: 1, 2, 3 ... Die untere Hälfte zählt: 2, 3, 4 ...", "solutionTitle": "4 oben / 5 unten (4/5)", "solutionExplanation": "In beiden Hälften steigt die Punktzahl pro Stein jeweils um 1 an: Oben 1 ➔ 2 ➔ 3 ➔ 4. Unten 2 ➔ 3 ➔ 4 ➔ 5. Der gesuchte Stein ist 4/5.", "keywords": ["4/5", "4 5", "4 und 5", "4/5", "vier fuenf", "4 oben 5 unten"]}, {"id": "opt-riddle-27", "title": "Der unmögliche Dreizack (Blivet)", "category": "Illusion", "difficulty": "Mittel", "visualSvg": "<svg viewBox=\"0 0 380 200\" width=\"100%\" height=\"200\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M50,70 L250,70 A12,12 0 0,0 250,94 L150,94 A12,12 0 0,0 150,118 L250,118 A12,12 0 0,0 250,142 L50,142 Z\" fill=\"#1e293b\" stroke=\"#38bdf8\" stroke-width=\"2.5\"/><line x1=\"50\" y1=\"70\" x2=\"50\" y2=\"142\" stroke=\"#38bdf8\" stroke-width=\"3.5\"/><ellipse cx=\"250\" cy=\"82\" rx=\"10\" ry=\"12\" fill=\"#38bdf8\" opacity=\"0.6\"/><ellipse cx=\"250\" cy=\"130\" rx=\"10\" ry=\"12\" fill=\"#38bdf8\" opacity=\"0.6\"/><text x=\"190\" y=\"185\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" fill=\"#cbd5e1\" text-anchor=\"middle\">Links 2 Zinken, rechts 3 runde Stangen?</text></svg>", "question": "Wie viele runde Zinken scheint dieser Körper am offenen rechten Ende zu besitzen?", "hint": "Zähle die runden Stangenenden auf der rechten Seite.", "solutionTitle": "3 Zinken", "solutionExplanation": "Das 'Poiuyt' bzw. 'Blivet': Rechts scheinen drei runde Zinken ins Leere zu ragen, während links nur zwei rechteckige Fortsätze zusammenlaufen – eine klassische unmögliche Figur der Wahrnehmungspsychologie.", "keywords": ["3", "drei", "3 zinken", "drei zinken"]}, {"id": "opt-riddle-28", "title": "Draufsicht des 3D-Stufenblocks", "category": "Raumdenken", "difficulty": "Mittel", "visualSvg": "<svg viewBox=\"0 0 360 220\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"120,80 160,60 200,80 160,100\" fill=\"#38bdf8\" stroke=\"#0284c7\" stroke-width=\"1.5\"/><polygon points=\"120,80 120,120 160,140 160,100\" fill=\"#0284c7\" stroke=\"#0369a1\" stroke-width=\"1.5\"/><polygon points=\"160,100 160,140 200,120 200,80\" fill=\"#0369a1\" stroke=\"#075985\" stroke-width=\"1.5\"/><polygon points=\"200,120 240,100 280,120 240,140\" fill=\"#38bdf8\" stroke=\"#0284c7\" stroke-width=\"1.5\"/><polygon points=\"200,120 200,160 240,180 240,140\" fill=\"#0284c7\" stroke=\"#0369a1\" stroke-width=\"1.5\"/><polygon points=\"240,140 240,180 280,160 280,120\" fill=\"#0369a1\" stroke=\"#075985\" stroke-width=\"1.5\"/><text x=\"180\" y=\"205\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" fill=\"#cbd5e1\" text-anchor=\"middle\">Aus der Vogelperspektive senkrecht von oben: Wie viele Flächen?</text></svg>", "question": "Wie viele ebene Dachflächen siehst du direkt von oben in der senkrechten 2D-Draufsicht (Vogelperspektive)?", "hint": "Betrachte nur die nach oben zeigenden, hellblauen Dachflächen der Stufen.", "solutionTitle": "Genau 2 Flächen", "solutionExplanation": "In der senkrechten Draufsicht (von oben) sind ausschließlich die beiden horizontalen oberen Begrenzungsflächen sichtbar. Die senkrechten Seitenflächen projizieren sich zu Linien.", "keywords": ["2", "zwei", "2 flaechen", "2 flächen"]}];
-
-      this.customRiddles = this.loadCustomRiddles();
-      this.solvedRiddles = new Set(this.loadSolved());
-      this.streak = parseInt(localStorage.getItem('orbitsuite_riddle_streak') || '0', 10);
-      // Synchronize streak if legacy dataset was reset and no optical riddles are solved
-      if (this.solvedRiddles.size === 0 && this.streak > 0 && localStorage.getItem('orbitsuite_riddle_dataset_version') === 'v2_optical') {
-        const rawLegacy = localStorage.getItem('orbitsuite_riddles_solved');
-        if (!rawLegacy || JSON.parse(rawLegacy).length === 0) {
-          this.streak = 0;
-          localStorage.setItem('orbitsuite_riddle_streak', '0');
-        }
-      }
-
-      // Daily 07:00 German Time Riddle System
-      this.dailyStreak = parseInt(localStorage.getItem('orbitsuite_riddle_daily_streak') || '0', 10);
-      this.dailySolvedDates = new Set(this.loadDailySolved());
-      this.lastActiveDailyCycle = '';
-      this.dailyTimerInterval = null;
-
-      this.currentIndex = 0;
-      this.filterCategory = 'all';
-      this.filterDifficulty = 'all';
-
-      this.dom = {
-        badgeScore: document.getElementById('riddle-badge-score'),
-        badgeStreak: document.getElementById('riddle-badge-streak'),
-        badgeDailyStreak: document.getElementById('riddle-badge-daily-streak'),
-        badgeCountdown: document.getElementById('riddle-badge-countdown'),
-        dailyBanner: document.getElementById('riddle-daily-banner'),
-        dailyDateTitle: document.getElementById('riddle-daily-date-title'),
-        dailyStatusPill: document.getElementById('daily-status-pill'),
-        dailyCountdown: document.getElementById('riddle-daily-countdown'),
-        btnSwitchDaily: document.getElementById('btn-switch-daily-riddle'),
-        chipDaily: document.getElementById('chip-filter-daily'),
-                // LinkedIn Games Navigation
-        gamesNavBtns: document.querySelectorAll('.game-nav-btn'),
-        gamePanels: {
-          queens: document.getElementById('panel-game-queens'),
-          tango: document.getElementById('panel-game-tango'),
-          pinpoint: document.getElementById('panel-game-pinpoint'),
-          optical: document.getElementById('panel-game-optical')
-        },
-
-        // Queens DOM
-        queensLevelSelect: document.getElementById('queens-level-select'),
-        queensMovesBadge: document.getElementById('queens-moves-badge'),
-        queensTimerBadge: document.getElementById('queens-timer-badge'),
-        queensGrid: document.getElementById('queens-grid'),
-        queensFeedback: document.getElementById('queens-feedback'),
-        queensStatusPill: document.getElementById('queens-status-pill'),
-        queensCountdown: document.getElementById('queens-daily-countdown'),
-        queensDateTitle: document.getElementById('queens-daily-date-title'),
-        btnQueensAutoX: document.getElementById('btn-queens-autox'),
-        btnQueensUndo: document.getElementById('btn-queens-undo'),
-        btnQueensReset: document.getElementById('btn-queens-reset'),
-
-        // Tango DOM
-        tangoLevelSelect: document.getElementById('tango-level-select'),
-        tangoTimerBadge: document.getElementById('tango-timer-badge'),
-        tangoGrid: document.getElementById('tango-grid'),
-        tangoFeedback: document.getElementById('tango-feedback'),
-        tangoStatusPill: document.getElementById('tango-status-pill'),
-        tangoCountdown: document.getElementById('tango-daily-countdown'),
-        tangoDateTitle: document.getElementById('tango-daily-date-title'),
-        btnTangoReset: document.getElementById('btn-tango-reset'),
-
-        // Pinpoint DOM
-        pinpointLevelSelect: document.getElementById('pinpoint-level-select'),
-        pinpointAttemptsBadge: document.getElementById('pinpoint-attempts-badge'),
-        pinpointCluesList: document.getElementById('pinpoint-clues-list'),
-        pinpointGuessInput: document.getElementById('pinpoint-guess-input'),
-        pinpointFeedback: document.getElementById('pinpoint-feedback'),
-        pinpointStatusPill: document.getElementById('pinpoint-status-pill'),
-        pinpointCountdown: document.getElementById('pinpoint-daily-countdown'),
-        pinpointDateTitle: document.getElementById('pinpoint-daily-date-title'),
-        btnPinpointSubmit: document.getElementById('btn-pinpoint-submit'),
-        btnPinpointRevealClue: document.getElementById('btn-pinpoint-reveal-clue'),
-        btnPinpointReset: document.getElementById('btn-pinpoint-reset'),
-btnRandom: document.getElementById('btn-riddle-random'),
-        btnCreate: document.getElementById('btn-riddle-create'),
-        filterChips: document.querySelectorAll('.riddle-filter-chip'),
-        diffSelect: document.getElementById('riddle-difficulty-select'),
-        catPill: document.getElementById('riddle-active-cat'),
-        diffPill: document.getElementById('riddle-active-diff'),
-        countLabel: document.getElementById('riddle-active-counter'),
-        statusIndicator: document.getElementById('riddle-status-indicator'),
-        statusText: document.getElementById('riddle-status-text'),
-        visualBox: document.getElementById('riddle-visual-box'),
-        questionText: document.getElementById('riddle-question-text'),
-        answerInput: document.getElementById('riddle-answer-input'),
-        btnSubmit: document.getElementById('btn-riddle-submit'),
-        feedbackBox: document.getElementById('riddle-feedback-box'),
-        btnHint: document.getElementById('btn-riddle-hint'),
-        hintBox: document.getElementById('riddle-hint-box'),
-        hintText: document.getElementById('riddle-hint-text'),
-        btnReveal: document.getElementById('btn-riddle-reveal'),
-        solutionBox: document.getElementById('riddle-solution-box'),
-        solutionContent: document.getElementById('riddle-solution-content'),
-        solutionTitle: document.getElementById('riddle-solution-title'),
-        solutionExplanation: document.getElementById('riddle-solution-explanation'),
-        btnPrev: document.getElementById('btn-riddle-prev'),
-        btnShuffle: document.getElementById('btn-riddle-shuffle'),
-        btnNext: document.getElementById('btn-riddle-next'),
-        cardsGrid: document.getElementById('riddle-cards-grid'),
-        // Modal
-        modal: document.getElementById('riddle-create-modal'),
-        modalClose: document.getElementById('riddle-modal-close'),
-        form: document.getElementById('riddle-form'),
-        newQuestion: document.getElementById('riddle-new-question'),
-        newCat: document.getElementById('riddle-new-cat'),
-        newDiff: document.getElementById('riddle-new-diff'),
-        newAnswer: document.getElementById('riddle-new-answer'),
-        newHint: document.getElementById('riddle-new-hint'),
-        newExplanation: document.getElementById('riddle-new-explanation'),
-        btnModalCancel: document.getElementById('btn-riddle-modal-cancel')
-      };
-
-      this.init();
-    }
-
-    get allRiddles() {
-      return [...this.customRiddles, ...this.defaultRiddles];
-    }
-
-    get filteredRiddles() {
-      if (this.filterCategory === 'daily') {
-        const cycle = this.getGermanDailyCycle();
-        const dailyRiddle = this.getDailyRiddleForCycle(cycle.cycleKey);
-        return dailyRiddle ? [dailyRiddle] : [];
-      }
-      return this.allRiddles.filter(r => {
-        const catMatch = this.filterCategory === 'all' || r.category === this.filterCategory;
-        const diffMatch = this.filterDifficulty === 'all' || r.difficulty === this.filterDifficulty;
-        return catMatch && diffMatch;
-      });
-    }
-
-    get currentRiddle() {
-      const list = this.filteredRiddles;
-      if (!list.length) return null;
-      if (this.currentIndex >= list.length) this.currentIndex = 0;
-      if (this.currentIndex < 0) this.currentIndex = list.length - 1;
-      return list[this.currentIndex];
-    }
-
-    loadCustomRiddles() {
-      try {
-        const raw = localStorage.getItem('orbitsuite_custom_riddles');
-        return raw ? JSON.parse(raw) : [];
-      } catch (e) {
-        return [];
-      }
-    }
-
-    saveCustomRiddles() {
-      localStorage.setItem('orbitsuite_custom_riddles', JSON.stringify(this.customRiddles));
-    }
-
-    loadSolved() {
-      try {
-        const datasetVer = localStorage.getItem('orbitsuite_riddle_dataset_version');
-        const raw = localStorage.getItem('orbitsuite_riddles_solved');
-        let solved = raw ? JSON.parse(raw) : [];
-        if (!Array.isArray(solved)) solved = [];
-
-        // Dataset Migration: purge legacy text riddle IDs (riddle-1 through riddle-18)
-        if (datasetVer !== 'v2_optical') {
-          const legacyIds = new Set(Array.from({ length: 18 }, (_, i) => `riddle-${i + 1}`));
-          solved = solved.filter(id => !legacyIds.has(id));
-          localStorage.setItem('orbitsuite_riddle_dataset_version', 'v2_optical');
-          localStorage.setItem('orbitsuite_riddles_solved', JSON.stringify(solved));
-        }
-
-        // Only retain solved IDs that actually exist in the current active riddle collection
-        const validIds = new Set(this.allRiddles.map(r => r.id));
-        return solved.filter(id => validIds.has(id));
-      } catch (e) {
-        return [];
-      }
-    }
-
-    saveSolved() {
-      localStorage.setItem('orbitsuite_riddles_solved', JSON.stringify(Array.from(this.solvedRiddles)));
-      localStorage.setItem('orbitsuite_riddle_streak', String(this.streak));
-    }
-
-    loadDailySolved() {
-      try {
-        const raw = localStorage.getItem('orbitsuite_riddle_daily_solved');
-        return raw ? JSON.parse(raw) : [];
-      } catch (e) {
-        return [];
-      }
-    }
-
-    saveDailySolved() {
-      localStorage.setItem('orbitsuite_riddle_daily_solved', JSON.stringify(Array.from(this.dailySolvedDates)));
-      localStorage.setItem('orbitsuite_riddle_daily_streak', String(this.dailyStreak));
-    }
-
-    // Accurate calculation of 07:00:00 Europe/Berlin cycle
-    getGermanDailyCycle(targetDate = new Date()) {
-      const formatter = new Intl.DateTimeFormat('en-US', {
-        timeZone: 'Europe/Berlin',
-        year: 'numeric',
-        month: 'numeric',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: 'numeric',
-        second: 'numeric',
-        hour12: false
-      });
-
-      const parts = {};
-      formatter.formatToParts(targetDate).forEach(p => {
-        if (p.type !== 'literal') parts[p.type] = parseInt(p.value, 10);
-      });
-
-      const bYear = parts.year;
-      const bMonth = parts.month;
-      const bDay = parts.day;
-      const bHour = parts.hour;
-      const bMinute = parts.minute;
-      const bSecond = parts.second;
-
-      // Riddle cycle starts at 07:00:00 Berlin time.
-      // If hour < 7, the cycle started yesterday at 07:00.
-      let cycleYear = bYear;
-      let cycleMonth = bMonth;
-      let cycleDay = bDay;
-
-      if (bHour < 7) {
-        const prev = new Date(Date.UTC(bYear, bMonth - 1, bDay - 1, 12, 0, 0));
-        const prevParts = {};
-        formatter.formatToParts(prev).forEach(p => {
-          if (p.type !== 'literal') prevParts[p.type] = parseInt(p.value, 10);
-        });
-        cycleYear = prevParts.year;
-        cycleMonth = prevParts.month;
-        cycleDay = prevParts.day;
-      }
-
-      const cycleKey = `${cycleYear}-${String(cycleMonth).padStart(2, '0')}-${String(cycleDay).padStart(2, '0')}`;
-
-      // Target for next drop: 07:00:00 Europe/Berlin
-      let targetYear = bYear;
-      let targetMonth = bMonth;
-      let targetDay = bDay;
-
-      if (bHour >= 7) {
-        const nextD = new Date(Date.UTC(bYear, bMonth - 1, bDay + 1, 12, 0, 0));
-        const nextParts = {};
-        formatter.formatToParts(nextD).forEach(p => {
-          if (p.type !== 'literal') nextParts[p.type] = parseInt(p.value, 10);
-        });
-        targetYear = nextParts.year;
-        targetMonth = nextParts.month;
-        targetDay = nextParts.day;
-      }
-
-      // Resolve exact UTC timestamp for 07:00 Berlin time (handles CET UTC+1 / CEST UTC+2)
-      let next7Timestamp = 0;
-      for (const utcHour of [5, 6]) {
-        const cand = new Date(Date.UTC(targetYear, targetMonth - 1, targetDay, utcHour, 0, 0));
-        const cParts = {};
-        formatter.formatToParts(cand).forEach(p => {
-          if (p.type !== 'literal') cParts[p.type] = parseInt(p.value, 10);
-        });
-        if (cParts.hour === 7 && cParts.day === targetDay && cParts.minute === 0) {
-          next7Timestamp = cand.getTime();
-          break;
-        }
-      }
-      if (!next7Timestamp) {
-        next7Timestamp = targetDate.getTime() + 86400000;
-      }
-
-      const msRemaining = Math.max(0, next7Timestamp - targetDate.getTime());
-      const totalSec = Math.floor(msRemaining / 1000);
-      const hours = Math.floor(totalSec / 3600);
-      const minutes = Math.floor((totalSec % 3600) / 60);
-      const seconds = totalSec % 60;
-
-      const formattedCountdown = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-
-      const deDateFormatter = new Intl.DateTimeFormat('de-DE', {
-        timeZone: 'Europe/Berlin',
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-      });
-      const cycleDateObj = new Date(Date.UTC(cycleYear, cycleMonth - 1, cycleDay, 12, 0, 0));
-      const displayDate = deDateFormatter.format(cycleDateObj);
-
-      return {
-        cycleKey,
-        displayDate,
-        bHour,
-        bMinute,
-        bSecond,
-        next7Timestamp,
-        msRemaining,
-        hours,
-        minutes,
-        seconds,
-        formattedCountdown
-      };
-    }
-
-    // Deterministic selection of the Riddle of the Day for any cycle date
-    getDailyRiddleForCycle(cycleKey) {
-      if (!this.defaultRiddles || !this.defaultRiddles.length) return null;
-      const parts = cycleKey.split('-').map(Number);
-      const epoch = Date.UTC(2026, 0, 1);
-      const cycleUtc = Date.UTC(parts[0], parts[1] - 1, parts[2]);
-      const dayDiff = Math.max(0, Math.floor((cycleUtc - epoch) / 86400000));
-      // Disperse categories using prime stride
-      const pool = this.defaultRiddles;
-      const index = (dayDiff * 7 + 3) % pool.length;
-      return pool[index];
-    }
-
-    isTodayDailySolved() {
-      const cycle = this.getGermanDailyCycle();
-      return this.dailySolvedDates.has(cycle.cycleKey);
-    }
-
-    startDailyTimer() {
-      if (this.dailyTimerInterval) clearInterval(this.dailyTimerInterval);
-
-      const updateTimer = () => {
-        const cycle = this.getGermanDailyCycle();
-
-        // 1. Update countdown displays
-        if (this.dom.queensCountdown) this.dom.queensCountdown.textContent = cycle.formattedCountdown;
-        if (this.dom.tangoCountdown) this.dom.tangoCountdown.textContent = cycle.formattedCountdown;
-        if (this.dom.pinpointCountdown) this.dom.pinpointCountdown.textContent = cycle.formattedCountdown;
-        if (this.dom.dailyCountdown) {
-          this.dom.dailyCountdown.textContent = cycle.formattedCountdown;
-        }
-        if (this.dom.badgeCountdown) {
-          this.dom.badgeCountdown.textContent = `⏳ 07:00 Drop: ${cycle.formattedCountdown}`;
-        }
-
-        // 2. Detect 07:00:00 German time drop event
-        if (this.lastActiveDailyCycle && this.lastActiveDailyCycle !== cycle.cycleKey) {
-          this.lastActiveDailyCycle = cycle.cycleKey;
-          this.suite.showToast('🎉 Ein neues Tagesrätsel ist soeben um 07:00 Uhr online gegangen!');
-          if (this.suite.sound) this.suite.sound.playSuccess();
-          this.renderDailyBanner();
-          if (this.filterCategory === 'daily') {
-            this.currentIndex = 0;
-            this.render();
-          }
-          if (this.suite.hubApp) {
-            this.suite.hubApp.render();
-          }
-        } else if (!this.lastActiveDailyCycle) {
-          this.lastActiveDailyCycle = cycle.cycleKey;
-        }
-      };
-
-      updateTimer();
-      this.dailyTimerInterval = setInterval(updateTimer, 1000);
-    }
-
-    renderDailyBanner() {
-      const cycle = this.getGermanDailyCycle();
-      const isSolved = this.dailySolvedDates.has(cycle.cycleKey);
-
-      if (this.dom.dailyDateTitle) {
-        this.dom.dailyDateTitle.textContent = `Tagesrätsel für ${cycle.displayDate}`;
-      }
-
-      if (this.dom.dailyStatusPill) {
-        this.dom.dailyStatusPill.textContent = isSolved ? 'Gelöst ✓' : 'Offen ⏳';
-        this.dom.dailyStatusPill.classList.toggle('solved', isSolved);
-      }
-
-      if (this.dom.badgeDailyStreak) {
-        this.dom.badgeDailyStreak.textContent = `⭐ ${this.dailyStreak} Tage Daily`;
-      }
-    }
-    
-    // ==========================================
-    // LINKEDIN GAMES CONTROLLER
-    // ==========================================
-    switchGameMode(mode) {
-      if (!this.dom.gamePanels[mode]) return;
-      this.activeGameMode = mode;
-
-      // Update Nav Tabs
-      if (this.dom.gamesNavBtns) {
-        this.dom.gamesNavBtns.forEach(btn => {
-          btn.classList.toggle('active', btn.dataset.gameMode === mode);
-        });
-      }
-
-      // Update Panels
-      Object.keys(this.dom.gamePanels).forEach(key => {
-        const panel = this.dom.gamePanels[key];
-        if (panel) {
-          panel.classList.toggle('hidden', key !== mode);
-        }
-      });
-
-      this.suite.sound.playPop();
-
-      // Render mode specific content
-      if (mode === 'queens') {
-        this.initQueens();
-      } else if (mode === 'tango') {
-        this.initTango();
-      } else if (mode === 'pinpoint') {
-        this.initPinpoint();
-      } else if (mode === 'optical') {
-        this.render();
-      }
-    }
-
-    // ==========================================
-    // 1. QUEENS LOGIC ENGINE
-    // ==========================================
-    getQueensDailyBoard() {
-      const cycle = this.getGermanDailyCycle();
-      const parts = cycle.cycleKey.split('-').map(Number);
-      const epoch = Date.UTC(2026, 0, 1);
-      const cycleUtc = Date.UTC(parts[0], parts[1] - 1, parts[2]);
-      const dayDiff = Math.max(0, Math.floor((cycleUtc - epoch) / 86400000));
-      const idx = (dayDiff * 5 + 1) % this.queensData.length;
-      return this.queensData[idx];
-    }
-
-    getActiveQueensBoard() {
-      if (this.queensCurrentLevel === 'daily') {
-        return this.getQueensDailyBoard();
-      }
-      const lvl = parseInt(this.queensCurrentLevel, 10);
-      return this.queensData[lvl - 1] || this.queensData[0];
-    }
-
-    initQueens() {
-      // Populate level dropdown once
-      if (this.dom.queensLevelSelect && this.dom.queensLevelSelect.options.length <= 1) {
-        this.queensData.forEach((b, i) => {
-          const opt = document.createElement('option');
-          opt.value = String(i + 1);
-          opt.textContent = `Board Level ${i + 1} (6x6)`;
-          this.dom.queensLevelSelect.appendChild(opt);
-        });
-      }
-
-      this.resetQueensBoard(false);
-      this.startQueensTimer();
-      this.renderQueens();
-    }
-
-    startQueensTimer() {
-      if (this.queensTimerInterval) clearInterval(this.queensTimerInterval);
-      this.queensTime = 0;
-      this.queensTimerInterval = setInterval(() => {
-        this.queensTime += 1;
-        if (this.dom.queensTimerBadge) {
-          const m = String(Math.floor(this.queensTime / 60)).padStart(2, '0');
-          const s = String(this.queensTime % 60).padStart(2, '0');
-          this.dom.queensTimerBadge.textContent = `⏱️ ${m}:${s}`;
-        }
-      }, 1000);
-    }
-
-    resetQueensBoard(clearHistory = true) {
-      this.queensUserGrid = Array(6).fill(null).map(() => Array(6).fill(null));
-      if (clearHistory) {
-        this.queensHistory = [];
-        this.queensMoves = 0;
-      }
-      if (this.dom.queensMovesBadge) {
-        this.dom.queensMovesBadge.textContent = `Züge: ${this.queensMoves}`;
-      }
-      if (this.dom.queensFeedback) {
-        this.dom.queensFeedback.className = 'game-inline-feedback';
-        this.dom.queensFeedback.textContent = '';
-      }
-      this.renderQueens();
-    }
-
-    undoQueensMove() {
-      if (!this.queensHistory.length) return;
-      const last = this.queensHistory.pop();
-      this.queensUserGrid[last.r][last.c] = last.prevVal;
-      this.queensMoves = Math.max(0, this.queensMoves - 1);
-      if (this.dom.queensMovesBadge) {
-        this.dom.queensMovesBadge.textContent = `Züge: ${this.queensMoves}`;
-      }
-      this.renderQueens();
-    }
-
-    autoXQueens() {
-      // Place 'X' in all cells that clash with currently placed queens
-      const board = this.getActiveQueensBoard();
-      const size = board.size;
-      let changed = false;
-
-      for (let r = 0; r < size; r++) {
-        for (let c = 0; c < size; c++) {
-          if (this.queensUserGrid[r][c] === 'Q') {
-            const reg = board.regions[r][c];
-            // Mark same row, same col, same region, and 8-neighbors with X
-            for (let tr = 0; tr < size; tr++) {
-              for (let tc = 0; tc < size; tc++) {
-                if (tr === r && tc === c) continue;
-                if (this.queensUserGrid[tr][tc] === null) {
-                  const isNeighbor = Math.abs(tr - r) <= 1 && Math.abs(tc - c) <= 1;
-                  const isRow = tr === r;
-                  const isCol = tc === c;
-                  const isRegion = board.regions[tr][tc] === reg;
-                  if (isNeighbor || isRow || isCol || isRegion) {
-                    this.queensUserGrid[tr][tc] = 'X';
-                    changed = true;
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-
-      if (changed) {
-        this.suite.sound.playClick();
-        this.renderQueens();
-      }
-    }
-
-    handleQueensCellClick(r, c, forceQueen = false) {
-      const cur = this.queensUserGrid[r][c];
-      let nextVal = null;
-
-      if (forceQueen) {
-        nextVal = cur === 'Q' ? null : 'Q';
-      } else {
-        // Cycle: null -> 'X' -> 'Q' -> null
-        if (cur === null) nextVal = 'X';
-        else if (cur === 'X') nextVal = 'Q';
-        else nextVal = null;
-      }
-
-      this.queensHistory.push({ r, c, prevVal: cur, newVal: nextVal });
-      this.queensUserGrid[r][c] = nextVal;
-      this.queensMoves += 1;
-
-      if (this.dom.queensMovesBadge) {
-        this.dom.queensMovesBadge.textContent = `Züge: ${this.queensMoves}`;
-      }
-
-      this.suite.sound.playClick();
-      this.renderQueens();
-      this.checkQueensStatus();
-    }
-
-    getQueensClashes() {
-      const board = this.getActiveQueensBoard();
-      const size = board.size;
-      const clashes = new Set();
-      const placedQueens = [];
-
-      for (let r = 0; r < size; r++) {
-        for (let c = 0; c < size; c++) {
-          if (this.queensUserGrid[r][c] === 'Q') {
-            placedQueens.push({ r, c, reg: board.regions[r][c] });
-          }
-        }
-      }
-
-      for (let i = 0; i < placedQueens.length; i++) {
-        for (let j = i + 1; j < placedQueens.length; j++) {
-          const q1 = placedQueens[i];
-          const q2 = placedQueens[j];
-
-          const sameRow = q1.r === q2.r;
-          const sameCol = q1.c === q2.c;
-          const sameReg = q1.reg === q2.reg;
-          const touch = Math.abs(q1.r - q2.r) <= 1 && Math.abs(q1.c - q2.c) <= 1;
-
-          if (sameRow || sameCol || sameReg || touch) {
-            clashes.add(`${q1.r},${q1.c}`);
-            clashes.add(`${q2.r},${q2.c}`);
-          }
-        }
-      }
-
-      return { clashes, count: placedQueens.length };
-    }
-
-    checkQueensStatus() {
-      const board = this.getActiveQueensBoard();
-      const size = board.size;
-      const { clashes, count } = this.getQueensClashes();
-
-      if (clashes.size > 0) {
-        if (this.dom.queensFeedback) {
-          this.dom.queensFeedback.className = 'game-inline-feedback error show';
-          this.dom.queensFeedback.textContent = '⚠️ Konflikt! Kronen dürfen sich nicht berühren und nur 1 pro Zeile/Spalte/Farbzone.';
-        }
-        return;
-      }
-
-      if (count === size && clashes.size === 0) {
-        // Solved!
-        if (this.queensTimerInterval) clearInterval(this.queensTimerInterval);
-        this.suite.sound.playSuccess();
-        this.suite.confetti.fire();
-
-        const cycle = this.getGermanDailyCycle();
-        if (this.queensCurrentLevel === 'daily') {
-          const solvedSet = new Set(JSON.parse(localStorage.getItem('orbitsuite_queens_daily_solved') || '[]'));
-          solvedSet.add(cycle.cycleKey);
-          localStorage.setItem('orbitsuite_queens_daily_solved', JSON.stringify(Array.from(solvedSet)));
-        }
-
-        if (this.dom.queensFeedback) {
-          const m = Math.floor(this.queensTime / 60);
-          const s = this.queensTime % 60;
-          this.dom.queensFeedback.className = 'game-inline-feedback success show';
-          this.dom.queensFeedback.textContent = `👑 Perfekt gelöst in ${this.queensMoves} Zügen (${m}m ${s}s)!`;
-        }
-
-        this.suite.showToast('🎉 Queens Board fehlerfrei gemeistert!');
-        this.renderQueensBanner();
-      } else {
-        if (this.dom.queensFeedback) {
-          this.dom.queensFeedback.className = 'game-inline-feedback';
-          this.dom.queensFeedback.textContent = '';
-        }
-      }
-    }
-
-    renderQueensBanner() {
-      const cycle = this.getGermanDailyCycle();
-      const solvedSet = new Set(JSON.parse(localStorage.getItem('orbitsuite_queens_daily_solved') || '[]'));
-      const isDailySolved = solvedSet.has(cycle.cycleKey);
-
-      if (this.dom.queensDateTitle) {
-        this.dom.queensDateTitle.textContent = `👑 Queens Tages-Board für ${cycle.displayDate}`;
-      }
-      if (this.dom.queensStatusPill) {
-        this.dom.queensStatusPill.textContent = isDailySolved ? 'Gelöst ✓' : 'Offen ⏳';
-        this.dom.queensStatusPill.classList.toggle('solved', isDailySolved);
-      }
-      if (this.dom.queensCountdown) {
-        this.dom.queensCountdown.textContent = cycle.formattedCountdown;
-      }
-    }
-
-    renderQueens() {
-      this.renderQueensBanner();
-      if (!this.dom.queensGrid) return;
-
-      const board = this.getActiveQueensBoard();
-      const size = board.size;
-      const { clashes } = this.getQueensClashes();
-      const gridEl = this.dom.queensGrid;
-      gridEl.innerHTML = '';
-      gridEl.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
-      gridEl.style.gridTemplateRows = `repeat(${size}, 1fr)`;
-
-      for (let r = 0; r < size; r++) {
-        for (let c = 0; c < size; c++) {
-          const cell = document.createElement('div');
-          const reg = board.regions[r][c];
-          cell.className = `queens-cell reg-${reg}`;
-
-          // Heavy region borders between different colored regions
-          if (r === 0 || board.regions[r - 1][c] !== reg) cell.classList.add('border-top');
-          if (c === size - 1 || board.regions[r][c + 1] !== reg) cell.classList.add('border-right');
-          if (r === size - 1 || board.regions[r + 1][c] !== reg) cell.classList.add('border-bottom');
-          if (c === 0 || board.regions[r][c - 1] !== reg) cell.classList.add('border-left');
-
-          const val = this.queensUserGrid[r][c];
-          if (val === 'Q') cell.classList.add('cell-queen');
-          else if (val === 'X') cell.classList.add('cell-cross');
-
-          if (clashes.has(`${r},${c}`)) {
-            cell.classList.add('cell-clash');
-          }
-
-          cell.addEventListener('click', () => this.handleQueensCellClick(r, c, false));
-          cell.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            this.handleQueensCellClick(r, c, true);
-          });
-
-          gridEl.appendChild(cell);
-        }
-      }
-    }
-
-    // ==========================================
-    // 2. TANGO LOGIC ENGINE
-    // ==========================================
-    getTangoDailyPuzzle() {
-      const cycle = this.getGermanDailyCycle();
-      const parts = cycle.cycleKey.split('-').map(Number);
-      const epoch = Date.UTC(2026, 0, 1);
-      const cycleUtc = Date.UTC(parts[0], parts[1] - 1, parts[2]);
-      const dayDiff = Math.max(0, Math.floor((cycleUtc - epoch) / 86400000));
-      const idx = (dayDiff * 3 + 2) % this.tangoData.length;
-      return this.tangoData[idx];
-    }
-
-    getActiveTangoPuzzle() {
-      if (this.tangoCurrentLevel === 'daily') {
-        return this.getTangoDailyPuzzle();
-      }
-      const lvl = parseInt(this.tangoCurrentLevel, 10);
-      return this.tangoData[lvl - 1] || this.tangoData[0];
-    }
-
-    initTango() {
-      if (this.dom.tangoLevelSelect && this.dom.tangoLevelSelect.options.length <= 1) {
-        this.tangoData.forEach((b, i) => {
-          const opt = document.createElement('option');
-          opt.value = String(i + 1);
-          opt.textContent = `Tango Board #${i + 1} (6x6)`;
-          this.dom.tangoLevelSelect.appendChild(opt);
-        });
-      }
-
-      this.resetTangoBoard();
-      this.startTangoTimer();
-      this.renderTango();
-    }
-
-    startTangoTimer() {
-      if (this.tangoTimerInterval) clearInterval(this.tangoTimerInterval);
-      this.tangoTime = 0;
-      this.tangoTimerInterval = setInterval(() => {
-        this.tangoTime += 1;
-        if (this.dom.tangoTimerBadge) {
-          const m = String(Math.floor(this.tangoTime / 60)).padStart(2, '0');
-          const s = String(this.tangoTime % 60).padStart(2, '0');
-          this.dom.tangoTimerBadge.textContent = `⏱️ ${m}:${s}`;
-        }
-      }, 1000);
-    }
-
-    resetTangoBoard() {
-      const puzzle = this.getActiveTangoPuzzle();
-      const size = puzzle.size;
-      this.tangoUserGrid = Array(size).fill(null).map((_, r) =>
-        Array(size).fill(null).map((_, c) => puzzle.givens[r][c])
-      );
-      if (this.dom.tangoFeedback) {
-        this.dom.tangoFeedback.className = 'game-inline-feedback';
-        this.dom.tangoFeedback.textContent = '';
-      }
-      this.renderTango();
-    }
-
-    handleTangoCellClick(r, c) {
-      const puzzle = this.getActiveTangoPuzzle();
-      if (puzzle.givens[r][c] !== null) return; // Locked given cell
-
-      const cur = this.tangoUserGrid[r][c];
-      let next = null;
-      if (cur === null) next = 'S';
-      else if (cur === 'S') next = 'M';
-      else next = null;
-
-      this.tangoUserGrid[r][c] = next;
-      this.suite.sound.playClick();
-      this.renderTango();
-      this.checkTangoStatus();
-    }
-
-    checkTangoStatus() {
-      const puzzle = this.getActiveTangoPuzzle();
-      const size = puzzle.size;
-      const grid = this.tangoUserGrid;
-      let hasError = false;
-      let filledCount = 0;
-
-      // Check rows: count <= 3 and no 3 in a row
-      for (let r = 0; r < size; r++) {
-        let sCnt = 0, mCnt = 0;
-        for (let c = 0; c < size; c++) {
-          if (grid[r][c] === 'S') sCnt++;
-          if (grid[r][c] === 'M') mCnt++;
-          if (grid[r][c] !== null) filledCount++;
-        }
-        if (sCnt > 3 || mCnt > 3) hasError = true;
-        for (let c = 0; c < size - 2; c++) {
-          if (grid[r][c] && grid[r][c] === grid[r][c+1] && grid[r][c+1] === grid[r][c+2]) {
-            hasError = true;
-          }
-        }
-      }
-
-      // Check cols: count <= 3 and no 3 in a col
-      for (let c = 0; c < size; c++) {
-        let sCnt = 0, mCnt = 0;
-        for (let r = 0; r < size; r++) {
-          if (grid[r][c] === 'S') sCnt++;
-          if (grid[r][c] === 'M') mCnt++;
-        }
-        if (sCnt > 3 || mCnt > 3) hasError = true;
-        for (let r = 0; r < size - 2; r++) {
-          if (grid[r][c] && grid[r][c] === grid[r+1][c] && grid[r+1][c] === grid[r+2][c]) {
-            hasError = true;
-          }
-        }
-      }
-
-      // Check constraints
-      puzzle.hEdges.forEach(e => {
-        const v1 = grid[e.r][e.c];
-        const v2 = grid[e.r][e.c+1];
-        if (v1 && v2) {
-          if (e.op === '=' && v1 !== v2) hasError = true;
-          if (e.op === 'x' && v1 === v2) hasError = true;
-        }
-      });
-
-      puzzle.vEdges.forEach(e => {
-        const v1 = grid[e.r][e.c];
-        const v2 = grid[e.r+1][e.c];
-        if (v1 && v2) {
-          if (e.op === '=' && v1 !== v2) hasError = true;
-          if (e.op === 'x' && v1 === v2) hasError = true;
-        }
-      });
-
-      if (hasError) {
-        if (this.dom.tangoFeedback) {
-          this.dom.tangoFeedback.className = 'game-inline-feedback error show';
-          this.dom.tangoFeedback.textContent = '⚠️ Bedingung verletzt! Beachte max. 2 gleiche Symbole und = / ✕.';
-        }
-        return;
-      }
-
-      if (filledCount === size * size && !hasError) {
-        if (this.tangoTimerInterval) clearInterval(this.tangoTimerInterval);
-        this.suite.sound.playSuccess();
-        this.suite.confetti.fire();
-
-        const cycle = this.getGermanDailyCycle();
-        if (this.tangoCurrentLevel === 'daily') {
-          const solvedSet = new Set(JSON.parse(localStorage.getItem('orbitsuite_tango_daily_solved') || '[]'));
-          solvedSet.add(cycle.cycleKey);
-          localStorage.setItem('orbitsuite_tango_daily_solved', JSON.stringify(Array.from(solvedSet)));
-        }
-
-        if (this.dom.tangoFeedback) {
-          const m = Math.floor(this.tangoTime / 60);
-          const s = this.tangoTime % 60;
-          this.dom.tangoFeedback.className = 'game-inline-feedback success show';
-          this.dom.tangoFeedback.textContent = `☀️🌙 Tango meisterhaft gelöst (${m}m ${s}s)!`;
-        }
-
-        this.suite.showToast('🎉 Tango Board erfolgreich abgeschlossen!');
-        this.renderTangoBanner();
-      } else {
-        if (this.dom.tangoFeedback) {
-          this.dom.tangoFeedback.className = 'game-inline-feedback';
-          this.dom.tangoFeedback.textContent = '';
-        }
-      }
-    }
-
-    renderTangoBanner() {
-      const cycle = this.getGermanDailyCycle();
-      const solvedSet = new Set(JSON.parse(localStorage.getItem('orbitsuite_tango_daily_solved') || '[]'));
-      const isDailySolved = solvedSet.has(cycle.cycleKey);
-
-      if (this.dom.tangoDateTitle) {
-        this.dom.tangoDateTitle.textContent = `☀️🌙 Tango Tages-Board für ${cycle.displayDate}`;
-      }
-      if (this.dom.tangoStatusPill) {
-        this.dom.tangoStatusPill.textContent = isDailySolved ? 'Gelöst ✓' : 'Offen ⏳';
-        this.dom.tangoStatusPill.classList.toggle('solved', isDailySolved);
-      }
-      if (this.dom.tangoCountdown) {
-        this.dom.tangoCountdown.textContent = cycle.formattedCountdown;
-      }
-    }
-
-    renderTango() {
-      this.renderTangoBanner();
-      if (!this.dom.tangoGrid) return;
-
-      const puzzle = this.getActiveTangoPuzzle();
-      const size = puzzle.size;
-      const gridEl = this.dom.tangoGrid;
-      gridEl.innerHTML = '';
-
-      const container = document.createElement('div');
-      container.className = 'tango-board-card-inner';
-      container.style.gridTemplateColumns = `repeat(${size}, 58px)`;
-      container.style.gridTemplateRows = `repeat(${size}, 58px)`;
-
-      // Render cells
-      for (let r = 0; r < size; r++) {
-        for (let c = 0; c < size; c++) {
-          const cell = document.createElement('div');
-          const isGiven = puzzle.givens[r][c] !== null;
-          cell.className = `tango-cell ${isGiven ? 'given' : ''}`;
-
-          const val = this.tangoUserGrid[r][c];
-          if (val === 'S') cell.classList.add('val-sun');
-          else if (val === 'M') cell.classList.add('val-moon');
-
-          cell.addEventListener('click', () => this.handleTangoCellClick(r, c));
-          container.appendChild(cell);
-        }
-      }
-
-      // Overlay horizontal constraint badges
-      puzzle.hEdges.forEach(e => {
-        const badge = document.createElement('div');
-        badge.className = 'tango-constraint-h';
-        badge.textContent = e.op === '=' ? '=' : '✕';
-        // Position between (e.r, e.c) and (e.r, e.c + 1)
-        const cellW = 58 + 12; // cell + gap
-        badge.style.left = `${(e.c + 1) * cellW - 6}px`;
-        badge.style.top = `${e.r * cellW + 29}px`;
-        container.appendChild(badge);
-      });
-
-      // Overlay vertical constraint badges
-      puzzle.vEdges.forEach(e => {
-        const badge = document.createElement('div');
-        badge.className = 'tango-constraint-v';
-        badge.textContent = e.op === '=' ? '=' : '✕';
-        const cellW = 58 + 12;
-        badge.style.left = `${e.c * cellW + 29}px`;
-        badge.style.top = `${(e.r + 1) * cellW - 6}px`;
-        container.appendChild(badge);
-      });
-
-      gridEl.appendChild(container);
-    }
-
-    // ==========================================
-    // 3. PINPOINT LOGIC ENGINE
-    // ==========================================
-    getPinpointDailyChallenge() {
-      const cycle = this.getGermanDailyCycle();
-      const parts = cycle.cycleKey.split('-').map(Number);
-      const epoch = Date.UTC(2026, 0, 1);
-      const cycleUtc = Date.UTC(parts[0], parts[1] - 1, parts[2]);
-      const dayDiff = Math.max(0, Math.floor((cycleUtc - epoch) / 86400000));
-      const idx = (dayDiff * 7 + 4) % this.pinpointData.length;
-      return this.pinpointData[idx];
-    }
-
-    getActivePinpointChallenge() {
-      if (this.pinpointCurrentLevel === 'daily') {
-        return this.getPinpointDailyChallenge();
-      }
-      const lvl = parseInt(this.pinpointCurrentLevel, 10);
-      return this.pinpointData[lvl - 1] || this.pinpointData[0];
-    }
-
-    initPinpoint() {
-      if (this.dom.pinpointLevelSelect && this.dom.pinpointLevelSelect.options.length <= 1) {
-        this.pinpointData.forEach((p, i) => {
-          const opt = document.createElement('option');
-          opt.value = String(i + 1);
-          opt.textContent = `Pinpoint Challenge #${i + 1}`;
-          this.dom.pinpointLevelSelect.appendChild(opt);
-        });
-      }
-
-      this.resetPinpoint();
-    }
-
-    resetPinpoint() {
-      this.pinpointRevealedClues = 1;
-      this.pinpointAttemptsLeft = 5;
-      this.pinpointIsSolved = false;
-
-      if (this.dom.pinpointGuessInput) {
-        this.dom.pinpointGuessInput.value = '';
-        this.dom.pinpointGuessInput.disabled = false;
-      }
-      if (this.dom.pinpointFeedback) {
-        this.dom.pinpointFeedback.className = 'game-inline-feedback';
-        this.dom.pinpointFeedback.textContent = '';
-      }
-      if (this.dom.btnPinpointSubmit) {
-        this.dom.btnPinpointSubmit.disabled = false;
-      }
-
-      this.renderPinpoint();
-    }
-
-    revealNextPinpointClue() {
-      if (this.pinpointIsSolved || this.pinpointRevealedClues >= 5) return;
-      this.pinpointRevealedClues += 1;
-      this.pinpointAttemptsLeft = Math.max(1, this.pinpointAttemptsLeft - 1);
-      this.suite.sound.playClick();
-      this.renderPinpoint();
-    }
-
-    submitPinpointGuess() {
-      if (this.pinpointIsSolved || !this.dom.pinpointGuessInput) return;
-      const guess = this.dom.pinpointGuessInput.value.trim().toLowerCase();
-      if (!guess) return;
-
-      const challenge = this.getActivePinpointChallenge();
-      const normalize = s => s.toLowerCase().replace(/[^a-z0-9äöüß]/g, '');
-      const normGuess = normalize(guess);
-
-      const isMatch = challenge.keywords.some(k => {
-        const normK = normalize(k);
-        return normGuess.includes(normK) || normK.includes(normGuess);
-      });
-
-      if (isMatch) {
-        // Success!
-        this.pinpointIsSolved = true;
-        this.pinpointRevealedClues = 5;
-        this.dom.pinpointGuessInput.disabled = true;
-        if (this.dom.btnPinpointSubmit) this.dom.btnPinpointSubmit.disabled = true;
-
-        this.suite.sound.playSuccess();
-        this.suite.confetti.fire();
-
-        const cycle = this.getGermanDailyCycle();
-        if (this.pinpointCurrentLevel === 'daily') {
-          const solvedSet = new Set(JSON.parse(localStorage.getItem('orbitsuite_pinpoint_daily_solved') || '[]'));
-          solvedSet.add(cycle.cycleKey);
-          localStorage.setItem('orbitsuite_pinpoint_daily_solved', JSON.stringify(Array.from(solvedSet)));
-        }
-
-        if (this.dom.pinpointFeedback) {
-          this.dom.pinpointFeedback.className = 'game-inline-feedback success show';
-          this.dom.pinpointFeedback.textContent = `🎯 Volltreffer! Die Kategorie lautet "${challenge.category}"!`;
-        }
-
-        this.suite.showToast(`⭐ Pinpoint gelöst: ${challenge.category}!`);
-        this.renderPinpoint();
-      } else {
-        // Wrong guess
-        this.pinpointAttemptsLeft -= 1;
-        this.suite.sound.playError();
-
-        if (this.pinpointAttemptsLeft <= 0) {
-          // Out of attempts, reveal category
-          this.pinpointRevealedClues = 5;
-          this.dom.pinpointGuessInput.disabled = true;
-          if (this.dom.btnPinpointSubmit) this.dom.btnPinpointSubmit.disabled = true;
-
-          if (this.dom.pinpointFeedback) {
-            this.dom.pinpointFeedback.className = 'game-inline-feedback error show';
-            this.dom.pinpointFeedback.textContent = `Leider vorbei! Die gesuchte Kategorie war: "${challenge.category}".`;
-          }
-        } else {
-          // Reveal next clue
-          if (this.pinpointRevealedClues < 5) {
-            this.pinpointRevealedClues += 1;
-          }
-          if (this.dom.pinpointFeedback) {
-            this.dom.pinpointFeedback.className = 'game-inline-feedback error show';
-            this.dom.pinpointFeedback.textContent = `Nicht ganz! Noch ${this.pinpointAttemptsLeft} Versuche übrig.`;
-          }
-        }
-
-        this.renderPinpoint();
-      }
-    }
-
-    renderPinpointBanner() {
-      const cycle = this.getGermanDailyCycle();
-      const solvedSet = new Set(JSON.parse(localStorage.getItem('orbitsuite_pinpoint_daily_solved') || '[]'));
-      const isDailySolved = solvedSet.has(cycle.cycleKey);
-
-      if (this.dom.pinpointDateTitle) {
-        this.dom.pinpointDateTitle.textContent = `🎯 Pinpoint Tages-Rätsel für ${cycle.displayDate}`;
-      }
-      if (this.dom.pinpointStatusPill) {
-        this.dom.pinpointStatusPill.textContent = isDailySolved ? 'Gelöst ✓' : 'Offen ⏳';
-        this.dom.pinpointStatusPill.classList.toggle('solved', isDailySolved);
-      }
-      if (this.dom.pinpointCountdown) {
-        this.dom.pinpointCountdown.textContent = cycle.formattedCountdown;
-      }
-    }
-
-    renderPinpoint() {
-      this.renderPinpointBanner();
-      const challenge = this.getActivePinpointChallenge();
-
-      if (this.dom.pinpointAttemptsBadge) {
-        this.dom.pinpointAttemptsBadge.textContent = `Versuche: ${this.pinpointAttemptsLeft} übrig`;
-      }
-
-      if (this.dom.pinpointCluesList) {
-        this.dom.pinpointCluesList.innerHTML = '';
-        challenge.clues.forEach((clueText, idx) => {
-          const isRevealed = idx < this.pinpointRevealedClues;
-          const card = document.createElement('div');
-          card.className = `pinpoint-clue-card ${isRevealed ? 'revealed' : 'locked'}`;
-          card.innerHTML = `
-            <div class="clue-number-pill">${idx + 1}</div>
-            <div class="clue-text-body">${isRevealed ? clueText : '••••••••••••'}</div>
-          `;
-          this.dom.pinpointCluesList.appendChild(card);
-        });
-      }
-    }
-init() {
-      this.bindEvents();
-      this.renderDailyBanner();
-      this.startDailyTimer();
-      this.switchGameMode('queens');
-      this.render();
-    }
-
-    bindEvents() {
-            // LinkedIn Games Tab Switcher
-      if (this.dom.gamesNavBtns) {
-        this.dom.gamesNavBtns.forEach(btn => {
-          btn.addEventListener('click', () => {
-            this.switchGameMode(btn.dataset.gameMode);
-          });
-        });
-      }
-
-      // Queens Bindings
-      if (this.dom.queensLevelSelect) {
-        this.dom.queensLevelSelect.addEventListener('change', (e) => {
-          this.queensCurrentLevel = e.target.value;
-          this.resetQueensBoard(true);
-          this.startQueensTimer();
-        });
-      }
-      if (this.dom.btnQueensAutoX) {
-        this.dom.btnQueensAutoX.addEventListener('click', () => this.autoXQueens());
-      }
-      if (this.dom.btnQueensUndo) {
-        this.dom.btnQueensUndo.addEventListener('click', () => this.undoQueensMove());
-      }
-      if (this.dom.btnQueensReset) {
-        this.dom.btnQueensReset.addEventListener('click', () => {
-          this.resetQueensBoard(true);
-          this.startQueensTimer();
-        });
-      }
-
-      // Tango Bindings
-      if (this.dom.tangoLevelSelect) {
-        this.dom.tangoLevelSelect.addEventListener('change', (e) => {
-          this.tangoCurrentLevel = e.target.value;
-          this.resetTangoBoard();
-          this.startTangoTimer();
-        });
-      }
-      if (this.dom.btnTangoReset) {
-        this.dom.btnTangoReset.addEventListener('click', () => {
-          this.resetTangoBoard();
-          this.startTangoTimer();
-        });
-      }
-
-      // Pinpoint Bindings
-      if (this.dom.pinpointLevelSelect) {
-        this.dom.pinpointLevelSelect.addEventListener('change', (e) => {
-          this.pinpointCurrentLevel = e.target.value;
-          this.resetPinpoint();
-        });
-      }
-      if (this.dom.btnPinpointSubmit) {
-        this.dom.btnPinpointSubmit.addEventListener('click', () => this.submitPinpointGuess());
-      }
-      if (this.dom.pinpointGuessInput) {
-        this.dom.pinpointGuessInput.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter') this.submitPinpointGuess();
-        });
-      }
-      if (this.dom.btnPinpointRevealClue) {
-        this.dom.btnPinpointRevealClue.addEventListener('click', () => this.revealNextPinpointClue());
-      }
-      if (this.dom.btnPinpointReset) {
-        this.dom.btnPinpointReset.addEventListener('click', () => this.resetPinpoint());
-      }
-// Category filter chips
-      this.dom.filterChips.forEach(chip => {
-        chip.addEventListener('click', () => {
-          this.dom.filterChips.forEach(c => c.classList.remove('active'));
-          chip.classList.add('active');
-          this.filterCategory = chip.dataset.category;
-          this.currentIndex = 0;
-          this.render();
-        });
-      });
-
-      // Quick Switch to Daily Riddle
-      if (this.dom.btnSwitchDaily) {
-        this.dom.btnSwitchDaily.addEventListener('click', () => {
-          this.dom.filterChips.forEach(c => {
-            c.classList.toggle('active', c.dataset.category === 'daily');
-          });
-          this.filterCategory = 'daily';
-          this.currentIndex = 0;
-          this.render();
-          this.suite.sound.playPop();
-          const arena = document.querySelector('.riddle-arena-card');
-          if (arena) arena.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        });
-      }
-
-      // Difficulty dropdown filter
-      if (this.dom.diffSelect) {
-        this.dom.diffSelect.addEventListener('change', () => {
-          this.filterDifficulty = this.dom.diffSelect.value;
-          this.currentIndex = 0;
-          this.render();
-        });
-      }
-
-      // Check Answer Submit
-      if (this.dom.btnSubmit) {
-        this.dom.btnSubmit.addEventListener('click', () => this.checkAnswer());
-      }
-      if (this.dom.answerInput) {
-        this.dom.answerInput.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            this.checkAnswer();
-          }
-        });
-      }
-
-      // Hint Toggle
-      if (this.dom.btnHint) {
-        this.dom.btnHint.addEventListener('click', () => this.toggleHint());
-      }
-
-      // Reveal Solution Toggle & Unblur
-      if (this.dom.btnReveal) {
-        this.dom.btnReveal.addEventListener('click', () => this.toggleSolution());
-      }
-      if (this.dom.solutionContent) {
-        this.dom.solutionContent.addEventListener('click', () => {
-          if (this.dom.solutionContent.classList.contains('blurred')) {
-            this.dom.solutionContent.classList.remove('blurred');
-            this.dom.solutionContent.classList.add('revealed');
-          }
-        });
-      }
-
-      // Navigation Buttons
-      if (this.dom.btnPrev) {
-        this.dom.btnPrev.addEventListener('click', () => this.navigate(-1));
-      }
-      if (this.dom.btnNext) {
-        this.dom.btnNext.addEventListener('click', () => this.navigate(1));
-      }
-      if (this.dom.btnShuffle) {
-        this.dom.btnShuffle.addEventListener('click', () => this.shuffleRiddle());
-      }
-      if (this.dom.btnRandom) {
-        this.dom.btnRandom.addEventListener('click', () => this.shuffleRiddle());
-      }
-
-      // Modal open / close
-      if (this.dom.btnCreate) {
-        this.dom.btnCreate.addEventListener('click', () => this.openCreateModal());
-      }
-      if (this.dom.modalClose) {
-        this.dom.modalClose.addEventListener('click', () => this.closeCreateModal());
-      }
-      if (this.dom.btnModalCancel) {
-        this.dom.btnModalCancel.addEventListener('click', () => this.closeCreateModal());
-      }
-
-      // Form submit for custom riddle
-      if (this.dom.form) {
-        this.dom.form.addEventListener('submit', (e) => {
-          e.preventDefault();
-          this.saveNewRiddle();
-        });
-      }
-    }
-
-    render() {
-      // 1. Update Header Badges & Daily Banner
-      this.renderDailyBanner();
-      if (this.dom.badgeScore) {
-        this.dom.badgeScore.textContent = `🏆 ${this.solvedRiddles.size} Gelöst`;
-      }
-      if (this.dom.badgeStreak) {
-        this.dom.badgeStreak.textContent = `🔥 ${this.streak}er Streak`;
-      }
-      if (this.dom.badgeDailyStreak) {
-        this.dom.badgeDailyStreak.textContent = `⭐ ${this.dailyStreak} Tage Daily`;
-      }
-
-      const riddle = this.currentRiddle;
-      const list = this.filteredRiddles;
-
-      if (!riddle) {
-        if (this.dom.questionText) this.dom.questionText.textContent = 'Keine Rätsel mit diesem Filter gefunden.';
-        if (this.dom.countLabel) this.dom.countLabel.textContent = '0 / 0';
-        if (this.dom.cardsGrid) this.dom.cardsGrid.innerHTML = '<p style="color:var(--text-muted); padding:20px;">Keine Einträge vorhanden.</p>';
-        return;
-      }
-
-      const isSolved = this.solvedRiddles.has(riddle.id);
-
-      // 2. Active Riddle Meta Tags
-      if (this.dom.catPill) {
-        const catIcons = { Muster: '🧩 Muster', Geometrie: '📐 Geometrie', Gleichung: '⚖️ Gleichung', Illusion: '👁️ Illusion', Streichholz: '🪵 Streichholz', Raumdenken: '🎲 3D-Raum' };
-        this.dom.catPill.textContent = catIcons[riddle.category] || riddle.category;
-      }
-      if (this.dom.diffPill) {
-        this.dom.diffPill.textContent = riddle.difficulty;
-        this.dom.diffPill.className = `riddle-diff-pill diff-${riddle.difficulty.toLowerCase()}`;
-      }
-      if (this.dom.countLabel) {
-        this.dom.countLabel.textContent = `Rätsel #${this.currentIndex + 1} von ${list.length}`;
-      }
-
-      // 3. Status Indicator
-      if (this.dom.statusIndicator) {
-        this.dom.statusIndicator.classList.toggle('solved', isSolved);
-        if (this.dom.statusText) {
-          this.dom.statusText.textContent = isSolved ? 'Gelöst ✓' : 'Offen';
-        }
-      }
-
-      // 4. Visual Graphic & Question Text
-      if (this.dom.visualBox) {
-        this.dom.visualBox.innerHTML = riddle.visualSvg || '';
-      }
-      if (this.dom.questionText) {
-        this.dom.questionText.textContent = riddle.question;
-      }
-
-      // 5. Reset inputs and feedback
-      if (this.dom.answerInput) {
-        this.dom.answerInput.value = '';
-      }
-      if (this.dom.feedbackBox) {
-        this.dom.feedbackBox.className = 'riddle-feedback-box hidden';
-        this.dom.feedbackBox.innerHTML = '';
-      }
-
-      // 6. Reset hint
-      if (this.dom.hintBox) {
-        this.dom.hintBox.classList.add('hidden');
-      }
-      if (this.dom.hintText) {
-        this.dom.hintText.textContent = riddle.hint || 'Denke über ungewöhnliche Blickwinkel nach!';
-      }
-      if (this.dom.btnHint) {
-        this.dom.btnHint.innerHTML = '<span>💡 Hinweis anzeigen</span>';
-      }
-
-      // 7. Reset solution
-      if (this.dom.solutionBox) {
-        this.dom.solutionBox.classList.add('hidden');
-      }
-      if (this.dom.solutionContent) {
-        this.dom.solutionContent.className = 'solution-content blurred';
-      }
-      if (this.dom.solutionTitle) {
-        this.dom.solutionTitle.textContent = riddle.solutionTitle || 'Offizielle Lösung';
-      }
-      if (this.dom.solutionExplanation) {
-        this.dom.solutionExplanation.textContent = riddle.solutionExplanation || '';
-      }
-      if (this.dom.btnReveal) {
-        this.dom.btnReveal.innerHTML = '<span>👁️ Lösung aufdecken</span>';
-      }
-
-      // 8. Render Collection Cards Grid
-      this.renderCollectionGrid();
-
-      // 9. Synchronize Hub stats if hub is loaded
-      if (this.suite.hubApp) {
-        this.suite.hubApp.render();
-      }
-    }
-
-    renderCollectionGrid() {
-      if (!this.dom.cardsGrid) return;
-      const list = this.filteredRiddles;
-      const catIcons = { Muster: '🧩 Muster', Geometrie: '📐 Geometrie', Gleichung: '⚖️ Gleichung', Illusion: '👁️ Illusion', Streichholz: '🪵 Streichholz', Raumdenken: '🎲 3D-Raum' };
-
-      this.dom.cardsGrid.innerHTML = list.map((r, idx) => {
-        const isSolved = this.solvedRiddles.has(r.id);
-        const isActive = idx === this.currentIndex;
-        const cycle = this.getGermanDailyCycle();
-        const dailyRiddle = this.getDailyRiddleForCycle(cycle.cycleKey);
-        const isDailyRiddle = dailyRiddle && dailyRiddle.id === r.id;
-
-        return `
-          <div class="riddle-mini-card ${isActive ? 'active' : ''} ${isSolved ? 'solved-card' : ''} ${isDailyRiddle ? 'daily-featured-card' : ''}" data-index="${idx}">
-            <div class="riddle-mini-top">
-              <span class="riddle-cat-pill">${catIcons[r.category] || escapeHtml(r.category)}</span>
-              ${isDailyRiddle ? '<span class="riddle-cat-pill" style="background:rgba(245,158,11,0.2);color:#fbbf24;border:1px solid rgba(245,158,11,0.4)">⭐ TAGESRÄTSEL</span>' : ''}
-              <span class="riddle-diff-pill diff-${r.difficulty.toLowerCase()}">${r.difficulty}</span>
-            </div>
-            <h4 class="riddle-mini-title">${escapeHtml(r.title || r.question.substring(0, 60) + '...')}</h4>
-            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; color:var(--text-muted); margin-top:auto;">
-              <span>#${idx + 1}</span>
-              <span>${isSolved ? '✅ Gelöst' : '⏳ Offen'}</span>
-            </div>
-          </div>
-        `;
-      }).join('');
-
-      this.dom.cardsGrid.querySelectorAll('.riddle-mini-card').forEach(card => {
-        card.addEventListener('click', () => {
-          this.currentIndex = parseInt(card.dataset.index, 10);
-          this.render();
-          this.suite.sound.playPop();
-          // Scroll arena card into view smoothly
-          const arena = document.querySelector('.riddle-arena-card');
-          if (arena) arena.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        });
-      });
-    }
-
-    checkAnswer() {
-      const riddle = this.currentRiddle;
-      if (!riddle || !this.dom.answerInput) return;
-
-      const inputRaw = this.dom.answerInput.value.trim().toLowerCase();
-      if (!inputRaw) {
-        this.showFeedback('Bitte gib zuerst eine Antwort ein!', false);
-        return;
-      }
-
-      // Keyword normalization
-      const cleanInput = inputRaw
-        .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
-        .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '');
-
-      const isMatch = riddle.keywords.some(kw => {
-        const cleanKw = kw.toLowerCase()
-          .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
-          .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '');
-        return cleanInput.includes(cleanKw) || (cleanInput.length >= 3 && cleanKw.includes(cleanInput));
-      });
-
-      if (isMatch) {
-        // Correct answer!
-        this.solvedRiddles.add(riddle.id);
-        this.streak += 1;
-        this.saveSolved();
-
-        // Check if this riddle is the active 07:00 Daily Riddle
-        const cycle = this.getGermanDailyCycle();
-        const dailyRiddle = this.getDailyRiddleForCycle(cycle.cycleKey);
-        let dailyJustSolved = false;
-
-        if (dailyRiddle && riddle.id === dailyRiddle.id && !this.dailySolvedDates.has(cycle.cycleKey)) {
-          this.dailySolvedDates.add(cycle.cycleKey);
-          
-          // Calculate consecutive daily streak
-          const yesterdayObj = new Date(Date.now() - 86400000);
-          const yesterdayCycle = this.getGermanDailyCycle(yesterdayObj);
-          if (this.dailySolvedDates.has(yesterdayCycle.cycleKey)) {
-            this.dailyStreak += 1;
-          } else {
-            this.dailyStreak = 1;
-          }
-          this.saveDailySolved();
-          this.renderDailyBanner();
-          dailyJustSolved = true;
-        }
-
-        this.suite.sound.playSuccess();
-        this.suite.confetti.fire();
-
-        if (dailyJustSolved) {
-          this.showFeedback(`🌟 Großartig! Du hast das Tagesrätsel gemeistert! Dein Tages-Streak: ${this.dailyStreak} Tage!`, true);
-          this.suite.showToast(`⭐ Tagesrätsel gelöst! ${this.dailyStreak} Tage Daily-Streak!`);
-        } else {
-          this.showFeedback('🎉 Exzellent! Deine Lösung ist goldrichtig!', true);
-        }
-
-        // Auto reveal solution without blur
-        if (this.dom.solutionBox) this.dom.solutionBox.classList.remove('hidden');
-        if (this.dom.solutionContent) {
-          this.dom.solutionContent.classList.remove('blurred');
-          this.dom.solutionContent.classList.add('revealed');
-        }
-
-        // Update score & badges
-        if (this.dom.badgeScore) this.dom.badgeScore.textContent = `🏆 ${this.solvedRiddles.size} Gelöst`;
-        if (this.dom.badgeStreak) this.dom.badgeStreak.textContent = `🔥 ${this.streak}er Streak`;
-        if (this.dom.statusIndicator) this.dom.statusIndicator.classList.add('solved');
-        if (this.dom.statusText) this.dom.statusText.textContent = 'Gelöst ✓';
-
-        this.renderCollectionGrid();
-      } else {
-        // Wrong answer
-        this.streak = 0;
-        this.saveSolved();
-        this.suite.sound.playPop();
-
-        this.showFeedback('🤔 Noch nicht ganz... Nutze den Tipp oder versuche eine andere Formulierung!', false);
-        if (this.dom.badgeStreak) this.dom.badgeStreak.textContent = `🔥 0er Streak`;
-      }
-    }
-
-    showFeedback(message, isCorrect) {
-      if (!this.dom.feedbackBox) return;
-      this.dom.feedbackBox.className = `riddle-feedback-box ${isCorrect ? 'correct' : 'wrong'}`;
-      this.dom.feedbackBox.innerHTML = `<span>${escapeHtml(message)}</span>`;
-      this.dom.feedbackBox.classList.remove('hidden');
-    }
-
-    toggleHint() {
-      if (!this.dom.hintBox) return;
-      const isHidden = this.dom.hintBox.classList.contains('hidden');
-      this.dom.hintBox.classList.toggle('hidden', !isHidden);
-      if (this.dom.btnHint) {
-        this.dom.btnHint.innerHTML = isHidden ? '<span>🙈 Hinweis verbergen</span>' : '<span>💡 Hinweis anzeigen</span>';
-      }
-      this.suite.sound.playPop();
-    }
-
-    toggleSolution() {
-      if (!this.dom.solutionBox) return;
-      const isHidden = this.dom.solutionBox.classList.contains('hidden');
-      this.dom.solutionBox.classList.toggle('hidden', !isHidden);
-      if (isHidden && this.dom.solutionContent) {
-        this.dom.solutionContent.classList.remove('blurred');
-        this.dom.solutionContent.classList.add('revealed');
-      }
-      if (this.dom.btnReveal) {
-        this.dom.btnReveal.innerHTML = isHidden ? '<span>🙈 Lösung schließen</span>' : '<span>👁️ Lösung aufdecken</span>';
-      }
-      this.suite.sound.playPop();
-    }
-
-    navigate(dir) {
-      const list = this.filteredRiddles;
-      if (!list.length) return;
-      this.currentIndex = (this.currentIndex + dir + list.length) % list.length;
-      this.suite.sound.playPop();
-      this.render();
-    }
-
-    shuffleRiddle() {
-      const list = this.filteredRiddles;
-      if (list.length <= 1) return;
-      let nextIdx;
-      do {
-        nextIdx = Math.floor(Math.random() * list.length);
-      } while (nextIdx === this.currentIndex);
-      this.currentIndex = nextIdx;
-      this.suite.sound.playPop();
-      this.render();
-    }
-
-    openCreateModal() {
-      if (this.dom.modal) {
-        this.dom.modal.classList.remove('hidden');
-        if (this.dom.form) this.dom.form.reset();
-        this.suite.sound.playPop();
-      }
-    }
-
-    closeCreateModal() {
-      if (this.dom.modal) {
-        this.dom.modal.classList.add('hidden');
-      }
-    }
-
-    saveNewRiddle() {
-      const question = this.dom.newQuestion ? this.dom.newQuestion.value.trim() : '';
-      const category = this.dom.newCat ? this.dom.newCat.value : 'Logik';
-      const difficulty = this.dom.newDiff ? this.dom.newDiff.value : 'Mittel';
-      const answersRaw = this.dom.newAnswer ? this.dom.newAnswer.value.trim() : '';
-      const hint = this.dom.newHint ? this.dom.newHint.value.trim() : '';
-      const explanation = this.dom.newExplanation ? this.dom.newExplanation.value.trim() : '';
-
-      if (!question || !answersRaw) {
-        alert('Bitte gib mindestens eine Rätselfrage und eine Lösung an.');
-        return;
-      }
-
-      const keywords = answersRaw.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
-
-      const newRiddle = {
-        id: `riddle-custom-${Date.now()}`,
-        title: question.length > 50 ? question.substring(0, 50) + '...' : question,
-        category,
-        difficulty,
-        question,
-        hint: hint || 'Überlege gründlich!',
-        solutionTitle: answersRaw,
-        solutionExplanation: explanation || `Offizielle Lösung: ${answersRaw}`,
-        keywords: keywords.length ? keywords : [answersRaw.toLowerCase()],
-        isCustom: true
-      };
-
-      this.customRiddles.unshift(newRiddle);
-      this.saveCustomRiddles();
-
-      this.closeCreateModal();
-      this.suite.sound.playSuccess();
-      this.suite.showToast('Neues Rätsel erfolgreich hinzugefügt! 🧩');
-
-      // Reset filters and display the newly created riddle
-      this.filterCategory = 'all';
-      this.filterDifficulty = 'all';
-      this.dom.filterChips.forEach(c => c.classList.toggle('active', c.dataset.category === 'all'));
-      if (this.dom.diffSelect) this.dom.diffSelect.value = 'all';
-      this.currentIndex = 0;
-      this.render();
-    }
-  }
-
-  // ==========================================================================
-  // 0. ORBITHUB MODULE (STARTSEITE / APP SELECTOR & DASHBOARD)
-  // ==========================================================================
-  class OrbitHubApp {
-    constructor(suite) {
-      this.suite = suite;
-
-      this.dom = {
-        greeting: document.getElementById('hub-greeting'),
-        statTasks: document.getElementById('hub-stat-tasks'),
-        statNotes: document.getElementById('hub-stat-notes'),
-        statFocus: document.getElementById('hub-stat-focus'),
-        statHabits: document.getElementById('hub-stat-habits'),
-        statRiddles: document.getElementById('hub-stat-riddles'),
-        cardTaskSummary: document.getElementById('hub-card-task-summary'),
-        cardNotesSummary: document.getElementById('hub-card-notes-summary'),
-        cardFocusSummary: document.getElementById('hub-card-focus-summary'),
-        cardHabitsSummary: document.getElementById('hub-card-habits-summary'),
-        cardRiddleSummary: document.getElementById('hub-card-riddle-summary'),
-        taskPreviewList: document.getElementById('hub-task-preview-list'),
-        habitPreviewList: document.getElementById('hub-habit-preview-list'),
-        notesPreviewList: document.getElementById('hub-notes-preview-list'),
-        // Quick Action triggers
-        btnAddTask: document.getElementById('hub-action-add-task'),
-        btnAddNote: document.getElementById('hub-action-add-note'),
-        btnStartFocus: document.getElementById('hub-action-start-focus'),
-        btnCheckHabits: document.getElementById('hub-action-check-habits'),
-        btnSolveRiddle: document.getElementById('hub-action-solve-riddle')
-      };
-
-      this.init();
-    }
-
-    init() {
-      this.bindEvents();
-      this.render();
-    }
-
-    bindEvents() {
-      // Launch app from App Cards
-      document.querySelectorAll('[data-launch]').forEach(elem => {
-        elem.addEventListener('click', (e) => {
-          const appId = elem.dataset.launch;
-          this.suite.switchApp(appId);
-        });
-      });
-
-      // Quick Launch Bar
-      if (this.dom.btnAddTask) {
-        this.dom.btnAddTask.addEventListener('click', () => {
-          this.suite.switchApp('tasks');
-          setTimeout(() => this.suite.taskApp.openCreateModal(), 150);
-        });
-      }
-
-      if (this.dom.btnAddNote) {
-        this.dom.btnAddNote.addEventListener('click', () => {
-          this.suite.switchApp('notes');
-          setTimeout(() => this.suite.notesApp.openCreateModal(), 150);
-        });
-      }
-
-      if (this.dom.btnStartFocus) {
-        this.dom.btnStartFocus.addEventListener('click', () => {
-          this.suite.switchApp('focus');
-          setTimeout(() => this.suite.focusApp.start(), 150);
-        });
-      }
-
-      if (this.dom.btnCheckHabits) {
-        this.dom.btnCheckHabits.addEventListener('click', () => {
-          this.suite.switchApp('habits');
-        });
-      }
-
-      if (this.dom.btnSolveRiddle) {
-        this.dom.btnSolveRiddle.addEventListener('click', () => {
-          this.suite.switchApp('riddle');
-        });
-      }
-    }
-
-    updateGreeting() {
-      if (!this.dom.greeting) return;
-      const hour = new Date().getHours();
-      let greeting = 'Willkommen im ';
-      if (hour < 11) greeting = 'Guten Morgen! Willkommen im ';
-      else if (hour < 18) greeting = 'Guten Tag! Willkommen im ';
-      else greeting = 'Guten Abend! Willkommen im ';
-
-      this.dom.greeting.innerHTML = `${greeting}<span class="gradient-text">Orbit Workspace</span>`;
-    }
-
-    render() {
-      this.updateGreeting();
-
-      // Aggregate Stats from apps
-      const tasks = this.suite.taskApp ? this.suite.taskApp.tasks : [];
-      const notes = this.suite.notesApp ? this.suite.notesApp.notes : [];
-      const habits = this.suite.habitsApp ? this.suite.habitsApp.habits : [];
-      const focus = this.suite.focusApp;
-      const riddle = this.suite.riddleApp;
-
-      const openTasks = tasks.filter(t => t.status !== 'done').length;
-      const completedTasks = tasks.filter(t => t.status === 'done').length;
-      const todayStr = getTodayString(0);
-      const overdueTasks = tasks.filter(t => t.dueDate && t.dueDate < todayStr && t.status !== 'done').length;
-
-      // KPI Strip
-      if (this.dom.statTasks) this.dom.statTasks.textContent = `${openTasks} offene Tasks`;
-      if (this.dom.statNotes) this.dom.statNotes.textContent = `${notes.length} Notizen`;
-      if (this.dom.statFocus) {
-        this.dom.statFocus.textContent = focus ? `${focus.completedSessions} Sessions (${focus.totalMinutes}m)` : '25:00 min';
-      }
-      if (this.dom.statHabits) {
-        const todayDone = habits.filter(h => h.checks[(new Date().getDay() + 6) % 7]).length;
-        this.dom.statHabits.textContent = `${todayDone}/${habits.length} heute erledigt`;
-      }
-      if (this.dom.statRiddles) {
-        const solved = riddle ? riddle.solvedRiddles.size : 0;
-        const total = riddle ? riddle.allRiddles.length : 28;
-        const dailyDone = riddle ? riddle.isTodayDailySolved() : false;
-        this.dom.statRiddles.textContent = `${solved}/${total} Gelöst • ⭐ Daily: ${dailyDone ? 'Gelöst' : 'Offen'}`;
-      }
-
-      // App Card summaries
-      if (this.dom.cardTaskSummary) {
-        this.dom.cardTaskSummary.textContent = `${openTasks} Tasks offen • ${completedTasks} erledigt`;
-      }
-      if (this.dom.cardNotesSummary) {
-        this.dom.cardNotesSummary.textContent = `${notes.length} Notizen (${notes.filter(n=>n.pinned).length} gepinnt)`;
-      }
-      if (this.dom.cardFocusSummary) {
-        this.dom.cardFocusSummary.textContent = `${focus ? focus.completedSessions : 0} Pomodoros heute`;
-      }
-      if (this.dom.cardHabitsSummary) {
-        this.dom.cardHabitsSummary.textContent = `${habits.length} Gewohnheiten aktiv`;
-      }
-      if (this.dom.cardRiddleSummary) {
-        const solved = riddle ? riddle.solvedRiddles.size : 0;
-        const streak = riddle ? riddle.streak : 0;
-        const dailyDone = riddle ? riddle.isTodayDailySolved() : false;
-        const cycle = riddle ? riddle.getGermanDailyCycle() : null;
-        const dropText = cycle ? `07:00 Drop in ${cycle.hours}h ${cycle.minutes}m` : 'Täglich um 07:00 Uhr';
-        this.dom.cardRiddleSummary.textContent = `⭐ Daily: ${dailyDone ? 'Gelöst ✓' : 'Offen ⏳'} • ${dropText}`;
-      }
-
-      // Live Activity Lists
-      this.renderTasksPreview(tasks);
-      this.renderHabitsPreview(habits);
-      this.renderNotesPreview(notes);
-    }
-
-    renderTasksPreview(tasks) {
-      if (!this.dom.taskPreviewList) return;
-      const todayStr = getTodayString(0);
-
-      // Prioritize overdue and today's tasks
-      const focusTasks = tasks.filter(t => t.status !== 'done')
-        .sort((a, b) => {
-          if (a.priority === 'urgent' && b.priority !== 'urgent') return -1;
-          if (b.priority === 'urgent' && a.priority !== 'urgent') return 1;
-          return (a.dueDate || '9999').localeCompare(b.dueDate || '9999');
-        })
-        .slice(0, 4);
-
-      if (!focusTasks.length) {
-        this.dom.taskPreviewList.innerHTML = `
-          <div style="font-size:0.82rem; color:var(--text-dim); padding:10px 0;">
-            Alle dringenden Aufgaben erledigt! 🎉
-          </div>
-        `;
-        return;
-      }
-
-      this.dom.taskPreviewList.innerHTML = focusTasks.map(t => {
-        const isOverdue = t.dueDate && t.dueDate < todayStr;
-        const badgeColor = isOverdue ? '#f43f5e' : (t.priority === 'urgent' ? '#f43f5e' : '#f59e0b');
-        return `
-          <div class="hub-preview-item" data-task-id="${t.id}">
-            <div class="hub-preview-left">
-              <span style="color:${badgeColor};">●</span>
-              <span class="hub-preview-title">${escapeHtml(t.title)}</span>
-            </div>
-            <span class="hub-preview-badge">${t.dueDate || t.priority}</span>
-          </div>
-        `;
-      }).join('');
-
-      this.dom.taskPreviewList.querySelectorAll('.hub-preview-item').forEach(item => {
-        item.addEventListener('click', () => {
-          this.suite.switchApp('tasks');
-          setTimeout(() => this.suite.taskApp.openEditModal(item.dataset.taskId), 150);
-        });
-      });
-    }
-
-    renderHabitsPreview(habits) {
-      if (!this.dom.habitPreviewList) return;
-      const todayIdx = (new Date().getDay() + 6) % 7;
-
-      if (!habits.length) {
-        this.dom.habitPreviewList.innerHTML = `<div style="font-size:0.82rem; color:var(--text-dim);">Keine Habits eingerichtet.</div>`;
-        return;
-      }
-
-      this.dom.habitPreviewList.innerHTML = habits.slice(0, 4).map(h => {
-        const isDone = h.checks[todayIdx];
-        return `
-          <div class="hub-preview-item">
-            <div class="hub-preview-left">
-              <button class="day-check-btn ${isDone ? 'checked' : ''}" style="width:22px; height:22px; font-size:0.7rem; margin-right:6px;" data-hub-habit="${h.id}">
-                ${isDone ? '✓' : ''}
-              </button>
-              <span class="hub-preview-title ${isDone ? 'done' : ''}">${escapeHtml(h.name)}</span>
-            </div>
-            <span class="hub-preview-badge">🔥 ${h.streak}d</span>
-          </div>
-        `;
-      }).join('');
-
-      this.dom.habitPreviewList.querySelectorAll('[data-hub-habit]').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const habitId = btn.dataset.hubHabit;
-          this.suite.habitsApp.toggleDayCheck(habitId, todayIdx);
-          this.render();
-        });
-      });
-    }
-
-    renderNotesPreview(notes) {
-      if (!this.dom.notesPreviewList) return;
-      const pinned = notes.filter(n => n.pinned).slice(0, 3);
-      const displayNotes = pinned.length > 0 ? pinned : notes.slice(0, 3);
-
-      if (!displayNotes.length) {
-        this.dom.notesPreviewList.innerHTML = `<div style="font-size:0.82rem; color:var(--text-dim);">Keine Notizen angelegt.</div>`;
-        return;
-      }
-
-      this.dom.notesPreviewList.innerHTML = displayNotes.map(n => `
-        <div class="hub-preview-item" data-note-id="${n.id}">
-          <div class="hub-preview-left">
-            <span>📌</span>
-            <span class="hub-preview-title">${escapeHtml(n.title)}</span>
-          </div>
-          <span class="hub-preview-badge">${n.category}</span>
-        </div>
-      `).join('');
-
-      this.dom.notesPreviewList.querySelectorAll('.hub-preview-item').forEach(item => {
-        item.addEventListener('click', () => {
-          this.suite.switchApp('notes');
-          setTimeout(() => this.suite.notesApp.openEditModal(item.dataset.noteId), 150);
-        });
-      });
-    }
-  }
-
-  // ==========================================================================
-  // ORBITSUITE ROUTER & UNIFIED FRAMEWORK CONTROLLER
-  // ==========================================================================
-
-  // ==========================================================================
-  // PWA (PROGRESSIVE WEB APP) MANAGER
-  // ==========================================================================
-  class OrbitPwaManager {
-    constructor(suite) {
-      this.suite = suite;
-      this.deferredPrompt = null;
-      this.btnInstallHeader = document.getElementById('btn-pwa-install');
-      this.btnInstallHub = document.getElementById('btn-pwa-hub-install');
-      this.hubBanner = document.getElementById('hub-pwa-banner');
-      
-      this.initServiceWorker();
-      this.initInstallPrompt();
-      this.initNetworkListeners();
-    }
-
-    initServiceWorker() {
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./sw.js')
-            .then(reg => {
-              console.log('[OrbitSuite PWA] Service Worker registered with scope:', reg.scope);
-              // Handle updatefound
-              reg.addEventListener('updatefound', () => {
-                const newWorker = reg.installing;
-                if (newWorker) {
-                  newWorker.addEventListener('statechange', () => {
-                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                      this.suite.showToast('OrbitSuite Update verfügbar! Aktualisiere beim nächsten Start 🚀');
-                    }
-                  });
-                }
-              });
-            })
-            .catch(err => {
-              console.warn('[OrbitSuite PWA] Service Worker registration failed:', err);
-            });
-        });
-      }
-    }
-
-    initInstallPrompt() {
-      // Check if already in standalone / installed mode
-      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-      if (isStandalone) {
-        console.log('[OrbitSuite PWA] Running in standalone native window mode.');
-        return;
-      }
-
-      window.addEventListener('beforeinstallprompt', (e) => {
-        // Prevent default mini-infobar on mobile Chrome
-        e.preventDefault();
-        this.deferredPrompt = e;
-        console.log('[OrbitSuite PWA] beforeinstallprompt captured.');
-
-        // Show install button and Hub banner
-        if (this.btnInstallHeader) this.btnInstallHeader.classList.remove('hidden');
-        if (this.hubBanner) this.hubBanner.classList.remove('hidden');
-      });
-
-      // Handle install click
-      const handleInstall = async () => {
-        if (!this.deferredPrompt) {
-          this.suite.showToast('Installationsaufforderung steht noch nicht bereit.');
-          return;
-        }
-        this.deferredPrompt.prompt();
-        const { outcome } = await this.deferredPrompt.userChoice;
-        console.log('[OrbitSuite PWA] User install choice:', outcome);
-        if (outcome === 'accepted') {
-          this.suite.showToast('OrbitSuite wird als App installiert! 📲');
-          this.hideInstallPrompts();
-        }
-        this.deferredPrompt = null;
-      };
-
-      if (this.btnInstallHeader) this.btnInstallHeader.addEventListener('click', handleInstall);
-      if (this.btnInstallHub) this.btnInstallHub.addEventListener('click', handleInstall);
-
-      window.addEventListener('appinstalled', () => {
-        console.log('[OrbitSuite PWA] OrbitSuite successfully installed.');
-        this.suite.showToast('OrbitSuite erfolgreich installiert! 🎉');
-        if (this.suite.sound) this.suite.sound.playSuccess();
-        this.hideInstallPrompts();
-      });
-    }
-
-    hideInstallPrompts() {
-      if (this.btnInstallHeader) this.btnInstallHeader.classList.add('hidden');
-      if (this.hubBanner) this.hubBanner.classList.add('hidden');
-    }
-
-    initNetworkListeners() {
-      window.addEventListener('offline', () => {
-        this.suite.showToast('📴 Offline-Modus: OrbitSuite läuft lokal nahtlos weiter.');
-      });
-      window.addEventListener('online', () => {
-        this.suite.showToast('🌐 Wieder online: Verbindung hergestellt.');
-      });
-    }
-  }
-
-  class OrbitSuiteRouter {
-    constructor() {
-      this.sound = new SoundManager();
-      this.pwa = new OrbitPwaManager(this);
-      this.confetti = new ConfettiManager('confetti-canvas');
-      this.activeApp = 'hub'; // 'hub', 'tasks', 'notes', 'focus', 'habits', 'tools'
-
-      // DOM references for Framework
-      this.dom = {
-        suiteBrand: document.getElementById('suite-brand'),
-        appSelectorToggle: document.getElementById('app-selector-toggle'),
-        appSelectorMenu: document.getElementById('app-selector-menu'),
-        currentAppIndicator: document.getElementById('current-app-indicator'),
-        currentAppDot: document.getElementById('current-app-dot'),
-        currentAppName: document.getElementById('current-app-name'),
-        suiteNavPills: document.querySelectorAll('#suite-nav-pills .suite-pill'),
-        appMenuItems: document.querySelectorAll('.app-menu-item'),
-        appViews: {
-          hub: document.getElementById('app-view-hub'),
-          tasks: document.getElementById('app-view-tasks'),
-          notes: document.getElementById('app-view-notes'),
-          focus: document.getElementById('app-view-focus'),
-          habits: document.getElementById('app-view-habits'),
-          tools: document.getElementById('app-view-tools'),
-          riddle: document.getElementById('app-view-riddle')
-        },
-        clockDisplay: document.getElementById('suite-clock-display'),
-        soundToggleBtn: document.getElementById('btn-sound-toggle'),
-        btnBackup: document.getElementById('btn-suite-backup'),
-        backupModal: document.getElementById('backup-modal'),
-        backupModalClose: document.getElementById('backup-modal-close'),
-        btnExportBackup: document.getElementById('btn-export-suite-backup'),
-        inputImportBackup: document.getElementById('input-suite-import'),
-        btnResetAllDemo: document.getElementById('btn-reset-all-demo'),
-        btnShortcuts: document.getElementById('btn-suite-shortcuts'),
-        shortcutsModal: document.getElementById('shortcuts-modal'),
-        shortcutsModalClose: document.getElementById('shortcuts-modal-close'),
-        toastContainer: document.getElementById('toast-container')
-      };
-
-      // App Colors for Selector Indicator
-      this.appThemes = {
-        hub: { name: 'Startseite Hub', color: '#6366f1' },
-        tasks: { name: 'OrbitTask', color: '#8b5cf6' },
-        notes: { name: 'OrbitNotes', color: '#10b981' },
-        focus: { name: 'OrbitFocus', color: '#f59e0b' },
-        habits: { name: 'OrbitHabits', color: '#f43f5e' },
-        tools: { name: 'OrbitTools', color: '#0284c7' },
-        riddle: { name: 'OrbitRätsel', color: '#a855f7' }
-      };
-
-      this.init();
-    }
-
-    init() {
-      // 1. Initialize Sub-Applications
-      this.taskApp = new OrbitTaskApp(this);
-      this.notesApp = new OrbitNotesApp(this);
-      this.focusApp = new OrbitFocusApp(this);
-      this.habitsApp = new OrbitHabitsApp(this);
-      this.toolsApp = new OrbitToolsApp(this);
-      this.riddleApp = new OrbitRiddleApp(this);
-      this.hubApp = new OrbitHubApp(this);
-
-      // 2. Bind Framework Navigation & Controls
-      this.bindFrameworkEvents();
-
-      // 3. Setup Clock & Sound
-      this.startClock();
-      this.updateSoundIcon();
-
-      // 4. Initial Route from URL Hash or default to 'hub'
-      const initialHash = window.location.hash.replace('#', '');
-      if (this.dom.appViews[initialHash]) {
-        this.switchApp(initialHash, false);
-      } else {
-        this.switchApp('hub', false);
-      }
-    }
-
-    bindFrameworkEvents() {
-      // Brand click -> Startseite
-      if (this.dom.suiteBrand) {
-        this.dom.suiteBrand.addEventListener('click', () => this.switchApp('hub'));
-      }
-
-      // App Selector Toggle Dropdown
-      if (this.dom.appSelectorToggle) {
-        this.dom.appSelectorToggle.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const isExpanded = this.dom.appSelectorToggle.getAttribute('aria-expanded') === 'true';
-          this.toggleAppSelector(!isExpanded);
-        });
-      }
-
-      // App Menu Items
-      this.dom.appMenuItems.forEach(item => {
-        item.addEventListener('click', () => {
-          const target = item.dataset.appTarget;
-          this.switchApp(target);
-          this.toggleAppSelector(false);
-        });
-      });
-
-      // Quick Nav Pills
-      this.dom.suiteNavPills.forEach(pill => {
-        pill.addEventListener('click', () => {
-          this.switchApp(pill.dataset.app);
-        });
-      });
-
-      // Close dropdown when clicking outside
-      document.addEventListener('click', (e) => {
-        if (!e.target.closest('.app-selector-dropdown-wrapper')) {
-          this.toggleAppSelector(false);
-        }
-      });
-
-      // Global Sound Toggle
-      if (this.dom.soundToggleBtn) {
-        this.dom.soundToggleBtn.addEventListener('click', () => {
-          this.sound.toggle();
-          this.updateSoundIcon();
-          if (this.sound.enabled) this.sound.playSuccess();
-        });
-      }
-
-      // Global Backup Modal
-      if (this.dom.btnBackup) {
-        this.dom.btnBackup.addEventListener('click', () => {
-          this.dom.backupModal.classList.remove('hidden');
-          this.sound.playPop();
-        });
-      }
-      if (this.dom.backupModalClose) {
-        this.dom.backupModalClose.addEventListener('click', () => {
-          this.dom.backupModal.classList.add('hidden');
-        });
-      }
-      if (this.dom.btnExportBackup) {
-        this.dom.btnExportBackup.addEventListener('click', () => this.exportAllSuiteData());
-      }
-      if (this.dom.inputImportBackup) {
-        this.dom.inputImportBackup.addEventListener('change', (e) => {
-          const file = e.target.files[0];
-          if (file) this.importSuiteData(file);
-          e.target.value = '';
-        });
-      }
-      if (this.dom.btnResetAllDemo) {
-        this.dom.btnResetAllDemo.addEventListener('click', () => {
-          if (confirm('Möchtest du alle Suite-Daten auf Werkseinstellungen zurücksetzen?')) {
-            localStorage.clear();
-            location.reload();
-          }
-        });
-      }
-
-      // Shortcuts Modal
-      if (this.dom.btnShortcuts) {
-        this.dom.btnShortcuts.addEventListener('click', () => {
-          this.dom.shortcutsModal.classList.remove('hidden');
-          this.sound.playPop();
-        });
-      }
-      if (this.dom.shortcutsModalClose) {
-        this.dom.shortcutsModalClose.addEventListener('click', () => {
-          this.dom.shortcutsModal.classList.add('hidden');
-        });
-      }
-
-      // Universal Keyboard Shortcuts (Alt + 0..5, Alt + K, Escape)
-      window.addEventListener('keydown', (e) => {
-        if (e.altKey && !e.ctrlKey && !e.metaKey) {
-          if (e.key === '0' || e.key.toLowerCase() === 'h') {
-            e.preventDefault();
-            this.switchApp('hub');
-          } else if (e.key === '1') {
-            e.preventDefault();
-            this.switchApp('tasks');
-          } else if (e.key === '2') {
-            e.preventDefault();
-            this.switchApp('notes');
-          } else if (e.key === '3') {
-            e.preventDefault();
-            this.switchApp('focus');
-          } else if (e.key === '4') {
-            e.preventDefault();
-            this.switchApp('habits');
-          } else if (e.key === '5') {
-            e.preventDefault();
-            this.switchApp('tools');
-          } else if (e.key === '6') {
-            e.preventDefault();
-            this.switchApp('riddle');
-          } else if (e.key.toLowerCase() === 'k') {
-            e.preventDefault();
-            this.toggleAppSelector();
-          }
-        } else if (e.key === 'Escape') {
-          this.toggleAppSelector(false);
-          if (this.dom.backupModal) this.dom.backupModal.classList.add('hidden');
-          if (this.dom.shortcutsModal) this.dom.shortcutsModal.classList.add('hidden');
-        }
-      });
-
-      // Browser Navigation (Hash change back/forward)
-      window.addEventListener('hashchange', () => {
-        const hash = window.location.hash.replace('#', '');
-        if (this.dom.appViews[hash] && hash !== this.activeApp) {
-          this.switchApp(hash, false);
-        }
-      });
-
-      // Data Navigation triggers with [data-app-nav]
-      document.querySelectorAll('[data-app-nav]').forEach(el => {
-        el.addEventListener('click', () => {
-          this.switchApp(el.dataset.appNav);
-        });
-      });
-    }
-
-    toggleAppSelector(forceState) {
-      if (!this.dom.appSelectorMenu || !this.dom.appSelectorToggle) return;
-      const isOpen = forceState !== undefined ? forceState : this.dom.appSelectorMenu.classList.contains('hidden');
-      this.dom.appSelectorMenu.classList.toggle('hidden', !isOpen);
-      this.dom.appSelectorToggle.setAttribute('aria-expanded', String(isOpen));
-      if (isOpen) this.sound.playPop();
-    }
-
-    switchApp(appId, updateHash = true) {
-      if (!this.dom.appViews[appId]) return;
-
-      this.activeApp = appId;
-
-      // 1. Switch visible view
-      Object.keys(this.dom.appViews).forEach(key => {
-        const viewEl = this.dom.appViews[key];
-        if (viewEl) {
-          viewEl.classList.toggle('active', key === appId);
-        }
-      });
-
-      // 2. Update Indicator in Header
-      const theme = this.appThemes[appId] || { name: appId, color: '#6366f1' };
-      if (this.dom.currentAppName) this.dom.currentAppName.textContent = theme.name;
-      if (this.dom.currentAppDot) {
-        this.dom.currentAppDot.style.background = theme.color;
-        this.dom.currentAppDot.style.boxShadow = `0 0 10px ${theme.color}`;
-      }
-
-      // 3. Update Suite Nav Pills
-      this.dom.suiteNavPills.forEach(pill => {
-        pill.classList.toggle('active', pill.dataset.app === appId);
-      });
-
-      // 4. Update Dropdown Menu Active Item
-      this.dom.appMenuItems.forEach(item => {
-        item.classList.toggle('active', item.dataset.appTarget === appId);
-      });
-
-      // 5. Update URL Hash
-      if (updateHash) {
-        window.location.hash = appId;
-      }
-
-      // 6. Sound & Refresh
-      this.sound.playPop();
-
-      // Trigger app-specific refresh
-      if (appId === 'hub' && this.hubApp) {
-        this.hubApp.render();
-      } else if (appId === 'tasks' && this.taskApp) {
-        this.taskApp.render();
-      } else if (appId === 'notes' && this.notesApp) {
-        this.notesApp.render();
-      } else if (appId === 'habits' && this.habitsApp) {
-        this.habitsApp.render();
-      } else if (appId === 'riddle' && this.riddleApp) {
-        this.riddleApp.render();
-      }
-
-      // Scroll to top
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    startClock() {
-      const update = () => {
-        if (!this.dom.clockDisplay) return;
-        const now = new Date();
-        const hrs = String(now.getHours()).padStart(2, '0');
-        const mins = String(now.getMinutes()).padStart(2, '0');
-        this.dom.clockDisplay.innerHTML = `<span class="clock-time">${hrs}:${mins}</span>`;
-      };
-      update();
-      setInterval(update, 1000);
-    }
-
-    updateSoundIcon() {
-      if (!this.dom.soundToggleBtn) return;
-      if (this.sound.enabled) {
-        this.dom.soundToggleBtn.classList.remove('muted');
-        this.dom.soundToggleBtn.title = 'Sound-Synthesizer: Aktiviert';
-        this.dom.soundToggleBtn.style.opacity = '1';
-      } else {
-        this.dom.soundToggleBtn.classList.add('muted');
-        this.dom.soundToggleBtn.title = 'Sound-Synthesizer: Stumm';
-        this.dom.soundToggleBtn.style.opacity = '0.5';
-      }
-    }
-
-    showToast(message, type = 'info') {
-      if (!this.dom.toastContainer) return;
-      const toast = document.createElement('div');
-      toast.className = 'toast';
-      toast.innerHTML = `<span>${escapeHtml(message)}</span>`;
-      this.dom.toastContainer.appendChild(toast);
-
-      setTimeout(() => {
-        toast.classList.add('toast-exit');
-        setTimeout(() => toast.remove(), 250);
-      }, 4000);
-    }
-
-    // --- Global Suite Backup ---
-    exportAllSuiteData() {
-      const suiteBackup = {
-        version: '3.0',
-        exportedAt: new Date().toISOString(),
-        tasks: this.taskApp ? this.taskApp.tasks : [],
-        notes: this.notesApp ? this.notesApp.notes : [],
-        habits: this.habitsApp ? this.habitsApp.habits : [],
-        focus: {
-          sessions: parseInt(localStorage.getItem('orbitsuite_focus_sessions') || '0', 10),
-          minutes: parseInt(localStorage.getItem('orbitsuite_focus_minutes') || '0', 10)
-        },
-        riddles: {
-          solved: Array.from(this.riddleApp ? this.riddleApp.solvedRiddles : []),
-          streak: this.riddleApp ? this.riddleApp.streak : 0,
-          custom: this.riddleApp ? this.riddleApp.customRiddles : []
-        }
-      };
-
-      const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(suiteBackup, null, 2));
-      const anchor = document.createElement('a');
-      anchor.setAttribute('href', dataStr);
-      anchor.setAttribute('download', `orbitsuite-backup-${getTodayString(0)}.json`);
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-
-      this.showToast('Vollständiges OrbitSuite-Backup exportiert! 📦');
-      this.sound.playSuccess();
-    }
-
-    importSuiteData(file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const data = JSON.parse(e.target.result);
-          if (data && (data.tasks || Array.isArray(data))) {
-            if (Array.isArray(data.tasks)) {
-              this.taskApp.tasks = data.tasks;
-              this.taskApp.saveTasks();
-            } else if (Array.isArray(data)) {
-              this.taskApp.tasks = data;
-              this.taskApp.saveTasks();
-            }
-
-            if (Array.isArray(data.notes)) {
-              this.notesApp.notes = data.notes;
-              this.notesApp.saveNotes();
-            }
-
-            if (Array.isArray(data.habits)) {
-              this.habitsApp.habits = data.habits;
-              this.habitsApp.saveHabits();
-            }
-
-            if (data.focus) {
-              localStorage.setItem('orbitsuite_focus_sessions', data.focus.sessions || 0);
-              localStorage.setItem('orbitsuite_focus_minutes', data.focus.minutes || 0);
-            }
-
-            if (data.riddles && this.riddleApp) {
-              if (Array.isArray(data.riddles.solved)) {
-                this.riddleApp.solvedRiddles = new Set(data.riddles.solved);
-                this.riddleApp.saveSolved();
-              }
-              if (typeof data.riddles.streak === 'number') {
-                this.riddleApp.streak = data.riddles.streak;
-                localStorage.setItem('orbitsuite_riddle_streak', String(this.riddleApp.streak));
-              }
-              if (Array.isArray(data.riddles.custom)) {
-                this.riddleApp.customRiddles = data.riddles.custom;
-                this.riddleApp.saveCustomRiddles();
-              }
-              this.riddleApp.render();
-            }
-
-            this.showToast('OrbitSuite Backup erfolgreich eingespielt! 🎉');
-            this.sound.playSuccess();
-            this.dom.backupModal.classList.add('hidden');
-            this.switchApp('hub');
-          } else {
-            alert('Ungültiges Backup-Format.');
-          }
-        } catch (err) {
-          alert('Fehler beim Importieren: ' + err.message);
-        }
-      };
-      reader.readAsText(file);
-    }
-  }
-
-  // Launch when DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      window.orbitSuite = new OrbitSuiteRouter();
-    });
-  } else {
-    window.orbitSuite = new OrbitSuiteRouter();
-  }
-})();
+/**
+
+ * OrbitSuite • Integrated Productivity OS & Multi-App Framework
+
+ * Modules: OrbitHub, OrbitTask, OrbitNotes, OrbitFocus, OrbitHabits, OrbitTools
+
+ * Zero-dependency, offline-first client architecture with Web Audio synthesizer & Canvas Confetti.
+
+ */
+
+
+
+(() => {
+
+  'use strict';
+
+
+
+  // ==========================================================================
+
+  // SHARED AUDIO SYNTHESIZER & AMBIENT ENGINE (Web Audio API)
+
+  // ==========================================================================
+
+  class SoundManager {
+
+    constructor() {
+
+      this.enabled = localStorage.getItem('orbitsuite_sound_enabled') !== 'false';
+
+      this.ctx = null;
+
+      this.ambientSource = null;
+
+      this.ambientGain = null;
+
+      this.currentAmbientType = 'off';
+
+      this.ambientVolume = 0.5;
+
+    }
+
+
+
+    init() {
+
+      if (!this.ctx && (window.AudioContext || window.webkitAudioContext)) {
+
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+
+        this.ctx = new AudioCtx();
+
+      }
+
+      if (this.ctx && this.ctx.state === 'suspended') {
+
+        this.ctx.resume();
+
+      }
+
+    }
+
+
+
+    toggle() {
+
+      this.enabled = !this.enabled;
+
+      localStorage.setItem('orbitsuite_sound_enabled', this.enabled);
+
+      if (!this.enabled && this.currentAmbientType !== 'off') {
+
+        this.stopAmbient();
+
+      }
+
+      return this.enabled;
+
+    }
+
+
+
+    playPop() {
+
+      if (!this.enabled) return;
+
+      this.init();
+
+      if (!this.ctx) return;
+
+      try {
+
+        const osc = this.ctx.createOscillator();
+
+        const gain = this.ctx.createGain();
+
+        const now = this.ctx.currentTime;
+
+        osc.type = 'sine';
+
+        osc.frequency.setValueAtTime(480, now);
+
+        osc.frequency.exponentialRampToValueAtTime(960, now + 0.07);
+
+        gain.gain.setValueAtTime(0.12, now);
+
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+
+        osc.connect(gain);
+
+        gain.connect(this.ctx.destination);
+
+        osc.start(now);
+
+        osc.stop(now + 0.08);
+
+      } catch (e) { console.warn(e); }
+
+    }
+
+
+
+    playSuccess() {
+
+      if (!this.enabled) return;
+
+      this.init();
+
+      if (!this.ctx) return;
+
+      try {
+
+        const now = this.ctx.currentTime;
+
+        const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+
+        notes.forEach((freq, idx) => {
+
+          const osc = this.ctx.createOscillator();
+
+          const gain = this.ctx.createGain();
+
+          const startTime = now + idx * 0.06;
+
+          osc.type = 'triangle';
+
+          osc.frequency.setValueAtTime(freq, startTime);
+
+          gain.gain.setValueAtTime(0.15, startTime);
+
+          gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.28);
+
+          osc.connect(gain);
+
+          gain.connect(this.ctx.destination);
+
+          osc.start(startTime);
+
+          osc.stop(startTime + 0.3);
+
+        });
+
+      } catch (e) { console.warn(e); }
+
+    }
+
+
+
+    playTrash() {
+
+      if (!this.enabled) return;
+
+      this.init();
+
+      if (!this.ctx) return;
+
+      try {
+
+        const osc = this.ctx.createOscillator();
+
+        const gain = this.ctx.createGain();
+
+        const now = this.ctx.currentTime;
+
+        osc.type = 'sawtooth';
+
+        osc.frequency.setValueAtTime(260, now);
+
+        osc.frequency.exponentialRampToValueAtTime(110, now + 0.12);
+
+        gain.gain.setValueAtTime(0.1, now);
+
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+        osc.connect(gain);
+
+        gain.connect(this.ctx.destination);
+
+        osc.start(now);
+
+        osc.stop(now + 0.13);
+
+      } catch (e) { console.warn(e); }
+
+    }
+
+
+
+    playError() {
+
+      if (!this.enabled) return;
+
+      this.init();
+
+      if (!this.ctx) return;
+
+      try {
+
+        const osc = this.ctx.createOscillator();
+
+        const gain = this.ctx.createGain();
+
+        const now = this.ctx.currentTime;
+
+        osc.type = 'sawtooth';
+
+        osc.frequency.setValueAtTime(180, now);
+
+        osc.frequency.exponentialRampToValueAtTime(110, now + 0.16);
+
+        gain.gain.setValueAtTime(0.08, now);
+
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+
+        osc.connect(gain);
+
+        gain.connect(this.ctx.destination);
+
+        osc.start(now);
+
+        osc.stop(now + 0.16);
+
+      } catch (e) { console.warn(e); }
+
+    }
+
+
+
+    playChime() {
+
+      if (!this.enabled) return;
+
+      this.init();
+
+      if (!this.ctx) return;
+
+      try {
+
+        const now = this.ctx.currentTime;
+
+        const chords = [587.33, 880.00, 1174.66, 1760.00]; // D5, A5, D6, A6
+
+        chords.forEach((freq, i) => {
+
+          const osc = this.ctx.createOscillator();
+
+          const gain = this.ctx.createGain();
+
+          const t = now + i * 0.1;
+
+          osc.type = 'sine';
+
+          osc.frequency.setValueAtTime(freq, t);
+
+          gain.gain.setValueAtTime(0.18, t);
+
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
+
+          osc.connect(gain);
+
+          gain.connect(this.ctx.destination);
+
+          osc.start(t);
+
+          osc.stop(t + 1.25);
+
+        });
+
+      } catch (e) { console.warn(e); }
+
+    }
+
+
+
+    // --- Procedural Ambient Synthesizer ---
+
+    startAmbient(type, volume = 0.5) {
+
+      this.stopAmbient();
+
+      if (type === 'off' || !this.enabled) {
+
+        this.currentAmbientType = 'off';
+
+        return;
+
+      }
+
+      this.init();
+
+      if (!this.ctx) return;
+
+
+
+      this.currentAmbientType = type;
+
+      this.ambientVolume = volume;
+
+
+
+      this.ambientGain = this.ctx.createGain();
+
+      this.ambientGain.gain.setValueAtTime(volume * 0.15, this.ctx.currentTime);
+
+      this.ambientGain.connect(this.ctx.destination);
+
+
+
+      if (type === 'rain') {
+
+        // Procedural pink noise with low-pass filtering
+
+        const bufferSize = this.ctx.sampleRate * 2;
+
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+
+        const data = buffer.getChannelData(0);
+
+        let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+
+        for (let i = 0; i < bufferSize; i++) {
+
+          const white = Math.random() * 2 - 1;
+
+          b0 = 0.99886 * b0 + white * 0.0555179;
+
+          b1 = 0.99332 * b1 + white * 0.0750759;
+
+          b2 = 0.96900 * b2 + white * 0.1538520;
+
+          b3 = 0.86650 * b3 + white * 0.3104856;
+
+          b4 = 0.55000 * b4 + white * 0.5329522;
+
+          b5 = -0.7616 * b5 - white * 0.0168980;
+
+          data[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.11;
+
+          b6 = white * 0.115926;
+
+        }
+
+        const noiseSource = this.ctx.createBufferSource();
+
+        noiseSource.buffer = buffer;
+
+        noiseSource.loop = true;
+
+
+
+        const filter = this.ctx.createBiquadFilter();
+
+        filter.type = 'lowpass';
+
+        filter.frequency.setValueAtTime(950, this.ctx.currentTime);
+
+
+
+        noiseSource.connect(filter);
+
+        filter.connect(this.ambientGain);
+
+        noiseSource.start();
+
+        this.ambientSource = noiseSource;
+
+      } else if (type === 'zen') {
+
+        // Warm 432Hz meditative chord
+
+        const osc1 = this.ctx.createOscillator();
+
+        const osc2 = this.ctx.createOscillator();
+
+        osc1.type = 'sine';
+
+        osc1.frequency.setValueAtTime(216, this.ctx.currentTime); // A3
+
+        osc2.type = 'triangle';
+
+        osc2.frequency.setValueAtTime(432, this.ctx.currentTime); // A4
+
+
+
+        const filter = this.ctx.createBiquadFilter();
+
+        filter.type = 'lowpass';
+
+        filter.frequency.setValueAtTime(600, this.ctx.currentTime);
+
+
+
+        osc1.connect(filter);
+
+        osc2.connect(filter);
+
+        filter.connect(this.ambientGain);
+
+        osc1.start();
+
+        osc2.start();
+
+        this.ambientSource = {
+
+          stop: () => {
+
+            try { osc1.stop(); osc2.stop(); } catch (e) {}
+
+          }
+
+        };
+
+      } else if (type === 'white') {
+
+        // Pure White Noise
+
+        const bufferSize = this.ctx.sampleRate * 2;
+
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+
+        const data = buffer.getChannelData(0);
+
+        for (let i = 0; i < bufferSize; i++) {
+
+          data[i] = (Math.random() * 2 - 1) * 0.15;
+
+        }
+
+        const noise = this.ctx.createBufferSource();
+
+        noise.buffer = buffer;
+
+        noise.loop = true;
+
+        noise.connect(this.ambientGain);
+
+        noise.start();
+
+        this.ambientSource = noise;
+
+      }
+
+    }
+
+
+
+    setAmbientVolume(volume) {
+
+      this.ambientVolume = volume;
+
+      if (this.ambientGain && this.ctx) {
+
+        this.ambientGain.gain.setTargetAtTime(volume * 0.15, this.ctx.currentTime, 0.05);
+
+      }
+
+    }
+
+
+
+    stopAmbient() {
+
+      if (this.ambientSource) {
+
+        try { this.ambientSource.stop(); } catch (e) {}
+
+        this.ambientSource = null;
+
+      }
+
+      this.currentAmbientType = 'off';
+
+    }
+
+  }
+
+
+
+  // ==========================================================================
+
+  // SHARED CONFETTI PARTICLE SYSTEM (Canvas)
+
+  // ==========================================================================
+
+  class ConfettiManager {
+
+    constructor(canvasId) {
+
+      this.canvas = document.getElementById(canvasId);
+
+      this.ctx = this.canvas ? this.canvas.getContext('2d') : null;
+
+      this.particles = [];
+
+      this.animating = false;
+
+      this.resize();
+
+      window.addEventListener('resize', () => this.resize());
+
+    }
+
+
+
+    resize() {
+
+      if (!this.canvas) return;
+
+      this.canvas.width = window.innerWidth;
+
+      this.canvas.height = window.innerHeight;
+
+    }
+
+
+
+    fire() {
+
+      if (!this.canvas || !this.ctx) return;
+
+      const colors = ['#6366f1', '#8b5cf6', '#ec4899', '#38bdf8', '#10b981', '#f59e0b', '#f43f5e'];
+
+      const count = 90;
+
+      for (let i = 0; i < count; i++) {
+
+        this.particles.push({
+
+          x: window.innerWidth * (0.35 + Math.random() * 0.3),
+
+          y: window.innerHeight * 0.45,
+
+          vx: (Math.random() - 0.5) * 16,
+
+          vy: (Math.random() - 0.9) * 15 - 4,
+
+          size: Math.random() * 8 + 4,
+
+          color: colors[Math.floor(Math.random() * colors.length)],
+
+          rotation: Math.random() * 360,
+
+          rotationSpeed: (Math.random() - 0.5) * 12,
+
+          opacity: 1,
+
+          gravity: 0.35,
+
+          drag: 0.96
+
+        });
+
+      }
+
+      if (!this.animating) {
+
+        this.animating = true;
+
+        this.loop();
+
+      }
+
+    }
+
+
+
+    loop() {
+
+      if (!this.particles.length) {
+
+        this.animating = false;
+
+        if (this.ctx) this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+        return;
+
+      }
+
+      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+      for (let i = this.particles.length - 1; i >= 0; i--) {
+
+        const p = this.particles[i];
+
+        p.vx *= p.drag;
+
+        p.vy = p.vy * p.drag + p.gravity;
+
+        p.x += p.vx;
+
+        p.y += p.vy;
+
+        p.rotation += p.rotationSpeed;
+
+        p.opacity -= 0.012;
+
+
+
+        if (p.opacity <= 0 || p.y > this.canvas.height + 20) {
+
+          this.particles.splice(i, 1);
+
+          continue;
+
+        }
+
+
+
+        this.ctx.save();
+
+        this.ctx.translate(p.x, p.y);
+
+        this.ctx.rotate((p.rotation * Math.PI) / 180);
+
+        this.ctx.globalAlpha = Math.max(0, p.opacity);
+
+        this.ctx.fillStyle = p.color;
+
+        this.ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+
+        this.ctx.restore();
+
+      }
+
+      requestAnimationFrame(() => this.loop());
+
+    }
+
+  }
+
+
+
+  // Helper date function
+
+  function getTodayString(offsetDays = 0) {
+
+    const d = new Date();
+
+    d.setDate(d.getDate() + offsetDays);
+
+    return d.toISOString().split('T')[0];
+
+  }
+
+
+
+  function escapeHtml(str) {
+
+    if (!str) return '';
+
+    return String(str)
+
+      .replace(/&/g, '&amp;')
+
+      .replace(/</g, '&lt;')
+
+      .replace(/>/g, '&gt;')
+
+      .replace(/"/g, '&quot;')
+
+      .replace(/'/g, '&#039;');
+
+  }
+
+
+
+  // ==========================================================================
+
+  // 1. ORBITTASK MODULE (PRO TASK & KANBAN TRACKER)
+
+  // ==========================================================================
+
+  const DEFAULT_DEMO_TASKS = [];
+
+
+
+  class OrbitTaskApp {
+
+    constructor(suite) {
+
+      this.suite = suite;
+
+      this.sound = suite.sound;
+
+      this.confetti = suite.confetti;
+
+      this.STORAGE_KEY = 'orbittask_tasks_v2';
+
+      this.tasks = this.loadTasks();
+
+      this.activeView = 'kanban';
+
+      this.searchQuery = '';
+
+      this.filterType = 'all';
+
+      this.filterVal = 'all';
+
+      this.selectedTag = null;
+
+      this.sortBy = 'createdAt-desc';
+
+      this.currentEditingSubtasks = [];
+
+      this.lastDeletedTask = null;
+
+
+
+      // DOM References
+
+      this.dom = {
+
+        tabKanban: document.getElementById('tab-kanban'),
+
+        tabList: document.getElementById('tab-list'),
+
+        tabAnalytics: document.getElementById('tab-analytics'),
+
+        viewKanbanPanel: document.getElementById('view-kanban-panel'),
+
+        viewListPanel: document.getElementById('view-list-panel'),
+
+        viewAnalyticsPanel: document.getElementById('view-analytics-panel'),
+
+        globalSearch: document.getElementById('global-search-input'),
+
+        clearSearchBtn: document.getElementById('clear-search-btn'),
+
+        filterChips: document.querySelectorAll('#controls-strip .filter-chip'),
+
+        tagFiltersContainer: document.getElementById('tag-filters'),
+
+        sortSelect: document.getElementById('sort-select'),
+
+        valTotalTasks: document.getElementById('val-total-tasks'),
+
+        valInProgress: document.getElementById('val-in-progress'),
+
+        valCompleted: document.getElementById('val-completed'),
+
+        valCompletionRate: document.getElementById('val-completion-rate'),
+
+        valOverdue: document.getElementById('val-overdue'),
+
+        colBacklog: document.getElementById('container-backlog'),
+
+        colTodo: document.getElementById('container-todo'),
+
+        colInprogress: document.getElementById('container-inprogress'),
+
+        colReview: document.getElementById('container-review'),
+
+        colDone: document.getElementById('container-done'),
+
+        countBacklog: document.getElementById('count-backlog'),
+
+        countTodo: document.getElementById('count-todo'),
+
+        countInprogress: document.getElementById('count-inprogress'),
+
+        countReview: document.getElementById('count-review'),
+
+        countDone: document.getElementById('count-done'),
+
+        listItemsBody: document.getElementById('list-items-body'),
+
+        radialCircle: document.getElementById('analytics-radial-circle'),
+
+        radialPercent: document.getElementById('analytics-radial-percent'),
+
+        progDetails: document.getElementById('analytics-progress-details'),
+
+        statusBars: document.getElementById('analytics-status-bars'),
+
+        priorityGrid: document.getElementById('analytics-priority-grid'),
+
+        catList: document.getElementById('analytics-categories-list'),
+
+        modal: document.getElementById('task-modal'),
+
+        modalTitle: document.getElementById('modal-title'),
+
+        modalCloseBtn: document.getElementById('modal-close-btn'),
+
+        modalCancelBtn: document.getElementById('btn-modal-cancel'),
+
+        taskForm: document.getElementById('task-form'),
+
+        inputFormId: document.getElementById('task-form-id'),
+
+        inputTitle: document.getElementById('task-input-title'),
+
+        inputDesc: document.getElementById('task-input-desc'),
+
+        inputStatus: document.getElementById('task-input-status'),
+
+        inputPriority: document.getElementById('task-input-priority'),
+
+        inputCategory: document.getElementById('task-input-category'),
+
+        inputDueDate: document.getElementById('task-input-duedate'),
+
+        subtaskInputText: document.getElementById('subtask-input-text'),
+
+        btnAddSubtask: document.getElementById('btn-add-subtask'),
+
+        modalSubtasksList: document.getElementById('modal-subtasks-list'),
+
+        modalSubtasksCount: document.getElementById('modal-subtasks-count'),
+
+        btnCreateTask: document.getElementById('btn-create-task'),
+
+        btnMoreOptions: document.getElementById('btn-more-options'),
+
+        moreOptionsMenu: document.getElementById('more-options-menu'),
+
+        optLoadDemo: document.getElementById('opt-load-demo'),
+
+        optExportJson: document.getElementById('opt-export-json'),
+
+        inputImportJson: document.getElementById('input-import-json'),
+
+        optClearAll: document.getElementById('opt-clear-all')
+
+      };
+
+
+
+      this.init();
+
+    }
+
+
+
+    init() {
+
+      this.bindEvents();
+
+      this.render();
+
+    }
+
+
+
+    loadTasks() {
+
+      try {
+
+        const raw = localStorage.getItem(this.STORAGE_KEY);
+
+        if (raw) {
+
+          const parsed = JSON.parse(raw);
+
+          if (Array.isArray(parsed)) {
+
+            const cleaned = parsed.filter(t => !['task-1', 'task-2', 'task-3', 'task-4', 'task-5', 'task-6'].includes(t.id));
+
+            if (cleaned.length !== parsed.length) {
+
+              this.saveTasks(cleaned);
+
+            }
+
+            return cleaned;
+
+          }
+
+        }
+
+      } catch (err) {
+
+        console.error('Error loading tasks:', err);
+
+      }
+
+      return [];
+
+    }
+
+
+
+    saveTasks(tasks = this.tasks) {
+
+      try {
+
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(tasks));
+
+        if (this.suite && this.suite.hubApp) {
+
+          this.suite.hubApp.render();
+
+        }
+
+      } catch (err) {
+
+        console.error('Error saving tasks:', err);
+
+      }
+
+    }
+
+
+
+    bindEvents() {
+
+      const tabs = [this.dom.tabKanban, this.dom.tabList, this.dom.tabAnalytics];
+
+      tabs.forEach(tab => {
+
+        if (!tab) return;
+
+        tab.addEventListener('click', () => {
+
+          tabs.forEach(t => t.classList.remove('active'));
+
+          tab.classList.add('active');
+
+          this.activeView = tab.dataset.view;
+
+          this.switchView(this.activeView);
+
+          this.sound.playPop();
+
+        });
+
+      });
+
+
+
+      document.querySelectorAll('.btn-quick-add').forEach(btn => {
+
+        btn.addEventListener('click', (e) => {
+
+          e.stopPropagation();
+
+          const targetStatus = btn.dataset.status;
+
+          this.openCreateModal(targetStatus);
+
+        });
+
+      });
+
+
+
+      if (this.dom.btnCreateTask) {
+
+        this.dom.btnCreateTask.addEventListener('click', () => this.openCreateModal());
+
+      }
+
+      if (this.dom.modalCloseBtn) {
+
+        this.dom.modalCloseBtn.addEventListener('click', () => this.closeModal());
+
+      }
+
+      if (this.dom.modalCancelBtn) {
+
+        this.dom.modalCancelBtn.addEventListener('click', () => this.closeModal());
+
+      }
+
+      if (this.dom.modal) {
+
+        this.dom.modal.addEventListener('click', (e) => {
+
+          if (e.target === this.dom.modal) this.closeModal();
+
+        });
+
+      }
+
+
+
+      if (this.dom.btnAddSubtask) {
+
+        this.dom.btnAddSubtask.addEventListener('click', () => this.addModalSubtask());
+
+      }
+
+      if (this.dom.subtaskInputText) {
+
+        this.dom.subtaskInputText.addEventListener('keydown', (e) => {
+
+          if (e.key === 'Enter') {
+
+            e.preventDefault();
+
+            this.addModalSubtask();
+
+          }
+
+        });
+
+      }
+
+
+
+      if (this.dom.taskForm) {
+
+        this.dom.taskForm.addEventListener('submit', (e) => {
+
+          e.preventDefault();
+
+          this.saveModalTask();
+
+        });
+
+      }
+
+
+
+      if (this.dom.globalSearch) {
+
+        this.dom.globalSearch.addEventListener('input', (e) => {
+
+          this.searchQuery = e.target.value.trim().toLowerCase();
+
+          if (this.dom.clearSearchBtn) {
+
+            this.dom.clearSearchBtn.style.display = this.searchQuery ? 'block' : 'none';
+
+          }
+
+          this.render();
+
+        });
+
+      }
+
+
+
+      if (this.dom.clearSearchBtn) {
+
+        this.dom.clearSearchBtn.addEventListener('click', () => {
+
+          this.dom.globalSearch.value = '';
+
+          this.searchQuery = '';
+
+          this.dom.clearSearchBtn.style.display = 'none';
+
+          this.render();
+
+        });
+
+      }
+
+
+
+      this.dom.filterChips.forEach(chip => {
+
+        chip.addEventListener('click', () => {
+
+          this.dom.filterChips.forEach(c => c.classList.remove('active'));
+
+          chip.classList.add('active');
+
+          this.filterType = chip.dataset.filterType;
+
+          this.filterVal = chip.dataset.filterVal;
+
+          this.sound.playPop();
+
+          this.render();
+
+        });
+
+      });
+
+
+
+      if (this.dom.sortSelect) {
+
+        this.dom.sortSelect.addEventListener('change', (e) => {
+
+          this.sortBy = e.target.value;
+
+          this.render();
+
+        });
+
+      }
+
+
+
+      if (this.dom.btnMoreOptions) {
+
+        this.dom.btnMoreOptions.addEventListener('click', (e) => {
+
+          e.stopPropagation();
+
+          this.dom.moreOptionsMenu.classList.toggle('hidden');
+
+        });
+
+      }
+
+
+
+      document.addEventListener('click', () => {
+
+        if (this.dom.moreOptionsMenu) this.dom.moreOptionsMenu.classList.add('hidden');
+
+      });
+
+
+
+      if (this.dom.optLoadDemo) {
+
+        this.dom.optLoadDemo.addEventListener('click', () => {
+
+          if (confirm('Möchtest du die Demo-Aufgaben zurücksetzen? Aktuelle Aufgaben werden überschrieben.')) {
+
+            this.tasks = [...DEFAULT_DEMO_TASKS];
+
+            this.saveTasks();
+
+            this.suite.showToast('Demo-Aufgaben erfolgreich geladen!');
+
+            this.render();
+
+            this.sound.playSuccess();
+
+          }
+
+        });
+
+      }
+
+
+
+      if (this.dom.optExportJson) {
+
+        this.dom.optExportJson.addEventListener('click', () => this.exportTasksJson());
+
+      }
+
+
+
+      if (this.dom.inputImportJson) {
+
+        this.dom.inputImportJson.addEventListener('change', (e) => {
+
+          const file = e.target.files[0];
+
+          if (file) this.importTasksJson(file);
+
+          e.target.value = '';
+
+        });
+
+      }
+
+
+
+      if (this.dom.optClearAll) {
+
+        this.dom.optClearAll.addEventListener('click', () => {
+
+          if (confirm('Bist du sicher? Alle Aufgaben werden unwiderruflich gelöscht!')) {
+
+            this.tasks = [];
+
+            this.saveTasks();
+
+            this.suite.showToast('Alle Aufgaben wurden gelöscht.', 'warning');
+
+            this.render();
+
+            this.sound.playTrash();
+
+          }
+
+        });
+
+      }
+
+
+
+      this.initKanbanDragDrop();
+
+    }
+
+
+
+    switchView(view) {
+
+      if (this.dom.viewKanbanPanel) this.dom.viewKanbanPanel.classList.toggle('active', view === 'kanban');
+
+      if (this.dom.viewListPanel) this.dom.viewListPanel.classList.toggle('active', view === 'list');
+
+      if (this.dom.viewAnalyticsPanel) this.dom.viewAnalyticsPanel.classList.toggle('active', view === 'analytics');
+
+      this.render();
+
+    }
+
+
+
+    initKanbanDragDrop() {
+
+      const columns = [
+
+        this.dom.colBacklog,
+
+        this.dom.colTodo,
+
+        this.dom.colInprogress,
+
+        this.dom.colReview,
+
+        this.dom.colDone
+
+      ];
+
+
+
+      columns.forEach(col => {
+
+        if (!col) return;
+
+        const colParent = col.closest('.kanban-column');
+
+        if (!colParent) return;
+
+
+
+        colParent.addEventListener('dragover', (e) => {
+
+          e.preventDefault();
+
+          e.dataTransfer.dropEffect = 'move';
+
+          colParent.classList.add('drag-over');
+
+        });
+
+
+
+        colParent.addEventListener('dragleave', (e) => {
+
+          if (!colParent.contains(e.relatedTarget)) {
+
+            colParent.classList.remove('drag-over');
+
+          }
+
+        });
+
+
+
+        colParent.addEventListener('drop', (e) => {
+
+          e.preventDefault();
+
+          colParent.classList.remove('drag-over');
+
+          const taskId = e.dataTransfer.getData('text/plain');
+
+          const newStatus = col.dataset.status;
+
+          if (taskId && newStatus) {
+
+            this.updateTaskStatus(taskId, newStatus);
+
+          }
+
+        });
+
+      });
+
+    }
+
+
+
+    updateTaskStatus(taskId, newStatus) {
+
+      const task = this.tasks.find(t => t.id === taskId);
+
+      if (!task || task.status === newStatus) return;
+
+
+
+      task.status = newStatus;
+
+      task.updatedAt = new Date().toISOString();
+
+
+
+      if (newStatus === 'done') {
+
+        if (task.subtasks) task.subtasks.forEach(s => s.completed = true);
+
+        this.confetti.fire();
+
+        this.sound.playSuccess();
+
+        this.suite.showToast(`Aufgabe "${task.title}" abgeschlossen! 🎉`);
+
+      } else {
+
+        this.sound.playPop();
+
+      }
+
+
+
+      this.saveTasks();
+
+      this.render();
+
+    }
+
+
+
+    getFilteredTasks() {
+
+      const todayStr = getTodayString(0);
+
+
+
+      return this.tasks.filter(task => {
+
+        if (this.searchQuery) {
+
+          const inTitle = task.title.toLowerCase().includes(this.searchQuery);
+
+          const inDesc = (task.description || '').toLowerCase().includes(this.searchQuery);
+
+          const inCat = (task.category || '').toLowerCase().includes(this.searchQuery);
+
+          const inSub = (task.subtasks || []).some(s => s.title.toLowerCase().includes(this.searchQuery));
+
+          if (!inTitle && !inDesc && !inCat && !inSub) return false;
+
+        }
+
+
+
+        if (this.filterType === 'priority') {
+
+          if (task.priority !== this.filterVal) return false;
+
+        } else if (this.filterType === 'time') {
+
+          if (this.filterVal === 'today') {
+
+            if (task.dueDate !== todayStr) return false;
+
+          } else if (this.filterVal === 'overdue') {
+
+            if (!task.dueDate || task.dueDate >= todayStr || task.status === 'done') return false;
+
+          }
+
+        }
+
+
+
+        if (this.selectedTag && task.category !== this.selectedTag) {
+
+          return false;
+
+        }
+
+
+
+        return true;
+
+      }).sort((a, b) => {
+
+        if (this.sortBy === 'createdAt-desc') {
+
+          return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+
+        } else if (this.sortBy === 'dueDate-asc') {
+
+          if (!a.dueDate) return 1;
+
+          if (!b.dueDate) return -1;
+
+          return a.dueDate.localeCompare(b.dueDate);
+
+        } else if (this.sortBy === 'priority-desc') {
+
+          const pOrder = { urgent: 4, high: 3, medium: 2, low: 1 };
+
+          return (pOrder[b.priority] || 0) - (pOrder[a.priority] || 0);
+
+        } else if (this.sortBy === 'title-asc') {
+
+          return a.title.localeCompare(b.title);
+
+        }
+
+        return 0;
+
+      });
+
+    }
+
+
+
+    render() {
+
+      this.updateMetrics();
+
+      this.renderTagFilters();
+
+
+
+      if (this.activeView === 'kanban') {
+
+        this.renderKanban();
+
+      } else if (this.activeView === 'list') {
+
+        this.renderList();
+
+      } else if (this.activeView === 'analytics') {
+
+        this.renderAnalytics();
+
+      }
+
+    }
+
+
+
+    updateMetrics() {
+
+      const total = this.tasks.length;
+
+      const inProgress = this.tasks.filter(t => t.status === 'inprogress').length;
+
+      const completed = this.tasks.filter(t => t.status === 'done').length;
+
+      const todayStr = getTodayString(0);
+
+      const overdue = this.tasks.filter(t => t.dueDate && t.dueDate < todayStr && t.status !== 'done').length;
+
+      const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+
+
+      if (this.dom.valTotalTasks) this.dom.valTotalTasks.textContent = total;
+
+      if (this.dom.valInProgress) this.dom.valInProgress.textContent = inProgress;
+
+      if (this.dom.valCompleted) this.dom.valCompleted.textContent = completed;
+
+      if (this.dom.valCompletionRate) this.dom.valCompletionRate.textContent = `${rate}% Quote`;
+
+      if (this.dom.valOverdue) this.dom.valOverdue.textContent = overdue;
+
+    }
+
+
+
+    renderTagFilters() {
+
+      if (!this.dom.tagFiltersContainer) return;
+
+      const categories = {};
+
+      this.tasks.forEach(t => {
+
+        if (t.category) {
+
+          categories[t.category] = (categories[t.category] || 0) + 1;
+
+        }
+
+      });
+
+
+
+      const catKeys = Object.keys(categories);
+
+      if (!catKeys.length) {
+
+        this.dom.tagFiltersContainer.innerHTML = '';
+
+        return;
+
+      }
+
+
+
+      this.dom.tagFiltersContainer.innerHTML = catKeys.map(cat => {
+
+        const isActive = this.selectedTag === cat;
+
+        return `
+
+          <button class="tag-chip ${isActive ? 'active' : ''}" data-tag="${escapeHtml(cat)}">
+
+            #${escapeHtml(cat)} (${categories[cat]})
+
+          </button>
+
+        `;
+
+      }).join('');
+
+
+
+      this.dom.tagFiltersContainer.querySelectorAll('.tag-chip').forEach(btn => {
+
+        btn.addEventListener('click', () => {
+
+          const tag = btn.dataset.tag;
+
+          this.selectedTag = (this.selectedTag === tag) ? null : tag;
+
+          this.sound.playPop();
+
+          this.render();
+
+        });
+
+      });
+
+    }
+
+
+
+    renderKanban() {
+
+      const filtered = this.getFilteredTasks();
+
+      const columns = {
+
+        backlog: { el: this.dom.colBacklog, countEl: this.dom.countBacklog, items: [] },
+
+        todo: { el: this.dom.colTodo, countEl: this.dom.countTodo, items: [] },
+
+        inprogress: { el: this.dom.colInprogress, countEl: this.dom.countInprogress, items: [] },
+
+        review: { el: this.dom.colReview, countEl: this.dom.countReview, items: [] },
+
+        done: { el: this.dom.colDone, countEl: this.dom.countDone, items: [] }
+
+      };
+
+
+
+      filtered.forEach(task => {
+
+        if (columns[task.status]) {
+
+          columns[task.status].items.push(task);
+
+        } else {
+
+          columns.todo.items.push(task);
+
+        }
+
+      });
+
+
+
+      Object.keys(columns).forEach(statusKey => {
+
+        const col = columns[statusKey];
+
+        if (!col.el || !col.countEl) return;
+
+        col.countEl.textContent = col.items.length;
+
+
+
+        if (col.items.length === 0) {
+
+          col.el.innerHTML = `<div class="column-empty">Keine Aufgaben vorhanden</div>`;
+
+          return;
+
+        }
+
+
+
+        col.el.innerHTML = col.items.map(task => this.createKanbanCardHtml(task)).join('');
+
+      });
+
+
+
+      this.bindKanbanCardEvents();
+
+    }
+
+
+
+    createKanbanCardHtml(task) {
+
+      const isDone = task.status === 'done';
+
+      const pClass = `priority-badge ${task.priority}`;
+
+      const pLabel = {
+
+        urgent: 'Dringend',
+
+        high: 'Hoch',
+
+        medium: 'Mittel',
+
+        low: 'Niedrig'
+
+      }[task.priority] || 'Normal';
+
+
+
+      const dueInfo = this.formatDueDate(task.dueDate, isDone);
+
+
+
+      let subtasksHtml = '';
+
+      if (task.subtasks && task.subtasks.length > 0) {
+
+        const totalSubs = task.subtasks.length;
+
+        const doneSubs = task.subtasks.filter(s => s.completed).length;
+
+        const pct = Math.round((doneSubs / totalSubs) * 100);
+
+        subtasksHtml = `
+
+          <div class="task-subtasks-preview">
+
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+
+            <div class="subtasks-mini-bar">
+
+              <div class="subtasks-mini-fill" style="width: ${pct}%"></div>
+
+            </div>
+
+          </div>
+
+        `;
+
+      }
+
+
+
+      return `
+
+        <div class="task-card ${isDone ? 'is-done' : ''}" draggable="true" data-id="${task.id}" id="card-${task.id}">
+
+          <div class="task-card-header">
+
+            <div class="card-badges">
+
+              <span class="${pClass}">
+
+                <span class="priority-badge-dot"></span>
+
+                ${pLabel}
+
+              </span>
+
+              ${task.category ? `<span class="category-badge">${escapeHtml(task.category)}</span>` : ''}
+
+            </div>
+
+            <button class="card-actions-btn" data-action="edit" title="Aufgabe bearbeiten" aria-label="Bearbeiten">
+
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+
+            </button>
+
+          </div>
+
+
+
+          <h4 class="task-card-title">${escapeHtml(task.title)}</h4>
+
+          ${task.description ? `<p class="task-card-desc">${escapeHtml(task.description)}</p>` : ''}
+
+
+
+          ${subtasksHtml}
+
+
+
+          <div class="task-card-footer">
+
+            <div class="due-date-pill ${dueInfo.className}">
+
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+
+              <span>${dueInfo.text}</span>
+
+            </div>
+
+
+
+            <button class="quick-check-btn" data-action="toggle-done" title="${isDone ? 'Als unerledigt markieren' : 'Als erledigt markieren'}" aria-label="Status umschalten">
+
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+
+            </button>
+
+          </div>
+
+        </div>
+
+      `;
+
+    }
+
+
+
+    bindKanbanCardEvents() {
+
+      document.querySelectorAll('.task-card').forEach(card => {
+
+        const taskId = card.dataset.id;
+
+
+
+        card.addEventListener('dragstart', (e) => {
+
+          card.classList.add('dragging');
+
+          e.dataTransfer.setData('text/plain', taskId);
+
+          e.dataTransfer.effectAllowed = 'move';
+
+        });
+
+
+
+        card.addEventListener('dragend', () => {
+
+          card.classList.remove('dragging');
+
+        });
+
+
+
+        card.addEventListener('click', (e) => {
+
+          if (e.target.closest('button')) return;
+
+          this.openEditModal(taskId);
+
+        });
+
+
+
+        const editBtn = card.querySelector('[data-action="edit"]');
+
+        if (editBtn) {
+
+          editBtn.addEventListener('click', (e) => {
+
+            e.stopPropagation();
+
+            this.openEditModal(taskId);
+
+          });
+
+        }
+
+
+
+        const checkBtn = card.querySelector('[data-action="toggle-done"]');
+
+        if (checkBtn) {
+
+          checkBtn.addEventListener('click', (e) => {
+
+            e.stopPropagation();
+
+            this.toggleTaskCompletion(taskId);
+
+          });
+
+        }
+
+      });
+
+    }
+
+
+
+    renderList() {
+
+      if (!this.dom.listItemsBody) return;
+
+      const filtered = this.getFilteredTasks();
+
+
+
+      if (!filtered.length) {
+
+        this.dom.listItemsBody.innerHTML = `
+
+          <div style="padding: 40px; text-align: center; color: var(--text-dim);">
+
+            Keine Aufgaben entsprechen den aktuellen Kriterien.
+
+          </div>
+
+        `;
+
+        return;
+
+      }
+
+
+
+      this.dom.listItemsBody.innerHTML = filtered.map(task => {
+
+        const isDone = task.status === 'done';
+
+        const dueInfo = this.formatDueDate(task.dueDate, isDone);
+
+        const pLabel = {
+
+          urgent: '🚨 Dringend',
+
+          high: '🔥 Hoch',
+
+          medium: '⚡ Mittel',
+
+          low: '🌱 Niedrig'
+
+        }[task.priority] || 'Normal';
+
+
+
+        const totalSubs = task.subtasks ? task.subtasks.length : 0;
+
+        const doneSubs = task.subtasks ? task.subtasks.filter(s => s.completed).length : 0;
+
+        const subLabel = totalSubs > 0 ? `${doneSubs}/${totalSubs} fertig` : '—';
+
+
+
+        return `
+
+          <div class="list-row ${isDone ? 'is-done' : ''}" data-id="${task.id}">
+
+            <div class="list-check-col">
+
+              <input type="checkbox" class="list-checkbox" ${isDone ? 'checked' : ''} data-id="${task.id}" title="Erledigt umschalten">
+
+            </div>
+
+
+
+            <div class="list-title-col">
+
+              <span class="list-title" data-id="${task.id}">${escapeHtml(task.title)}</span>
+
+              ${task.description ? `<span class="list-desc">${escapeHtml(task.description)}</span>` : ''}
+
+            </div>
+
+
+
+            <div class="list-category-col">
+
+              ${task.category ? `<span class="category-badge">${escapeHtml(task.category)}</span>` : '<span style="color:var(--text-dim)">—</span>'}
+
+            </div>
+
+
+
+            <div class="list-priority-col">
+
+              <span class="priority-badge ${task.priority}">${pLabel}</span>
+
+            </div>
+
+
+
+            <div class="list-due-col">
+
+              <span class="due-date-pill ${dueInfo.className}">${dueInfo.text}</span>
+
+            </div>
+
+
+
+            <div class="list-subtasks-col" style="font-size:0.8rem; color:var(--text-muted);">
+
+              ${subLabel}
+
+            </div>
+
+
+
+            <div class="list-actions">
+
+              <button class="list-action-btn" data-action="edit" data-id="${task.id}" title="Bearbeiten">
+
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+
+              </button>
+
+              <button class="list-action-btn delete" data-action="delete" data-id="${task.id}" title="Löschen">
+
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+
+              </button>
+
+            </div>
+
+          </div>
+
+        `;
+
+      }).join('');
+
+
+
+      this.dom.listItemsBody.querySelectorAll('.list-checkbox').forEach(cb => {
+
+        cb.addEventListener('change', () => this.toggleTaskCompletion(cb.dataset.id));
+
+      });
+
+
+
+      this.dom.listItemsBody.querySelectorAll('.list-title').forEach(title => {
+
+        title.addEventListener('click', () => this.openEditModal(title.dataset.id));
+
+      });
+
+
+
+      this.dom.listItemsBody.querySelectorAll('[data-action="edit"]').forEach(btn => {
+
+        btn.addEventListener('click', () => this.openEditModal(btn.dataset.id));
+
+      });
+
+
+
+      this.dom.listItemsBody.querySelectorAll('[data-action="delete"]').forEach(btn => {
+
+        btn.addEventListener('click', () => this.deleteTask(btn.dataset.id));
+
+      });
+
+    }
+
+
+
+    renderAnalytics() {
+
+      if (!this.dom.radialCircle) return;
+
+      const total = this.tasks.length;
+
+      const completed = this.tasks.filter(t => t.status === 'done').length;
+
+      const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+
+
+      const maxCircumference = 408.4;
+
+      const strokeOffset = maxCircumference - (rate / 100) * maxCircumference;
+
+      this.dom.radialCircle.style.strokeDashoffset = strokeOffset;
+
+      this.dom.radialPercent.textContent = `${rate}%`;
+
+
+
+      const inProg = this.tasks.filter(t => t.status === 'inprogress').length;
+
+      this.dom.progDetails.innerHTML = `
+
+        <div class="prog-stat-item">
+
+          <span class="prog-stat-val" style="color:#818cf8;">${total}</span>
+
+          <span class="prog-stat-label">Gesamt</span>
+
+        </div>
+
+        <div class="prog-stat-item">
+
+          <span class="prog-stat-val" style="color:#f59e0b;">${inProg}</span>
+
+          <span class="prog-stat-label">Aktiv</span>
+
+        </div>
+
+        <div class="prog-stat-item">
+
+          <span class="prog-stat-val" style="color:#10b981;">${completed}</span>
+
+          <span class="prog-stat-label">Fertig</span>
+
+        </div>
+
+      `;
+
+
+
+      const statuses = [
+
+        { key: 'backlog', label: 'Backlog', color: '#94a3b8' },
+
+        { key: 'todo', label: 'Zu erledigen', color: '#38bdf8' },
+
+        { key: 'inprogress', label: 'In Bearbeitung', color: '#f59e0b' },
+
+        { key: 'review', label: 'Prüfung', color: '#a855f7' },
+
+        { key: 'done', label: 'Erledigt', color: '#10b981' }
+
+      ];
+
+
+
+      this.dom.statusBars.innerHTML = statuses.map(st => {
+
+        const count = this.tasks.filter(t => t.status === st.key).length;
+
+        const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+
+        return `
+
+          <div class="status-bar-row">
+
+            <div class="bar-meta">
+
+              <span style="color:${st.color};">${st.label}</span>
+
+              <span style="color:var(--text-muted);">${count} (${pct}%)</span>
+
+            </div>
+
+            <div class="bar-track">
+
+              <div class="bar-fill" style="width:${pct}%; background:${st.color};"></div>
+
+            </div>
+
+          </div>
+
+        `;
+
+      }).join('');
+
+
+
+      const priorities = [
+
+        { key: 'urgent', name: 'Dringend', color: '#f43f5e' },
+
+        { key: 'high', name: 'Hoch', color: '#f97316' },
+
+        { key: 'medium', name: 'Mittel', color: '#eab308' },
+
+        { key: 'low', name: 'Niedrig', color: '#10b981' }
+
+      ];
+
+
+
+      this.dom.priorityGrid.innerHTML = priorities.map(pr => {
+
+        const count = this.tasks.filter(t => t.priority === pr.key).length;
+
+        return `
+
+          <div class="priority-box">
+
+            <div class="priority-box-info">
+
+              <span class="priority-box-name">${pr.name}</span>
+
+              <span class="priority-box-count">${count}</span>
+
+            </div>
+
+            <span class="priority-box-indicator" style="background:${pr.color}; box-shadow: 0 0 10px ${pr.color};"></span>
+
+          </div>
+
+        `;
+
+      }).join('');
+
+
+
+      const catCounts = {};
+
+      this.tasks.forEach(t => {
+
+        const cat = t.category || 'Ohne Kategorie';
+
+        catCounts[cat] = (catCounts[cat] || 0) + 1;
+
+      });
+
+
+
+      const catListHtml = Object.keys(catCounts).map(cat => {
+
+        const count = catCounts[cat];
+
+        const doneCount = this.tasks.filter(t => (t.category || 'Ohne Kategorie') === cat && t.status === 'done').length;
+
+        return `
+
+          <div class="category-row">
+
+            <div class="cat-row-name">
+
+              <span style="color:#818cf8;">📁</span>
+
+              <span>${escapeHtml(cat)}</span>
+
+            </div>
+
+            <div class="cat-row-stats">
+
+              <span>${doneCount}/${count} erledigt</span>
+
+              <span class="cat-count-badge">${count}</span>
+
+            </div>
+
+          </div>
+
+        `;
+
+      }).join('');
+
+
+
+      this.dom.catList.innerHTML = catListHtml || '<div style="color:var(--text-dim); text-align:center;">Keine Kategorien vorhanden.</div>';
+
+    }
+
+
+
+    openCreateModal(defaultStatus = 'todo') {
+
+      if (!this.dom.modal) return;
+
+      this.dom.modalTitle.textContent = 'Neue Aufgabe erstellen';
+
+      this.dom.inputFormId.value = '';
+
+      this.dom.taskForm.reset();
+
+      this.dom.inputStatus.value = defaultStatus;
+
+      this.dom.inputPriority.value = 'medium';
+
+      this.currentEditingSubtasks = [];
+
+      this.renderModalSubtasks();
+
+      this.dom.modal.classList.remove('hidden');
+
+      setTimeout(() => this.dom.inputTitle && this.dom.inputTitle.focus(), 50);
+
+      this.sound.playPop();
+
+    }
+
+
+
+    openEditModal(taskId) {
+
+      const task = this.tasks.find(t => t.id === taskId);
+
+      if (!task || !this.dom.modal) return;
+
+
+
+      this.dom.modalTitle.textContent = 'Aufgabe bearbeiten';
+
+      this.dom.inputFormId.value = task.id;
+
+      this.dom.inputTitle.value = task.title;
+
+      this.dom.inputDesc.value = task.description || '';
+
+      this.dom.inputStatus.value = task.status;
+
+      this.dom.inputPriority.value = task.priority;
+
+      this.dom.inputCategory.value = task.category || '';
+
+      this.dom.inputDueDate.value = task.dueDate || '';
+
+
+
+      this.currentEditingSubtasks = task.subtasks ? JSON.parse(JSON.stringify(task.subtasks)) : [];
+
+      this.renderModalSubtasks();
+
+
+
+      this.dom.modal.classList.remove('hidden');
+
+      setTimeout(() => this.dom.inputTitle && this.dom.inputTitle.focus(), 50);
+
+      this.sound.playPop();
+
+    }
+
+
+
+    closeModal() {
+
+      if (!this.dom.modal) return;
+
+      this.dom.modal.classList.add('hidden');
+
+      this.dom.taskForm.reset();
+
+      this.currentEditingSubtasks = [];
+
+    }
+
+
+
+    addModalSubtask() {
+
+      const title = this.dom.subtaskInputText.value.trim();
+
+      if (!title) return;
+
+
+
+      this.currentEditingSubtasks.push({
+
+        id: 'sub-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+
+        title: title,
+
+        completed: false
+
+      });
+
+
+
+      this.dom.subtaskInputText.value = '';
+
+      this.renderModalSubtasks();
+
+      this.sound.playPop();
+
+    }
+
+
+
+    renderModalSubtasks() {
+
+      const count = this.currentEditingSubtasks.length;
+
+      if (this.dom.modalSubtasksCount) {
+
+        this.dom.modalSubtasksCount.textContent = `${count} ${count === 1 ? 'Aufgabe' : 'Aufgaben'}`;
+
+      }
+
+
+
+      if (!count) {
+
+        this.dom.modalSubtasksList.innerHTML = '<div style="font-size:0.78rem; color:var(--text-dim); padding:6px 0;">Keine Teilaufgaben definiert.</div>';
+
+        return;
+
+      }
+
+
+
+      this.dom.modalSubtasksList.innerHTML = this.currentEditingSubtasks.map((sub, idx) => `
+
+        <div class="subtask-item">
+
+          <div class="subtask-item-left">
+
+            <input type="checkbox" class="subtask-cb" data-idx="${idx}" ${sub.completed ? 'checked' : ''}>
+
+            <span class="subtask-item-title ${sub.completed ? 'done' : ''}">${escapeHtml(sub.title)}</span>
+
+          </div>
+
+          <button type="button" class="subtask-item-remove" data-idx="${idx}" title="Entfernen">✕</button>
+
+        </div>
+
+      `).join('');
+
+
+
+      this.dom.modalSubtasksList.querySelectorAll('.subtask-cb').forEach(cb => {
+
+        cb.addEventListener('change', () => {
+
+          const idx = parseInt(cb.dataset.idx, 10);
+
+          this.currentEditingSubtasks[idx].completed = cb.checked;
+
+          this.renderModalSubtasks();
+
+        });
+
+      });
+
+
+
+      this.dom.modalSubtasksList.querySelectorAll('.subtask-item-remove').forEach(btn => {
+
+        btn.addEventListener('click', () => {
+
+          const idx = parseInt(btn.dataset.idx, 10);
+
+          this.currentEditingSubtasks.splice(idx, 1);
+
+          this.renderModalSubtasks();
+
+        });
+
+      });
+
+    }
+
+
+
+    saveModalTask() {
+
+      const formId = this.dom.inputFormId.value;
+
+      const title = this.dom.inputTitle.value.trim();
+
+      if (!title) return;
+
+
+
+      const desc = this.dom.inputDesc.value.trim();
+
+      const status = this.dom.inputStatus.value;
+
+      const priority = this.dom.inputPriority.value;
+
+      const category = this.dom.inputCategory.value.trim();
+
+      const dueDate = this.dom.inputDueDate.value || null;
+
+
+
+      if (formId) {
+
+        const task = this.tasks.find(t => t.id === formId);
+
+        if (task) {
+
+          task.title = title;
+
+          task.description = desc;
+
+          task.status = status;
+
+          task.priority = priority;
+
+          task.category = category;
+
+          task.dueDate = dueDate;
+
+          task.subtasks = [...this.currentEditingSubtasks];
+
+          task.updatedAt = new Date().toISOString();
+
+          this.suite.showToast(`Aufgabe "${title}" aktualisiert!`);
+
+        }
+
+      } else {
+
+        const newTask = {
+
+          id: 'task-' + Date.now(),
+
+          title: title,
+
+          description: desc,
+
+          status: status,
+
+          priority: priority,
+
+          category: category,
+
+          dueDate: dueDate,
+
+          subtasks: [...this.currentEditingSubtasks],
+
+          createdAt: new Date().toISOString(),
+
+          updatedAt: new Date().toISOString()
+
+        };
+
+        this.tasks.unshift(newTask);
+
+        this.suite.showToast(`Neue Aufgabe "${title}" erstellt! 🚀`);
+
+      }
+
+
+
+      this.saveTasks();
+
+      this.closeModal();
+
+      this.render();
+
+      this.sound.playSuccess();
+
+    }
+
+
+
+    toggleTaskCompletion(taskId) {
+
+      const task = this.tasks.find(t => t.id === taskId);
+
+      if (!task) return;
+
+
+
+      if (task.status === 'done') {
+
+        task.status = 'todo';
+
+        if (task.subtasks) task.subtasks.forEach(s => s.completed = false);
+
+        this.sound.playPop();
+
+        this.suite.showToast(`Aufgabe wieder auf "Zu erledigen" gesetzt.`);
+
+      } else {
+
+        task.status = 'done';
+
+        if (task.subtasks) task.subtasks.forEach(s => s.completed = true);
+
+        this.confetti.fire();
+
+        this.sound.playSuccess();
+
+        this.suite.showToast(`Aufgabe "${task.title}" abgeschlossen! 🎉`);
+
+      }
+
+
+
+      task.updatedAt = new Date().toISOString();
+
+      this.saveTasks();
+
+      this.render();
+
+    }
+
+
+
+    deleteTask(taskId) {
+
+      const idx = this.tasks.findIndex(t => t.id === taskId);
+
+      if (idx === -1) return;
+
+
+
+      const deleted = this.tasks.splice(idx, 1)[0];
+
+      this.lastDeletedTask = { task: deleted, index: idx };
+
+      this.saveTasks();
+
+      this.sound.playTrash();
+
+      this.render();
+
+      this.suite.showToast(`Aufgabe "${deleted.title}" gelöscht.`);
+
+    }
+
+
+
+    exportTasksJson() {
+
+      const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(this.tasks, null, 2));
+
+      const downloadAnchor = document.createElement('a');
+
+      downloadAnchor.setAttribute('href', dataStr);
+
+      downloadAnchor.setAttribute('download', `orbittask-backup-${getTodayString(0)}.json`);
+
+      document.body.appendChild(downloadAnchor);
+
+      downloadAnchor.click();
+
+      downloadAnchor.remove();
+
+      this.suite.showToast('Daten erfolgreich als JSON exportiert!');
+
+    }
+
+
+
+    importTasksJson(file) {
+
+      const reader = new FileReader();
+
+      reader.onload = (e) => {
+
+        try {
+
+          const imported = JSON.parse(e.target.result);
+
+          if (Array.isArray(imported)) {
+
+            this.tasks = imported;
+
+            this.saveTasks();
+
+            this.suite.showToast(`${imported.length} Aufgaben erfolgreich importiert!`);
+
+            this.render();
+
+            this.sound.playSuccess();
+
+          } else {
+
+            alert('Ungültiges Format: Die JSON-Datei muss ein Array von Aufgaben enthalten.');
+
+          }
+
+        } catch (err) {
+
+          alert('Fehler beim Lesen der JSON-Datei: ' + err.message);
+
+        }
+
+      };
+
+      reader.readAsText(file);
+
+    }
+
+
+
+    formatDueDate(dueDateStr, isDone) {
+
+      if (!dueDateStr) return { text: 'Keine Fälligkeit', className: 'upcoming' };
+
+      const todayStr = getTodayString(0);
+
+      const tomorrowStr = getTodayString(1);
+
+
+
+      if (isDone) {
+
+        return { text: dueDateStr, className: 'upcoming' };
+
+      }
+
+
+
+      if (dueDateStr < todayStr) {
+
+        return { text: `Überfällig (${dueDateStr})`, className: 'overdue' };
+
+      } else if (dueDateStr === todayStr) {
+
+        return { text: 'Heute fällig', className: 'today' };
+
+      } else if (dueDateStr === tomorrowStr) {
+
+        return { text: 'Morgen fällig', className: 'upcoming' };
+
+      }
+
+      return { text: dueDateStr, className: 'upcoming' };
+
+    }
+
+  }
+
+
+
+  // ==========================================================================
+
+  // 2. ORBITNOTES MODULE (RICH QUICK-NOTES & MARKDOWN)
+
+  // ==========================================================================
+
+  const DEFAULT_DEMO_NOTES = [];
+
+
+
+  class OrbitNotesApp {
+
+    constructor(suite) {
+
+      this.suite = suite;
+
+      this.STORAGE_KEY = 'orbitsuite_notes_v1';
+
+      this.notes = this.loadNotes();
+
+      this.activeFilter = 'all';
+
+      this.searchQuery = '';
+
+
+
+      this.dom = {
+
+        searchInput: document.getElementById('notes-search-input'),
+
+        btnCreateNote: document.getElementById('btn-create-note'),
+
+        cardsContainer: document.getElementById('notes-cards-container'),
+
+        countSummary: document.getElementById('notes-count-summary'),
+
+        filterChips: document.querySelectorAll('.notes-filter-chip'),
+
+        modal: document.getElementById('note-modal'),
+
+        modalTitle: document.getElementById('note-modal-title'),
+
+        modalClose: document.getElementById('note-modal-close'),
+
+        form: document.getElementById('note-form'),
+
+        formId: document.getElementById('note-form-id'),
+
+        inputTitle: document.getElementById('note-input-title'),
+
+        inputContent: document.getElementById('note-input-content'),
+
+        inputCategory: document.getElementById('note-input-category'),
+
+        inputPinned: document.getElementById('note-input-pinned'),
+
+        btnCancel: document.getElementById('btn-note-cancel')
+
+      };
+
+
+
+      this.init();
+
+    }
+
+
+
+    init() {
+
+      this.bindEvents();
+
+      this.render();
+
+    }
+
+
+
+    loadNotes() {
+
+      try {
+
+        const raw = localStorage.getItem(this.STORAGE_KEY);
+
+        if (raw) {
+
+          const parsed = JSON.parse(raw);
+
+          if (Array.isArray(parsed)) {
+
+            const cleaned = parsed.filter(n => !['note-1', 'note-2', 'note-3', 'note-4'].includes(n.id));
+
+            if (cleaned.length !== parsed.length) {
+
+              this.saveNotes(cleaned);
+
+            }
+
+            return cleaned;
+
+          }
+
+        }
+
+      } catch (e) { console.warn(e); }
+
+      return [];
+
+    }
+
+
+
+    saveNotes(notes = this.notes) {
+
+      try {
+
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(notes));
+
+        if (this.suite && this.suite.hubApp) {
+
+          this.suite.hubApp.render();
+
+        }
+
+      } catch (e) { console.warn(e); }
+
+    }
+
+
+
+    bindEvents() {
+
+      if (this.dom.btnCreateNote) {
+
+        this.dom.btnCreateNote.addEventListener('click', () => this.openCreateModal());
+
+      }
+
+      if (this.dom.modalClose) {
+
+        this.dom.modalClose.addEventListener('click', () => this.closeModal());
+
+      }
+
+      if (this.dom.btnCancel) {
+
+        this.dom.btnCancel.addEventListener('click', () => this.closeModal());
+
+      }
+
+      if (this.dom.modal) {
+
+        this.dom.modal.addEventListener('click', (e) => {
+
+          if (e.target === this.dom.modal) this.closeModal();
+
+        });
+
+      }
+
+      if (this.dom.form) {
+
+        this.dom.form.addEventListener('submit', (e) => {
+
+          e.preventDefault();
+
+          this.saveModalNote();
+
+        });
+
+      }
+
+
+
+      if (this.dom.searchInput) {
+
+        this.dom.searchInput.addEventListener('input', (e) => {
+
+          this.searchQuery = e.target.value.trim().toLowerCase();
+
+          this.render();
+
+        });
+
+      }
+
+
+
+      this.dom.filterChips.forEach(chip => {
+
+        chip.addEventListener('click', () => {
+
+          this.dom.filterChips.forEach(c => c.classList.remove('active'));
+
+          chip.classList.add('active');
+
+          this.activeFilter = chip.dataset.category;
+
+          this.suite.sound.playPop();
+
+          this.render();
+
+        });
+
+      });
+
+    }
+
+
+
+    openCreateModal() {
+
+      if (!this.dom.modal) return;
+
+      this.dom.modalTitle.textContent = 'Neue Notiz erstellen';
+
+      this.dom.formId.value = '';
+
+      this.dom.form.reset();
+
+      this.dom.modal.classList.remove('hidden');
+
+      setTimeout(() => this.dom.inputTitle && this.dom.inputTitle.focus(), 50);
+
+      this.suite.sound.playPop();
+
+    }
+
+
+
+    openEditModal(noteId) {
+
+      const note = this.notes.find(n => n.id === noteId);
+
+      if (!note || !this.dom.modal) return;
+
+
+
+      this.dom.modalTitle.textContent = 'Notiz bearbeiten';
+
+      this.dom.formId.value = note.id;
+
+      this.dom.inputTitle.value = note.title;
+
+      this.dom.inputContent.value = note.content;
+
+      this.dom.inputCategory.value = note.category;
+
+      this.dom.inputPinned.checked = !!note.pinned;
+
+
+
+      this.dom.modal.classList.remove('hidden');
+
+      setTimeout(() => this.dom.inputTitle && this.dom.inputTitle.focus(), 50);
+
+      this.suite.sound.playPop();
+
+    }
+
+
+
+    closeModal() {
+
+      if (!this.dom.modal) return;
+
+      this.dom.modal.classList.add('hidden');
+
+      this.dom.form.reset();
+
+    }
+
+
+
+    saveModalNote() {
+
+      const id = this.dom.formId.value;
+
+      const title = this.dom.inputTitle.value.trim();
+
+      const content = this.dom.inputContent.value.trim();
+
+      const category = this.dom.inputCategory.value;
+
+      const pinned = this.dom.inputPinned.checked;
+
+
+
+      if (!title) return;
+
+
+
+      if (id) {
+
+        const note = this.notes.find(n => n.id === id);
+
+        if (note) {
+
+          note.title = title;
+
+          note.content = content;
+
+          note.category = category;
+
+          note.pinned = pinned;
+
+          note.updatedAt = new Date().toISOString();
+
+          this.suite.showToast(`Notiz "${title}" aktualisiert!`);
+
+        }
+
+      } else {
+
+        const newNote = {
+
+          id: 'note-' + Date.now(),
+
+          title: title,
+
+          content: content,
+
+          category: category,
+
+          pinned: pinned,
+
+          createdAt: new Date().toISOString()
+
+        };
+
+        this.notes.unshift(newNote);
+
+        this.suite.showToast(`Notiz "${title}" gespeichert! 📝`);
+
+      }
+
+
+
+      this.saveNotes();
+
+      this.closeModal();
+
+      this.render();
+
+      this.suite.sound.playSuccess();
+
+    }
+
+
+
+    togglePin(noteId) {
+
+      const note = this.notes.find(n => n.id === noteId);
+
+      if (!note) return;
+
+      note.pinned = !note.pinned;
+
+      this.saveNotes();
+
+      this.suite.sound.playPop();
+
+      this.render();
+
+    }
+
+
+
+    deleteNote(noteId) {
+
+      const idx = this.notes.findIndex(n => n.id === noteId);
+
+      if (idx === -1) return;
+
+      const deleted = this.notes.splice(idx, 1)[0];
+
+      this.saveNotes();
+
+      this.suite.sound.playTrash();
+
+      this.suite.showToast(`Notiz "${deleted.title}" gelöscht.`);
+
+      this.render();
+
+    }
+
+
+
+    copyNote(noteId) {
+
+      const note = this.notes.find(n => n.id === noteId);
+
+      if (!note) return;
+
+      navigator.clipboard.writeText(`${note.title}\n\n${note.content}`).then(() => {
+
+        this.suite.showToast('In Zwischenablage kopiert! 📋');
+
+        this.suite.sound.playPop();
+
+      });
+
+    }
+
+
+
+    renderMarkdown(text) {
+
+      if (!text) return '';
+
+      let escaped = escapeHtml(text);
+
+      // Code blocks
+
+      escaped = escaped.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+
+      // Inline code
+
+      escaped = escaped.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+      // Bold
+
+      escaped = escaped.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+
+      // Italic
+
+      escaped = escaped.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+
+      // Headings
+
+      escaped = escaped.replace(/^### (.*$)/gim, '<h4 style="color:#fff; margin:6px 0;">$1</h4>');
+
+      escaped = escaped.replace(/^## (.*$)/gim, '<h3 style="color:#fff; margin:8px 0;">$1</h3>');
+
+      escaped = escaped.replace(/^# (.*$)/gim, '<h2 style="color:#fff; margin:10px 0;">$1</h2>');
+
+      // Lists
+
+      escaped = escaped.replace(/^- (.*$)/gim, '• $1');
+
+      return escaped;
+
+    }
+
+
+
+    render() {
+
+      if (!this.dom.cardsContainer) return;
+
+
+
+      const filtered = this.notes.filter(n => {
+
+        if (this.activeFilter !== 'all' && n.category !== this.activeFilter) return false;
+
+        if (this.searchQuery) {
+
+          const inTitle = n.title.toLowerCase().includes(this.searchQuery);
+
+          const inContent = n.content.toLowerCase().includes(this.searchQuery);
+
+          if (!inTitle && !inContent) return false;
+
+        }
+
+        return true;
+
+      }).sort((a, b) => {
+
+        if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+
+        return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+
+      });
+
+
+
+      if (this.dom.countSummary) {
+
+        this.dom.countSummary.textContent = `${filtered.length} Notizen angezeigt (${this.notes.filter(n=>n.pinned).length} angeheftet)`;
+
+      }
+
+
+
+      if (!filtered.length) {
+
+        this.dom.cardsContainer.innerHTML = `
+
+          <div style="grid-column: 1 / -1; padding: 50px; text-align: center; color: var(--text-dim);">
+
+            Keine Notizen gefunden. Klicke auf "+ Neue Notiz", um deine Gedanken festzuhalten!
+
+          </div>
+
+        `;
+
+        return;
+
+      }
+
+
+
+      this.dom.cardsContainer.innerHTML = filtered.map(note => {
+
+        const dateStr = note.createdAt ? note.createdAt.split('T')[0] : '';
+
+        return `
+
+          <div class="note-card ${note.pinned ? 'pinned' : ''}" data-id="${note.id}">
+
+            <div class="note-card-top">
+
+              <span class="note-tag-badge tag-${note.category}">${note.category}</span>
+
+              <button class="note-pin-btn ${note.pinned ? 'pinned' : ''}" data-action="pin" title="${note.pinned ? 'Lösen' : 'Anheften'}">
+
+                📌
+
+              </button>
+
+            </div>
+
+
+
+            <h3 class="note-title">${escapeHtml(note.title)}</h3>
+
+            <div class="note-content-preview">${this.renderMarkdown(note.content)}</div>
+
+
+
+            <div class="note-card-footer">
+
+              <span>${dateStr}</span>
+
+              <div class="note-card-actions">
+
+                <button class="note-action-btn" data-action="copy" title="Kopieren">Kopieren</button>
+
+                <button class="note-action-btn" data-action="edit" title="Bearbeiten">Edit</button>
+
+                <button class="note-action-btn" data-action="delete" title="Löschen">✕</button>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        `;
+
+      }).join('');
+
+
+
+      // Event listeners on cards
+
+      this.dom.cardsContainer.querySelectorAll('.note-card').forEach(card => {
+
+        const id = card.dataset.id;
+
+        const pinBtn = card.querySelector('[data-action="pin"]');
+
+        const copyBtn = card.querySelector('[data-action="copy"]');
+
+        const editBtn = card.querySelector('[data-action="edit"]');
+
+        const delBtn = card.querySelector('[data-action="delete"]');
+
+
+
+        if (pinBtn) pinBtn.addEventListener('click', () => this.togglePin(id));
+
+        if (copyBtn) copyBtn.addEventListener('click', () => this.copyNote(id));
+
+        if (editBtn) editBtn.addEventListener('click', () => this.openEditModal(id));
+
+        if (delBtn) delBtn.addEventListener('click', () => this.deleteNote(id));
+
+      });
+
+    }
+
+  }
+
+
+
+  // ==========================================================================
+
+  // 3. ORBITFOCUS MODULE (POMODORO & FLOW STATE TIMER + AMBIENT SOUND)
+
+  // ==========================================================================
+
+  class OrbitFocusApp {
+
+    constructor(suite) {
+
+      this.suite = suite;
+
+      this.mode = 'pomodoro'; // pomodoro, short-break, long-break
+
+      this.durations = {
+
+        'pomodoro': 25 * 60,
+
+        'short-break': 5 * 60,
+
+        'long-break': 15 * 60
+
+      };
+
+      this.timeLeft = this.durations['pomodoro'];
+
+      this.isRunning = false;
+
+      this.timerId = null;
+
+      this.completedSessions = parseInt(localStorage.getItem('orbitsuite_focus_sessions') || '0', 10);
+
+      this.totalMinutes = parseInt(localStorage.getItem('orbitsuite_focus_minutes') || '0', 10);
+
+
+
+      this.dom = {
+
+        modeTabs: document.querySelectorAll('#focus-mode-tabs .focus-tab'),
+
+        sessionsBadge: document.getElementById('focus-sessions-count'),
+
+        countdownDisplay: document.getElementById('focus-countdown-display'),
+
+        statusLabel: document.getElementById('focus-status-label'),
+
+        subLabel: document.getElementById('focus-sub-label'),
+
+        ringProgress: document.getElementById('focus-ring-progress'),
+
+        btnToggle: document.getElementById('focus-btn-toggle'),
+
+        btnReset: document.getElementById('focus-btn-reset'),
+
+        btnSkip: document.getElementById('focus-btn-skip'),
+
+        playIcon: document.getElementById('focus-play-icon'),
+
+        pauseIcon: document.getElementById('focus-pause-icon'),
+
+        ambientButtons: document.querySelectorAll('.ambient-sound-btn'),
+
+        ambientVolume: document.getElementById('ambient-volume')
+
+      };
+
+
+
+      this.init();
+
+    }
+
+
+
+    init() {
+
+      this.bindEvents();
+
+      this.updateDisplay();
+
+    }
+
+
+
+    bindEvents() {
+
+      this.dom.modeTabs.forEach(tab => {
+
+        tab.addEventListener('click', () => {
+
+          this.setMode(tab.dataset.mode);
+
+        });
+
+      });
+
+
+
+      if (this.dom.btnToggle) {
+
+        this.dom.btnToggle.addEventListener('click', () => this.toggle());
+
+      }
+
+      if (this.dom.btnReset) {
+
+        this.dom.btnReset.addEventListener('click', () => this.reset());
+
+      }
+
+      if (this.dom.btnSkip) {
+
+        this.dom.btnSkip.addEventListener('click', () => this.skip());
+
+      }
+
+
+
+      // Spacebar shortcut in Focus View
+
+      window.addEventListener('keydown', (e) => {
+
+        if (e.code === 'Space' && this.suite.activeApp === 'focus' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+
+          e.preventDefault();
+
+          this.toggle();
+
+        }
+
+      });
+
+
+
+      // Ambient Soundscape buttons
+
+      this.dom.ambientButtons.forEach(btn => {
+
+        btn.addEventListener('click', () => {
+
+          this.dom.ambientButtons.forEach(b => b.classList.remove('active'));
+
+          btn.classList.add('active');
+
+          const sound = btn.dataset.sound;
+
+          const vol = this.dom.ambientVolume ? parseFloat(this.dom.ambientVolume.value) : 0.5;
+
+          this.suite.sound.startAmbient(sound, vol);
+
+        });
+
+      });
+
+
+
+      if (this.dom.ambientVolume) {
+
+        this.dom.ambientVolume.addEventListener('input', (e) => {
+
+          this.suite.sound.setAmbientVolume(parseFloat(e.target.value));
+
+        });
+
+      }
+
+    }
+
+
+
+    setMode(newMode) {
+
+      this.pause();
+
+      this.mode = newMode;
+
+      this.timeLeft = this.durations[newMode] || 25 * 60;
+
+
+
+      this.dom.modeTabs.forEach(t => t.classList.toggle('active', t.dataset.mode === newMode));
+
+
+
+      const labels = {
+
+        'pomodoro': { title: 'FOKUS-ZEIT', sub: 'Bereit für maximale Konzentration' },
+
+        'short-break': { title: 'KURZE PAUSE', sub: 'Durchatmen, Augen entspannen, Wasser trinken' },
+
+        'long-break': { title: 'LANGE PAUSE', sub: 'Erfrischen, Bewegung & Dehnen' }
+
+      };
+
+
+
+      if (this.dom.statusLabel) this.dom.statusLabel.textContent = labels[newMode].title;
+
+      if (this.dom.subLabel) this.dom.subLabel.textContent = labels[newMode].sub;
+
+
+
+      this.suite.sound.playPop();
+
+      this.updateDisplay();
+
+    }
+
+
+
+    toggle() {
+
+      if (this.isRunning) {
+
+        this.pause();
+
+      } else {
+
+        this.start();
+
+      }
+
+    }
+
+
+
+    start() {
+
+      this.isRunning = true;
+
+      if (this.dom.playIcon) this.dom.playIcon.classList.add('hidden');
+
+      if (this.dom.pauseIcon) this.dom.pauseIcon.classList.remove('hidden');
+
+
+
+      this.suite.sound.init();
+
+      this.suite.sound.playPop();
+
+
+
+      clearInterval(this.timerId);
+
+      this.timerId = setInterval(() => {
+
+        if (this.timeLeft > 0) {
+
+          this.timeLeft--;
+
+          this.updateDisplay();
+
+        } else {
+
+          this.complete();
+
+        }
+
+      }, 1000);
+
+    }
+
+
+
+    pause() {
+
+      this.isRunning = false;
+
+      clearInterval(this.timerId);
+
+      if (this.dom.playIcon) this.dom.playIcon.classList.remove('hidden');
+
+      if (this.dom.pauseIcon) this.dom.pauseIcon.classList.add('hidden');
+
+    }
+
+
+
+    reset() {
+
+      this.pause();
+
+      this.timeLeft = this.durations[this.mode];
+
+      this.updateDisplay();
+
+      this.suite.sound.playPop();
+
+    }
+
+
+
+    skip() {
+
+      this.pause();
+
+      if (this.mode === 'pomodoro') {
+
+        this.setMode('short-break');
+
+      } else {
+
+        this.setMode('pomodoro');
+
+      }
+
+    }
+
+
+
+    complete() {
+
+      this.pause();
+
+      this.suite.sound.playChime();
+
+      this.suite.confetti.fire();
+
+
+
+      if (this.mode === 'pomodoro') {
+
+        this.completedSessions++;
+
+        this.totalMinutes += Math.round(this.durations['pomodoro'] / 60);
+
+        localStorage.setItem('orbitsuite_focus_sessions', this.completedSessions);
+
+        localStorage.setItem('orbitsuite_focus_minutes', this.totalMinutes);
+
+
+
+        this.suite.showToast(`Pomodoro Session erfolgreich abgeschlossen! 🎉 Zeit für eine Pause.`, 'info');
+
+        this.setMode('short-break');
+
+      } else {
+
+        this.suite.showToast(`Pause beendet! Bereit für den nächsten Fokus-Block? ⚡`, 'info');
+
+        this.setMode('pomodoro');
+
+      }
+
+
+
+      if (this.suite && this.suite.hubApp) {
+
+        this.suite.hubApp.render();
+
+      }
+
+    }
+
+
+
+    updateDisplay() {
+
+      const mins = Math.floor(this.timeLeft / 60);
+
+      const secs = this.timeLeft % 60;
+
+      const displayStr = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+
+
+
+      if (this.dom.countdownDisplay) {
+
+        this.dom.countdownDisplay.textContent = displayStr;
+
+      }
+
+
+
+      // Ring progress calculation (Circumference 2 * PI * 140 ≈ 879.6)
+
+      if (this.dom.ringProgress) {
+
+        const total = this.durations[this.mode];
+
+        const fraction = (total - this.timeLeft) / total;
+
+        const maxOffset = 879.6;
+
+        this.dom.ringProgress.style.strokeDashoffset = maxOffset * (1 - fraction);
+
+      }
+
+
+
+      if (this.dom.sessionsBadge) {
+
+        this.dom.sessionsBadge.textContent = `🍅 ${this.completedSessions % 4} / 4 Sessions heute`;
+
+      }
+
+    }
+
+  }
+
+
+
+  // ==========================================================================
+
+  // 4. ORBITHABITS MODULE (DAILY HABIT & STREAK TRACKER)
+
+  // ==========================================================================
+
+  const DEFAULT_DEMO_HABITS = [];
+
+
+
+  class OrbitHabitsApp {
+
+    constructor(suite) {
+
+      this.suite = suite;
+
+      this.STORAGE_KEY = 'orbitsuite_habits_v1';
+
+      this.habits = this.loadHabits();
+
+      this.todayIndex = (new Date().getDay() + 6) % 7; // 0 = Monday, 6 = Sunday
+
+
+
+      this.dom = {
+
+        btnCreateHabit: document.getElementById('btn-create-habit'),
+
+        listBody: document.getElementById('habits-list-body'),
+
+        weekLabel: document.getElementById('habits-week-label'),
+
+        todayPercent: document.getElementById('habits-today-percent'),
+
+        todayProgressFill: document.getElementById('habits-today-progress-fill'),
+
+        completionText: document.getElementById('habits-completion-text'),
+
+        modal: document.getElementById('habit-modal'),
+
+        modalClose: document.getElementById('habit-modal-close'),
+
+        btnCancel: document.getElementById('btn-habit-cancel'),
+
+        form: document.getElementById('habit-form'),
+
+        inputTitle: document.getElementById('habit-input-title'),
+
+        inputCategory: document.getElementById('habit-input-category')
+
+      };
+
+
+
+      this.init();
+
+    }
+
+
+
+    init() {
+
+      this.bindEvents();
+
+      this.render();
+
+    }
+
+
+
+    loadHabits() {
+
+      try {
+
+        const raw = localStorage.getItem(this.STORAGE_KEY);
+
+        if (raw) {
+
+          const parsed = JSON.parse(raw);
+
+          if (Array.isArray(parsed)) {
+
+            const cleaned = parsed.filter(h => !['hab-1', 'hab-2', 'hab-3', 'hab-4'].includes(h.id));
+
+            if (cleaned.length !== parsed.length) {
+
+              this.saveHabits(cleaned);
+
+            }
+
+            return cleaned;
+
+          }
+
+        }
+
+      } catch (e) { console.warn(e); }
+
+      return [];
+
+    }
+
+
+
+    saveHabits(habits = this.habits) {
+
+      try {
+
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(habits));
+
+        if (this.suite && this.suite.hubApp) {
+
+          this.suite.hubApp.render();
+
+        }
+
+      } catch (e) { console.warn(e); }
+
+    }
+
+
+
+    bindEvents() {
+
+      if (this.dom.btnCreateHabit) {
+
+        this.dom.btnCreateHabit.addEventListener('click', () => this.openModal());
+
+      }
+
+      if (this.dom.modalClose) {
+
+        this.dom.modalClose.addEventListener('click', () => this.closeModal());
+
+      }
+
+      if (this.dom.btnCancel) {
+
+        this.dom.btnCancel.addEventListener('click', () => this.closeModal());
+
+      }
+
+      if (this.dom.modal) {
+
+        this.dom.modal.addEventListener('click', (e) => {
+
+          if (e.target === this.dom.modal) this.closeModal();
+
+        });
+
+      }
+
+      if (this.dom.form) {
+
+        this.dom.form.addEventListener('submit', (e) => {
+
+          e.preventDefault();
+
+          this.saveModalHabit();
+
+        });
+
+      }
+
+    }
+
+
+
+    openModal() {
+
+      if (!this.dom.modal) return;
+
+      this.dom.form.reset();
+
+      this.dom.modal.classList.remove('hidden');
+
+      setTimeout(() => this.dom.inputTitle && this.dom.inputTitle.focus(), 50);
+
+      this.suite.sound.playPop();
+
+    }
+
+
+
+    closeModal() {
+
+      if (!this.dom.modal) return;
+
+      this.dom.modal.classList.add('hidden');
+
+    }
+
+
+
+    saveModalHabit() {
+
+      const title = this.dom.inputTitle.value.trim();
+
+      const category = this.dom.inputCategory.value;
+
+      if (!title) return;
+
+
+
+      const newHabit = {
+
+        id: 'hab-' + Date.now(),
+
+        name: title,
+
+        category: category,
+
+        checks: [false, false, false, false, false, false, false],
+
+        streak: 0
+
+      };
+
+
+
+      this.habits.push(newHabit);
+
+      this.saveHabits();
+
+      this.closeModal();
+
+      this.render();
+
+      this.suite.sound.playSuccess();
+
+      this.suite.showToast(`Gewohnheit "${title}" angelegt! 🎯`);
+
+    }
+
+
+
+    toggleDayCheck(habitId, dayIndex) {
+
+      const habit = this.habits.find(h => h.id === habitId);
+
+      if (!habit) return;
+
+
+
+      habit.checks[dayIndex] = !habit.checks[dayIndex];
+
+
+
+      // Calculate streak
+
+      let streak = 0;
+
+      for (let i = dayIndex; i >= 0; i--) {
+
+        if (habit.checks[i]) streak++;
+
+        else break;
+
+      }
+
+      habit.streak = streak;
+
+
+
+      this.saveHabits();
+
+      this.suite.sound.playPop();
+
+      this.render();
+
+
+
+      // Check if all today habits done
+
+      const todayTotal = this.habits.length;
+
+      const todayDone = this.habits.filter(h => h.checks[this.todayIndex]).length;
+
+      if (todayTotal > 0 && todayDone === todayTotal && habit.checks[this.todayIndex]) {
+
+        this.suite.confetti.fire();
+
+        this.suite.sound.playSuccess();
+
+        this.suite.showToast('Fantastisch! Alle heutigen Gewohnheiten erledigt! 🏆');
+
+      }
+
+    }
+
+
+
+    deleteHabit(habitId) {
+
+      const idx = this.habits.findIndex(h => h.id === habitId);
+
+      if (idx === -1) return;
+
+      const deleted = this.habits.splice(idx, 1)[0];
+
+      this.saveHabits();
+
+      this.suite.sound.playTrash();
+
+      this.suite.showToast(`Gewohnheit "${deleted.name}" entfernt.`);
+
+      this.render();
+
+    }
+
+
+
+    render() {
+
+      if (!this.dom.listBody) return;
+
+
+
+      const totalToday = this.habits.length;
+
+      const doneToday = this.habits.filter(h => h.checks[this.todayIndex]).length;
+
+      const pct = totalToday > 0 ? Math.round((doneToday / totalToday) * 100) : 0;
+
+
+
+      if (this.dom.todayPercent) this.dom.todayPercent.textContent = `${pct}%`;
+
+      if (this.dom.todayProgressFill) this.dom.todayProgressFill.style.width = `${pct}%`;
+
+      if (this.dom.completionText) {
+
+        this.dom.completionText.textContent = `${doneToday} von ${totalToday} Gewohnheiten heute erledigt`;
+
+      }
+
+
+
+      if (this.habits.length === 0) {
+
+        this.dom.listBody.innerHTML = `
+
+          <div style="padding: 40px; text-align: center; color: var(--text-dim);">
+
+            Noch keine Gewohnheiten angelegt. Klicke auf "+ Neue Gewohnheit", um deine erste Routine zu starten!
+
+          </div>
+
+        `;
+
+        return;
+
+      }
+
+
+
+      this.dom.listBody.innerHTML = this.habits.map(habit => {
+
+        const doneInWeek = habit.checks.filter(Boolean).length;
+
+        const weekScore = `${doneInWeek}/7 (${Math.round((doneInWeek / 7) * 100)}%)`;
+
+
+
+        const dayButtons = habit.checks.map((isChecked, dayIdx) => {
+
+          const isToday = dayIdx === this.todayIndex;
+
+          return `
+
+            <button class="day-check-btn ${isChecked ? 'checked' : ''} ${isToday ? 'today' : ''}" 
+
+                    data-habit="${habit.id}" data-day="${dayIdx}" 
+
+                    title="${['Mo','Di','Mi','Do','Fr','Sa','So'][dayIdx]}: ${isChecked ? 'Erledigt' : 'Offen'}">
+
+              ${isChecked ? '✓' : ''}
+
+            </button>
+
+          `;
+
+        }).join('');
+
+
+
+        return `
+
+          <div class="habit-row" data-id="${habit.id}">
+
+            <div class="habit-title-box">
+
+              <span class="habit-name">${escapeHtml(habit.name)}</span>
+
+              <span class="habit-cat">${habit.category}</span>
+
+            </div>
+
+            <div>
+
+              <span class="streak-pill">🔥 ${habit.streak}d</span>
+
+            </div>
+
+            ${dayButtons}
+
+            <div class="habit-week-score">${weekScore}</div>
+
+            <div>
+
+              <button class="btn-habit-del" data-action="delete" data-id="${habit.id}" title="Löschen">✕</button>
+
+            </div>
+
+          </div>
+
+        `;
+
+      }).join('');
+
+
+
+      this.dom.listBody.querySelectorAll('.day-check-btn').forEach(btn => {
+
+        btn.addEventListener('click', () => {
+
+          const hId = btn.dataset.habit;
+
+          const dIdx = parseInt(btn.dataset.day, 10);
+
+          this.toggleDayCheck(hId, dIdx);
+
+        });
+
+      });
+
+
+
+      this.dom.listBody.querySelectorAll('[data-action="delete"]').forEach(btn => {
+
+        btn.addEventListener('click', () => this.deleteHabit(btn.dataset.id));
+
+      });
+
+    }
+
+  }
+
+
+
+  // ==========================================================================
+
+  // 5. ORBITTOOLS MODULE (DEVELOPER & PRODUCTIVITY TOOLS)
+
+  // ==========================================================================
+
+  class OrbitToolsApp {
+
+    constructor(suite) {
+
+      this.suite = suite;
+
+      this.activeTool = 'json';
+
+
+
+      this.dom = {
+
+        subnavTabs: document.querySelectorAll('#tools-subnav .tool-tab'),
+
+        panels: {
+
+          json: document.getElementById('tool-panel-json'),
+
+          text: document.getElementById('tool-panel-text'),
+
+          inspector: document.getElementById('tool-panel-inspector'),
+
+          uuid: document.getElementById('tool-panel-uuid')
+
+        },
+
+        // JSON Studio
+
+        jsonInput: document.getElementById('json-input'),
+
+        jsonOutput: document.getElementById('json-output'),
+
+        btnJsonBeautify: document.getElementById('btn-json-beautify'),
+
+        btnJsonMinify: document.getElementById('btn-json-minify'),
+
+        btnJsonSample: document.getElementById('btn-json-sample'),
+
+        btnJsonCopy: document.getElementById('btn-json-copy'),
+
+        jsonValStatus: document.getElementById('json-val-status'),
+
+        // Text Converter
+
+        textConvInput: document.getElementById('text-conv-input'),
+
+        convUpper: document.getElementById('conv-upper'),
+
+        convLower: document.getElementById('conv-lower'),
+
+        convTitle: document.getElementById('conv-title'),
+
+        convCamel: document.getElementById('conv-camel'),
+
+        convKebab: document.getElementById('conv-kebab'),
+
+        convSnake: document.getElementById('conv-snake'),
+
+        // Text Inspector
+
+        textInspectInput: document.getElementById('text-inspect-input'),
+
+        statWords: document.getElementById('stat-words'),
+
+        statCharsAll: document.getElementById('stat-chars-all'),
+
+        statCharsNoSpace: document.getElementById('stat-chars-nospace'),
+
+        statSentences: document.getElementById('stat-sentences'),
+
+        statParagraphs: document.getElementById('stat-paragraphs'),
+
+        statReadingTime: document.getElementById('stat-reading-time'),
+
+        // UUID & Timestamp
+
+        btnGenUuid: document.getElementById('btn-gen-uuid'),
+
+        valUuid: document.getElementById('val-uuid'),
+
+        btnRefreshTime: document.getElementById('btn-refresh-time'),
+
+        valUnixSec: document.getElementById('val-unix-sec'),
+
+        valUnixMs: document.getElementById('val-unix-ms'),
+
+        valIso: document.getElementById('val-iso')
+
+      };
+
+
+
+      this.init();
+
+    }
+
+
+
+    init() {
+
+      this.bindEvents();
+
+      this.generateNewUuid();
+
+      this.updateTimestamps();
+
+    }
+
+
+
+    bindEvents() {
+
+      this.dom.subnavTabs.forEach(tab => {
+
+        tab.addEventListener('click', () => {
+
+          this.dom.subnavTabs.forEach(t => t.classList.remove('active'));
+
+          tab.classList.add('active');
+
+          this.switchTool(tab.dataset.tool);
+
+          this.suite.sound.playPop();
+
+        });
+
+      });
+
+
+
+      // JSON Actions
+
+      if (this.dom.btnJsonBeautify) {
+
+        this.dom.btnJsonBeautify.addEventListener('click', () => this.beautifyJson());
+
+      }
+
+      if (this.dom.btnJsonMinify) {
+
+        this.dom.btnJsonMinify.addEventListener('click', () => this.minifyJson());
+
+      }
+
+      if (this.dom.btnJsonSample) {
+
+        this.dom.btnJsonSample.addEventListener('click', () => this.loadJsonSample());
+
+      }
+
+      if (this.dom.btnJsonCopy) {
+
+        this.dom.btnJsonCopy.addEventListener('click', () => {
+
+          if (this.dom.jsonOutput && this.dom.jsonOutput.value) {
+
+            navigator.clipboard.writeText(this.dom.jsonOutput.value);
+
+            this.suite.showToast('JSON in Zwischenablage kopiert! 📋');
+
+          }
+
+        });
+
+      }
+
+      if (this.dom.jsonInput) {
+
+        this.dom.jsonInput.addEventListener('input', () => this.validateJsonInput());
+
+      }
+
+
+
+      // Text Converter
+
+      if (this.dom.textConvInput) {
+
+        this.dom.textConvInput.addEventListener('input', (e) => this.convertText(e.target.value));
+
+      }
+
+
+
+      // Text Inspector
+
+      if (this.dom.textInspectInput) {
+
+        this.dom.textInspectInput.addEventListener('input', (e) => this.inspectText(e.target.value));
+
+      }
+
+
+
+      // UUID & Timestamp
+
+      if (this.dom.btnGenUuid) {
+
+        this.dom.btnGenUuid.addEventListener('click', () => {
+
+          this.generateNewUuid();
+
+          this.suite.sound.playPop();
+
+        });
+
+      }
+
+      if (this.dom.btnRefreshTime) {
+
+        this.dom.btnRefreshTime.addEventListener('click', () => {
+
+          this.updateTimestamps();
+
+          this.suite.sound.playPop();
+
+        });
+
+      }
+
+
+
+      // Universal Copy Chips
+
+      document.querySelectorAll('.btn-copy-chip').forEach(btn => {
+
+        btn.addEventListener('click', () => {
+
+          const targetId = btn.dataset.copyTarget;
+
+          const input = document.getElementById(targetId);
+
+          if (input && input.value) {
+
+            navigator.clipboard.writeText(input.value);
+
+            this.suite.showToast('In Zwischenablage kopiert! 📋');
+
+            this.suite.sound.playPop();
+
+          }
+
+        });
+
+      });
+
+    }
+
+
+
+    switchTool(toolKey) {
+
+      this.activeTool = toolKey;
+
+      Object.keys(this.dom.panels).forEach(key => {
+
+        if (this.dom.panels[key]) {
+
+          this.dom.panels[key].classList.toggle('active', key === toolKey);
+
+        }
+
+      });
+
+    }
+
+
+
+    beautifyJson() {
+
+      const raw = this.dom.jsonInput.value.trim();
+
+      if (!raw) return;
+
+      try {
+
+        const parsed = JSON.parse(raw);
+
+        this.dom.jsonOutput.value = JSON.stringify(parsed, null, 2);
+
+        this.dom.jsonValStatus.className = 'json-validation-badge valid';
+
+        this.dom.jsonValStatus.textContent = 'Gültiges JSON (2 Spaces)';
+
+        this.suite.sound.playSuccess();
+
+      } catch (e) {
+
+        this.dom.jsonValStatus.className = 'json-validation-badge invalid';
+
+        this.dom.jsonValStatus.textContent = 'Syntaxfehler: ' + e.message;
+
+        this.suite.sound.playTrash();
+
+      }
+
+    }
+
+
+
+    minifyJson() {
+
+      const raw = this.dom.jsonInput.value.trim();
+
+      if (!raw) return;
+
+      try {
+
+        const parsed = JSON.parse(raw);
+
+        this.dom.jsonOutput.value = JSON.stringify(parsed);
+
+        this.dom.jsonValStatus.className = 'json-validation-badge valid';
+
+        this.dom.jsonValStatus.textContent = 'Minifiziertes JSON';
+
+        this.suite.sound.playSuccess();
+
+      } catch (e) {
+
+        this.dom.jsonValStatus.className = 'json-validation-badge invalid';
+
+        this.dom.jsonValStatus.textContent = 'Syntaxfehler: ' + e.message;
+
+        this.suite.sound.playTrash();
+
+      }
+
+    }
+
+
+
+    loadJsonSample() {
+
+      const sample = {
+
+        app: "OrbitSuite",
+
+        version: "3.0",
+
+        author: "Orbit Systems",
+
+        settings: {
+
+          darkMode: true,
+
+          soundEnabled: true,
+
+          theme: "Glassmorphism"
+
+        },
+
+        modules: ["OrbitTask", "OrbitNotes", "OrbitFocus", "OrbitHabits", "OrbitTools"],
+
+        metrics: {
+
+          tasksCompleted: 42,
+
+          focusScore: 98.5
+
+        }
+
+      };
+
+      this.dom.jsonInput.value = JSON.stringify(sample, null, 2);
+
+      this.beautifyJson();
+
+    }
+
+
+
+    validateJsonInput() {
+
+      const raw = this.dom.jsonInput.value.trim();
+
+      if (!raw) {
+
+        this.dom.jsonValStatus.className = 'json-validation-badge';
+
+        this.dom.jsonValStatus.textContent = 'Bereit';
+
+        return;
+
+      }
+
+      try {
+
+        JSON.parse(raw);
+
+        this.dom.jsonValStatus.className = 'json-validation-badge valid';
+
+        this.dom.jsonValStatus.textContent = 'Gültiges JSON';
+
+      } catch (e) {
+
+        this.dom.jsonValStatus.className = 'json-validation-badge invalid';
+
+        this.dom.jsonValStatus.textContent = 'Ungültig';
+
+      }
+
+    }
+
+
+
+    convertText(text) {
+
+      if (!text) {
+
+        ['Upper', 'Lower', 'Title', 'Camel', 'Kebab', 'Snake'].forEach(t => {
+
+          if (this.dom['conv' + t]) this.dom['conv' + t].value = '';
+
+        });
+
+        return;
+
+      }
+
+
+
+      this.dom.convUpper.value = text.toUpperCase();
+
+      this.dom.convLower.value = text.toLowerCase();
+
+
+
+      // Title Case
+
+      this.dom.convTitle.value = text.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
+
+
+
+      // Words array for programming cases
+
+      const words = text.match(/[A-Za-z0-9]+/g) || [];
+
+
+
+      // camelCase
+
+      this.dom.convCamel.value = words.map((w, i) => i === 0 ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join('');
+
+
+
+      // kebab-case
+
+      this.dom.convKebab.value = words.map(w => w.toLowerCase()).join('-');
+
+
+
+      // snake_case
+
+      this.dom.convSnake.value = words.map(w => w.toLowerCase()).join('_');
+
+    }
+
+
+
+    inspectText(text) {
+
+      const charsAll = text.length;
+
+      const charsNoSpace = text.replace(/\s/g, '').length;
+
+      const words = (text.trim().match(/\S+/g) || []).length;
+
+      const sentences = (text.match(/[^.!?]+[.!?]+/g) || []).length || (text.trim() ? 1 : 0);
+
+      const paragraphs = text.split(/\n+/).filter(p => p.trim().length > 0).length;
+
+
+
+      // Reading time (~200 words per minute)
+
+      const totalSeconds = Math.ceil((words / 200) * 60);
+
+      const rMins = Math.floor(totalSeconds / 60);
+
+      const rSecs = totalSeconds % 60;
+
+
+
+      this.dom.statWords.textContent = words;
+
+      this.dom.statCharsAll.textContent = charsAll;
+
+      this.dom.statCharsNoSpace.textContent = charsNoSpace;
+
+      this.dom.statSentences.textContent = sentences;
+
+      this.dom.statParagraphs.textContent = paragraphs;
+
+      this.dom.statReadingTime.textContent = `${rMins}m ${rSecs}s`;
+
+    }
+
+
+
+    generateNewUuid() {
+
+      let uuid = '';
+
+      if (window.crypto && window.crypto.randomUUID) {
+
+        uuid = window.crypto.randomUUID();
+
+      } else {
+
+        uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+
+          const r = Math.random() * 16 | 0;
+
+          const v = c === 'x' ? r : (r & 0x3 | 0x8);
+
+          return v.toString(16);
+
+        });
+
+      }
+
+      if (this.dom.valUuid) this.dom.valUuid.value = uuid;
+
+    }
+
+
+
+    updateTimestamps() {
+
+      const now = new Date();
+
+      if (this.dom.valUnixSec) this.dom.valUnixSec.value = Math.floor(now.getTime() / 1000);
+
+      if (this.dom.valUnixMs) this.dom.valUnixMs.value = now.getTime();
+
+      if (this.dom.valIso) this.dom.valIso.value = now.toISOString();
+
+    }
+
+  }
+
+
+
+  // ==========================================================================
+
+  // 5. ORBITRÄTSEL MODULE (DENKSPORT & PUZZLE STUDIO)
+
+  // ==========================================================================
+
+  class OrbitRiddleApp {
+
+    constructor(suite) {
+
+      this.suite = suite;
+
+            this.queensData = [{"id": "queens-1", "title": "Queens Tages-Board #1", "size": 6, "regions": [[1, 2, 0, 0, 0, 0], [1, 2, 2, 2, 0, 0], [1, 2, 2, 2, 2, 3], [4, 2, 4, 4, 3, 3], [4, 4, 4, 4, 3, 5], [4, 4, 4, 4, 3, 5]], "solution": [[0, 3], [1, 0], [2, 2], [3, 4], [4, 1], [5, 5]]}, {"id": "queens-2", "title": "Queens Tages-Board #2", "size": 6, "regions": [[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 1, 1], [2, 3, 0, 0, 1, 1], [2, 3, 3, 4, 4, 4], [5, 5, 4, 4, 4, 4], [5, 5, 5, 4, 4, 4]], "solution": [[0, 3], [1, 5], [2, 0], [3, 2], [4, 4], [5, 1]]}, {"id": "queens-3", "title": "Queens Tages-Board #3", "size": 6, "regions": [[1, 1, 1, 0, 0, 2], [1, 1, 1, 1, 1, 2], [3, 3, 1, 1, 4, 2], [3, 3, 1, 4, 4, 4], [3, 3, 4, 4, 4, 4], [3, 4, 4, 4, 5, 5]], "solution": [[0, 3], [1, 1], [2, 5], [3, 0], [4, 2], [5, 4]]}, {"id": "queens-4", "title": "Queens Tages-Board #4", "size": 6, "regions": [[1, 1, 1, 0, 0, 0], [1, 1, 1, 1, 2, 0], [1, 1, 1, 1, 2, 0], [3, 1, 1, 1, 2, 2], [3, 1, 1, 4, 2, 2], [3, 5, 5, 4, 2, 2]], "solution": [[0, 5], [1, 2], [2, 4], [3, 0], [4, 3], [5, 1]]}, {"id": "queens-5", "title": "Queens Tages-Board #5", "size": 6, "regions": [[2, 2, 0, 0, 1, 1], [2, 2, 2, 2, 1, 3], [2, 2, 2, 2, 2, 3], [2, 2, 2, 2, 2, 3], [4, 2, 5, 3, 3, 3], [4, 5, 5, 5, 5, 3]], "solution": [[0, 2], [1, 4], [2, 1], [3, 5], [4, 0], [5, 3]]}, {"id": "queens-6", "title": "Queens Tages-Board #6", "size": 6, "regions": [[0, 0, 1, 1, 1, 1], [2, 0, 3, 1, 1, 1], [2, 2, 3, 3, 1, 1], [3, 3, 3, 1, 1, 1], [5, 5, 5, 1, 1, 4], [5, 5, 5, 5, 4, 4]], "solution": [[0, 1], [1, 4], [2, 0], [3, 2], [4, 5], [5, 3]]}, {"id": "queens-7", "title": "Queens Tages-Board #7", "size": 6, "regions": [[0, 0, 1, 1, 1, 1], [0, 0, 0, 1, 1, 1], [0, 2, 1, 1, 1, 1], [2, 2, 3, 3, 4, 1], [2, 2, 5, 5, 4, 4], [5, 5, 5, 5, 5, 4]], "solution": [[0, 0], [1, 4], [2, 1], [3, 3], [4, 5], [5, 2]]}, {"id": "queens-8", "title": "Queens Tages-Board #8", "size": 6, "regions": [[0, 0, 1, 1, 3, 2], [1, 1, 1, 3, 3, 2], [3, 3, 3, 3, 3, 2], [3, 3, 3, 3, 3, 3], [4, 4, 4, 4, 5, 3], [4, 4, 4, 4, 5, 5]], "solution": [[0, 0], [1, 2], [2, 5], [3, 3], [4, 1], [5, 4]]}, {"id": "queens-9", "title": "Queens Tages-Board #9", "size": 6, "regions": [[0, 0, 2, 2, 3, 1], [0, 0, 2, 2, 3, 1], [0, 2, 2, 2, 3, 3], [4, 2, 5, 2, 3, 3], [4, 5, 5, 5, 5, 5], [5, 5, 5, 5, 5, 5]], "solution": [[0, 1], [1, 5], [2, 2], [3, 4], [4, 0], [5, 3]]}, {"id": "queens-10", "title": "Queens Tages-Board #10", "size": 6, "regions": [[1, 1, 0, 0, 0, 0], [1, 0, 0, 0, 0, 2], [1, 1, 0, 2, 2, 2], [1, 3, 3, 2, 2, 4], [5, 5, 3, 2, 2, 4], [5, 5, 3, 2, 2, 4]], "solution": [[0, 3], [1, 0], [2, 4], [3, 2], [4, 5], [5, 1]]}, {"id": "queens-11", "title": "Queens Tages-Board #11", "size": 6, "regions": [[1, 1, 3, 3, 3, 0], [3, 1, 3, 3, 2, 0], [3, 1, 3, 2, 2, 0], [3, 3, 3, 3, 3, 3], [4, 4, 3, 3, 3, 3], [4, 5, 5, 5, 5, 5]], "solution": [[0, 5], [1, 1], [2, 4], [3, 2], [4, 0], [5, 3]]}, {"id": "queens-12", "title": "Queens Tages-Board #12", "size": 6, "regions": [[0, 0, 0, 1, 1, 1], [0, 0, 2, 1, 1, 1], [3, 4, 2, 1, 1, 1], [3, 4, 4, 4, 1, 1], [3, 4, 4, 4, 4, 4], [4, 4, 4, 4, 5, 5]], "solution": [[0, 1], [1, 4], [2, 2], [3, 0], [4, 3], [5, 5]]}, {"id": "queens-13", "title": "Queens Tages-Board #13", "size": 6, "regions": [[1, 1, 2, 2, 0, 0], [1, 2, 2, 2, 2, 3], [2, 2, 2, 2, 3, 3], [2, 2, 2, 4, 3, 3], [2, 2, 2, 4, 3, 3], [5, 5, 4, 4, 4, 4]], "solution": [[0, 4], [1, 0], [2, 2], [3, 5], [4, 3], [5, 1]]}, {"id": "queens-14", "title": "Queens Tages-Board #14", "size": 6, "regions": [[1, 0, 0, 3, 3, 3], [1, 0, 0, 3, 3, 3], [1, 4, 2, 2, 3, 3], [4, 4, 4, 5, 3, 3], [4, 4, 4, 5, 5, 5], [4, 4, 4, 5, 5, 5]], "solution": [[0, 2], [1, 0], [2, 3], [3, 5], [4, 1], [5, 4]]}];
+
+      this.tangoData = [{"id": "tango-1", "title": "Tango Tages-Board #1", "size": 6, "givens": [["S", null, null, "S", null, "M"], [null, null, null, null, null, null], [null, null, null, null, null, null], [null, null, "M", null, null, null], ["S", null, "S", null, null, null], [null, null, null, "S", null, null]], "hEdges": [{"r": 5, "c": 0, "op": "x"}, {"r": 2, "c": 3, "op": "x"}, {"r": 3, "c": 4, "op": "="}, {"r": 2, "c": 2, "op": "x"}], "vEdges": [{"r": 0, "c": 5, "op": "="}, {"r": 0, "c": 0, "op": "="}, {"r": 2, "c": 3, "op": "x"}], "solution": [["S", "M", "S", "S", "M", "M"], ["S", "M", "S", "M", "S", "M"], ["M", "S", "M", "S", "M", "S"], ["M", "S", "M", "M", "S", "S"], ["S", "M", "S", "M", "S", "M"], ["M", "S", "M", "S", "M", "S"]]}, {"id": "tango-2", "title": "Tango Tages-Board #2", "size": 6, "givens": [[null, null, null, null, null, null], [null, null, null, "M", null, null], [null, null, null, "S", null, null], [null, "M", null, "S", null, null], [null, null, null, null, null, null], ["S", null, "M", null, null, null]], "hEdges": [{"r": 5, "c": 4, "op": "x"}, {"r": 1, "c": 4, "op": "="}, {"r": 3, "c": 4, "op": "="}, {"r": 2, "c": 2, "op": "="}], "vEdges": [{"r": 3, "c": 4, "op": "x"}, {"r": 0, "c": 5, "op": "="}, {"r": 0, "c": 1, "op": "x"}], "solution": [["M", "M", "S", "S", "M", "S"], ["M", "S", "M", "M", "S", "S"], ["S", "M", "S", "S", "M", "M"], ["S", "M", "S", "S", "M", "M"], ["M", "S", "M", "M", "S", "S"], ["S", "S", "M", "M", "S", "M"]]}, {"id": "tango-3", "title": "Tango Tages-Board #3", "size": 6, "givens": [[null, null, "S", null, null, null], ["S", null, null, null, null, null], [null, null, null, null, null, "M"], [null, null, null, null, null, null], ["S", null, null, null, "S", null], [null, null, null, null, "S", "S"]], "hEdges": [{"r": 1, "c": 1, "op": "="}, {"r": 4, "c": 1, "op": "="}, {"r": 5, "c": 1, "op": "x"}], "vEdges": [{"r": 3, "c": 4, "op": "x"}, {"r": 0, "c": 3, "op": "="}], "solution": [["S", "M", "S", "S", "M", "M"], ["S", "M", "M", "S", "M", "S"], ["M", "S", "S", "M", "S", "M"], ["M", "S", "S", "M", "M", "S"], ["S", "M", "M", "S", "S", "M"], ["M", "S", "M", "M", "S", "S"]]}, {"id": "tango-4", "title": "Tango Tages-Board #4", "size": 6, "givens": [[null, null, null, null, null, "M"], [null, null, null, null, null, "S"], ["S", null, null, null, null, "S"], [null, null, null, null, null, "M"], ["S", null, null, null, null, null], [null, null, null, null, "M", null]], "hEdges": [{"r": 3, "c": 1, "op": "x"}, {"r": 2, "c": 3, "op": "x"}, {"r": 5, "c": 1, "op": "="}, {"r": 2, "c": 2, "op": "x"}], "vEdges": [{"r": 0, "c": 0, "op": "="}, {"r": 4, "c": 4, "op": "x"}], "solution": [["M", "S", "S", "M", "S", "M"], ["M", "S", "S", "M", "M", "S"], ["S", "M", "M", "S", "M", "S"], ["M", "S", "M", "S", "S", "M"], ["S", "M", "S", "M", "S", "M"], ["S", "M", "M", "S", "M", "S"]]}, {"id": "tango-5", "title": "Tango Tages-Board #5", "size": 6, "givens": [[null, null, null, null, "S", null], [null, "S", null, "M", null, null], [null, null, "S", null, null, null], [null, null, null, null, null, "S"], [null, null, null, "S", null, null], [null, null, "S", null, null, null]], "hEdges": [{"r": 3, "c": 2, "op": "x"}, {"r": 0, "c": 0, "op": "="}, {"r": 2, "c": 0, "op": "="}, {"r": 4, "c": 3, "op": "="}], "vEdges": [{"r": 3, "c": 2, "op": "x"}, {"r": 4, "c": 0, "op": "x"}, {"r": 3, "c": 3, "op": "x"}], "solution": [["S", "S", "M", "M", "S", "M"], ["S", "S", "M", "M", "S", "M"], ["M", "M", "S", "S", "M", "S"], ["M", "S", "S", "M", "M", "S"], ["S", "M", "M", "S", "S", "M"], ["M", "M", "S", "S", "M", "S"]]}, {"id": "tango-6", "title": "Tango Tages-Board #6", "size": 6, "givens": [[null, null, null, null, null, "M"], [null, "S", null, null, null, null], ["M", null, null, null, null, null], [null, null, null, null, null, null], ["M", null, "S", "M", null, null], [null, null, null, null, null, "S"]], "hEdges": [{"r": 3, "c": 3, "op": "="}, {"r": 2, "c": 2, "op": "="}, {"r": 5, "c": 2, "op": "="}], "vEdges": [{"r": 0, "c": 1, "op": "="}, {"r": 3, "c": 0, "op": "x"}], "solution": [["S", "S", "M", "M", "S", "M"], ["S", "S", "M", "M", "S", "M"], ["M", "M", "S", "S", "M", "S"], ["S", "M", "M", "S", "S", "M"], ["M", "S", "S", "M", "M", "S"], ["M", "M", "S", "S", "M", "S"]]}, {"id": "tango-7", "title": "Tango Tages-Board #7", "size": 6, "givens": [[null, null, null, null, null, null], ["S", null, null, "S", null, null], [null, null, null, null, null, null], [null, null, null, null, "M", null], [null, null, null, null, null, "M"], ["M", null, null, null, "M", null]], "hEdges": [{"r": 4, "c": 1, "op": "="}, {"r": 5, "c": 2, "op": "x"}, {"r": 4, "c": 0, "op": "x"}, {"r": 1, "c": 4, "op": "="}], "vEdges": [{"r": 0, "c": 1, "op": "="}, {"r": 0, "c": 0, "op": "x"}], "solution": [["M", "M", "S", "M", "S", "S"], ["S", "M", "S", "S", "M", "M"], ["S", "S", "M", "M", "S", "M"], ["M", "S", "S", "M", "M", "S"], ["S", "M", "M", "S", "S", "M"], ["M", "S", "M", "S", "M", "S"]]}, {"id": "tango-8", "title": "Tango Tages-Board #8", "size": 6, "givens": [[null, null, "S", null, null, "S"], [null, null, "S", null, null, null], [null, null, "M", null, null, null], [null, "M", null, null, null, null], [null, null, null, null, null, null], [null, null, null, "S", null, "M"]], "hEdges": [{"r": 1, "c": 3, "op": "="}, {"r": 2, "c": 4, "op": "x"}, {"r": 2, "c": 2, "op": "="}], "vEdges": [{"r": 0, "c": 2, "op": "="}, {"r": 1, "c": 2, "op": "x"}, {"r": 4, "c": 0, "op": "="}], "solution": [["M", "M", "S", "S", "M", "S"], ["M", "S", "S", "M", "M", "S"], ["S", "S", "M", "M", "S", "M"], ["M", "M", "S", "S", "M", "S"], ["S", "S", "M", "M", "S", "M"], ["S", "M", "M", "S", "S", "M"]]}, {"id": "tango-9", "title": "Tango Tages-Board #9", "size": 6, "givens": [[null, null, null, null, null, "S"], [null, "S", null, null, null, null], [null, null, "M", null, null, null], [null, null, null, "S", null, null], ["S", null, null, null, null, null], ["M", null, null, null, null, null]], "hEdges": [{"r": 1, "c": 1, "op": "x"}, {"r": 0, "c": 1, "op": "="}, {"r": 4, "c": 3, "op": "x"}, {"r": 3, "c": 0, "op": "="}], "vEdges": [{"r": 1, "c": 4, "op": "="}, {"r": 4, "c": 2, "op": "x"}, {"r": 0, "c": 5, "op": "x"}], "solution": [["M", "S", "S", "M", "M", "S"], ["S", "S", "M", "M", "S", "M"], ["S", "M", "M", "S", "S", "M"], ["M", "M", "S", "S", "M", "S"], ["S", "S", "M", "M", "S", "M"], ["M", "M", "S", "S", "M", "S"]]}, {"id": "tango-11", "title": "Tango Tages-Board #11", "size": 6, "givens": [[null, null, null, null, null, "M"], [null, null, null, null, null, null], [null, null, null, null, null, null], ["S", null, null, null, "S", "M"], [null, null, null, null, null, null], [null, "S", null, null, null, null]], "hEdges": [{"r": 5, "c": 0, "op": "x"}, {"r": 2, "c": 2, "op": "="}, {"r": 1, "c": 2, "op": "x"}], "vEdges": [{"r": 3, "c": 5, "op": "="}, {"r": 2, "c": 2, "op": "="}, {"r": 0, "c": 4, "op": "="}], "solution": [["S", "M", "S", "S", "M", "M"], ["M", "S", "S", "M", "M", "S"], ["M", "S", "M", "M", "S", "S"], ["S", "M", "M", "S", "S", "M"], ["S", "M", "S", "S", "M", "M"], ["M", "S", "M", "M", "S", "S"]]}, {"id": "tango-12", "title": "Tango Tages-Board #12", "size": 6, "givens": [[null, null, null, null, null, null], [null, "M", null, null, null, null], [null, null, null, null, "M", null], [null, null, "M", null, null, null], [null, null, null, null, null, "S"], [null, null, "M", null, null, null]], "hEdges": [{"r": 1, "c": 1, "op": "="}, {"r": 1, "c": 0, "op": "x"}, {"r": 0, "c": 4, "op": "="}, {"r": 3, "c": 4, "op": "="}], "vEdges": [{"r": 4, "c": 0, "op": "="}, {"r": 4, "c": 2, "op": "x"}, {"r": 4, "c": 4, "op": "="}], "solution": [["S", "M", "S", "S", "M", "M"], ["S", "M", "M", "S", "S", "M"], ["M", "S", "S", "M", "M", "S"], ["S", "S", "M", "S", "M", "M"], ["M", "M", "S", "M", "S", "S"], ["M", "S", "M", "M", "S", "S"]]}, {"id": "tango-13", "title": "Tango Tages-Board #13", "size": 6, "givens": [[null, null, null, "M", null, "S"], [null, null, null, null, null, null], [null, null, null, null, null, null], ["M", null, null, null, null, null], ["S", "M", "M", null, null, null], [null, null, null, null, null, "M"]], "hEdges": [{"r": 3, "c": 4, "op": "="}, {"r": 1, "c": 2, "op": "="}, {"r": 5, "c": 4, "op": "x"}], "vEdges": [{"r": 1, "c": 4, "op": "="}, {"r": 3, "c": 1, "op": "="}, {"r": 3, "c": 5, "op": "="}], "solution": [["M", "S", "M", "M", "S", "S"], ["S", "M", "S", "S", "M", "M"], ["S", "S", "M", "S", "M", "M"], ["M", "M", "S", "M", "S", "S"], ["S", "M", "M", "S", "M", "S"], ["M", "S", "S", "M", "S", "M"]]}, {"id": "tango-13", "title": "Tango Tages-Board #13", "size": 6, "givens": [[null, null, null, null, "M", null], [null, null, null, null, null, "S"], ["S", null, "M", null, null, null], [null, null, null, null, null, "M"], [null, null, "S", "S", null, null], [null, null, "M", null, null, null]], "hEdges": [{"r": 3, "c": 2, "op": "="}, {"r": 4, "c": 2, "op": "="}, {"r": 5, "c": 1, "op": "x"}, {"r": 3, "c": 3, "op": "x"}, {"r": 5, "c": 0, "op": "="}], "vEdges": [{"r": 1, "c": 5, "op": "x"}, {"r": 2, "c": 2, "op": "="}, {"r": 0, "c": 3, "op": "x"}, {"r": 1, "c": 3, "op": "="}], "solution": [["M", "S", "S", "M", "M", "S"], ["M", "M", "S", "S", "M", "S"], ["S", "M", "M", "S", "S", "M"], ["S", "S", "M", "M", "S", "M"], ["M", "M", "S", "S", "M", "S"], ["S", "S", "M", "M", "S", "M"]]}, {"id": "tango-14", "title": "Tango Tages-Board #14", "size": 6, "givens": [[null, null, null, null, null, null], [null, null, null, null, null, null], [null, "S", null, "M", null, null], [null, null, null, null, null, null], [null, "M", "S", null, null, null], [null, "S", "S", null, null, null]], "hEdges": [{"r": 5, "c": 1, "op": "="}, {"r": 5, "c": 3, "op": "="}, {"r": 3, "c": 2, "op": "="}, {"r": 0, "c": 4, "op": "x"}, {"r": 4, "c": 4, "op": "="}], "vEdges": [{"r": 2, "c": 2, "op": "x"}, {"r": 3, "c": 4, "op": "x"}, {"r": 1, "c": 2, "op": "x"}, {"r": 0, "c": 4, "op": "="}], "solution": [["S", "M", "M", "S", "S", "M"], ["S", "M", "M", "S", "S", "M"], ["M", "S", "S", "M", "M", "S"], ["M", "S", "M", "M", "S", "S"], ["S", "M", "S", "S", "M", "M"], ["M", "S", "S", "M", "M", "S"]]}];
+
+      this.pinpointData = [{"id": "pinpoint-1", "title": "Pinpoint #1", "category": "Schachfiguren", "clues": ["Turm", "Springer", "Läufer", "Dame", "König"], "keywords": ["schachfiguren", "schach", "figuren beim schach", "schach figuren", "schachspiel"]}, {"id": "pinpoint-2", "title": "Pinpoint #2", "category": "Kaffeespezialitäten", "clues": ["Espresso", "Cappuccino", "Flat White", "Latte Macchiato", "Americano"], "keywords": ["kaffee", "kaffeespezialitäten", "kaffeearten", "kaffeegetränke", "kaffeesorten"]}, {"id": "pinpoint-3", "title": "Pinpoint #3", "category": "Dinge mit Tasten", "clues": ["Taschenrechner", "Klavier", "Fernbedienung", "Tastatur", "Geldautomat"], "keywords": ["tasten", "dinge mit tasten", "geräte mit tasten", "hat tasten", "tasteninstrumente und geräte"]}, {"id": "pinpoint-4", "title": "Pinpoint #4", "category": "Web-Browser", "clues": ["Safari", "Firefox", "Opera", "Edge", "Chrome"], "keywords": ["browser", "webbrowser", "web browser", "internet browser"]}, {"id": "pinpoint-5", "title": "Pinpoint #5", "category": "Hauptstädte in Europa", "clues": ["Lissabon", "Madrid", "Rom", "Wien", "Berlin"], "keywords": ["hauptstädte", "hauptstädte europas", "europäische hauptstädte", "europäische städte", "hauptstadt"]}, {"id": "pinpoint-6", "title": "Pinpoint #6", "category": "Programmiersprachen", "clues": ["Rust", "Go", "Ruby", "Python", "JavaScript"], "keywords": ["programmiersprachen", "coding", "programmiersprache", "code sprachen", "sprachen"]}, {"id": "pinpoint-7", "title": "Pinpoint #7", "category": "Planeten unseres Sonnensystems", "clues": ["Merkur", "Venus", "Mars", "Jupiter", "Saturn"], "keywords": ["planeten", "sonnensystem", "unser sonnensystem", "planeten unseres sonnensystems"]}, {"id": "pinpoint-8", "title": "Pinpoint #8", "category": "Musikinstrumente im Orchester", "clues": ["Fagott", "Oboe", "Bratsche", "Cello", "Querflöte"], "keywords": ["orchester", "musikinstrumente", "instrumente", "orchesterinstrumente"]}, {"id": "pinpoint-9", "title": "Pinpoint #9", "category": "Zutaten für Pizzateig", "clues": ["Hefe", "Olivenöl", "Salz", "Wasser", "Mehl"], "keywords": ["pizza", "pizzateig", "zutaten pizzateig", "teig zutaten", "pizzateig zutaten"]}, {"id": "pinpoint-10", "title": "Pinpoint #10", "category": "Edelmetalle", "clues": ["Platin", "Palladium", "Rhodium", "Silber", "Gold"], "keywords": ["edelmetalle", "edelmetall", "wertvolle metalle", "metalle"]}, {"id": "pinpoint-11", "title": "Pinpoint #11", "category": "Deutsche Bundesländer", "clues": ["Saarland", "Hessen", "Sachsen", "Bayern", "Nordrhein-Westfalen"], "keywords": ["bundesländer", "deutsche bundesländer", "länder deutschlands", "bundesland"]}, {"id": "pinpoint-12", "title": "Pinpoint #12", "category": "Video- und Daten-Schnittstellen", "clues": ["VGA", "DVI", "DisplayPort", "HDMI", "USB-C"], "keywords": ["anschlüsse", "schnittstellen", "kabel", "videoanschlüsse", "stecker"]}, {"id": "pinpoint-13", "title": "Pinpoint #13", "category": "Welt-Währungen", "clues": ["Yen", "Pfund", "Franken", "Dollar", "Euro"], "keywords": ["währungen", "währung", "geld", "währungseinheiten", "devisen"]}, {"id": "pinpoint-14", "title": "Pinpoint #14", "category": "Bekannte Social-Media-Netzwerke", "clues": ["Reddit", "Pinterest", "X", "Instagram", "LinkedIn"], "keywords": ["social media", "soziale netzwerke", "soziale medien", "netzwerke", "social network"]}];
+
+      this.activeGameMode = 'queens';
+
+
+
+      // Queens State
+
+      this.queensCurrentLevel = 'daily';
+
+      this.queensUserGrid = Array(6).fill(null).map(() => Array(6).fill(null));
+
+      this.queensHistory = [];
+
+      this.queensMoves = 0;
+
+      this.queensTime = 0;
+
+      this.queensTimerInterval = null;
+
+
+
+      // Tango State
+
+      this.tangoCurrentLevel = 'daily';
+
+      this.tangoUserGrid = Array(6).fill(null).map(() => Array(6).fill(null));
+
+      this.tangoTime = 0;
+
+      this.tangoTimerInterval = null;
+
+
+
+      // Pinpoint State
+
+      this.pinpointCurrentLevel = 'daily';
+
+      this.pinpointRevealedClues = 1;
+
+      this.pinpointAttemptsLeft = 5;
+
+      this.pinpointIsSolved = false;
+      this.crossclimbData = [{"id": "crossclimb-1", "title": "Crossclimb #1: Kalt bis Bild", "words": ["KALT", "WALT", "WALD", "WILD", "BILD"], "clues": ["Niedrige Temperatur, Gegenteil von warm", "Vorname des berühmten Micky-Maus-Erfinders Disney", "Ort voller Bäume, Moos und Waldtieren", "In freier Natur lebend, nicht zahm", "Gemälde, Foto oder grafische Abbildung"]}, {"id": "crossclimb-2", "title": "Crossclimb #2: Sand bis Rind", "words": ["SAND", "HAND", "HUND", "RUND", "RIND"], "clues": ["Feinkörniges Gestein an Meeresstränden und in Wüsten", "Körperteil am Ende des Arms mit fünf Fingern", "Der treueste vierbeinige Freund des Menschen", "Geometrische Kreis- oder Kugelform ohne Ecken", "Großes Nutztier auf der Weide, das Milch gibt"]}, {"id": "crossclimb-3", "title": "Crossclimb #3: Boot bis Pest", "words": ["BOOT", "ROOT", "ROST", "POST", "PEST"], "clues": ["Kleines Wasserfahrzeug zum Rudern oder Segeln", "Höchste Administrator-Rechte in Unix/Linux-Systemen", "Rötlich-braunes Oxidationsprodukt auf feuchtem Eisen", "Briefe, Pakete oder die zuständige Zustellorganisation", "Historische europäische Seuche im finsteren Mittelalter"]}, {"id": "crossclimb-4", "title": "Crossclimb #4: Gold bis Helm", "words": ["GOLD", "GELD", "FELD", "HELD", "HELM"], "clues": ["Glänzendes gelbes Edelmetall mit hoher Dichte", "Gesetzliches Zahlungsmittel in Form von Münzen und Scheinen", "Große landwirtschaftliche Ackerfläche für Weizen oder Mais", "Mutige Hauptfigur in Geschichten, die andere rettet", "Fester Schutz für den Kopf beim Fahrrad- oder Skifahren"]}, {"id": "crossclimb-5", "title": "Crossclimb #5: Wind bis Dank", "words": ["WIND", "WAND", "BAND", "BANK", "DANK"], "clues": ["Spürbare Luftbewegung in der Atmosphäre", "Vertikale gemauerte Begrenzung eines Zimmers", "Gruppe von Musikern oder ein flexibles Stoffband", "Sitzgelegenheit im Park oder Institut für Finanzen", "Ausdruck der Anerkennung und Verbundenheit"]}, {"id": "crossclimb-6", "title": "Crossclimb #6: Ball bis Helm", "words": ["BALL", "FALL", "FELL", "HELL", "HELM"], "clues": ["Rundes Sportgerät zum Kicken, Werfen oder Schlagen", "Das Herabgleiten nach unten oder ein kniffliger Kriminalfall", "Dichtes Haarkleid von Säugetieren wie Füchsen oder Bären", "Voller Licht, das Gegenteil von finster", "Kopfbedeckung zum Schutz auf Baustellen"]}, {"id": "crossclimb-7", "title": "Crossclimb #7: Kind bis Bunt", "words": ["KIND", "RIND", "RUND", "BUND", "BUNT"], "clues": ["Junger Mensch in den ersten Lebensjahren", "Wiederkäuer mit Hörnern auf der Alm", "Kreisförmig geschwungen ohne Kanten", "Zusammenschluss, Föderation oder Hosenbund", "Farbenfroh mit vielen leuchtenden Tönen"]}, {"id": "crossclimb-8", "title": "Crossclimb #8: Haus bis Fahl", "words": ["HAUS", "MAUS", "MAUL", "FAUL", "FAHL"], "clues": ["Festes Gebäude mit Dach zum Wohnen", "Kleines Nagetier mit langem Schwanz oder PC-Zeiger", "Mundöffnung von Raubtieren oder Hunden", "Träge ohne Antrieb, das Gegenteil von fleißig", "Blass, kraftlos oder von fahlem Mondlicht erhellt"]}, {"id": "crossclimb-9", "title": "Crossclimb #9: Zeit bis Wort", "words": ["ZEIT", "ZELT", "WELT", "WERT", "WORT"], "clues": ["Fortlaufende Dimension aus Vergangenheit, Gegenwart und Zukunft", "Tragbare Stoffunterkunft zum Campen in der Natur", "Unser Planet Erde mit allen Kontinenten und Meeren", "Kostbarkeit, Bedeutung oder bezifferter Preis", "Sinnhafte sprachliche Einheit aus mehreren Buchstaben"]}, {"id": "crossclimb-10", "title": "Crossclimb #10: Buch bis Nach", "words": ["BUCH", "BACH", "DACH", "FACH", "NACH"], "clues": ["Gebundenes Werk mit beschriebenen oder bedruckten Seiten", "Natürlicher kleiner Wasserlauf im Gebirge oder Wald", "Oberste schützende Abdeckung eines Gebäudes gegen Regen", "Unterrichtsgebiet in der Schule oder Ablagefach im Schrank", "Zeitlich oder räumlich folgend, Gegenteil von vor"]}, {"id": "crossclimb-11", "title": "Crossclimb #11: Meer bis Hier", "words": ["MEER", "HEER", "TEER", "TIER", "HIER"], "clues": ["Riesige Salzwassermasse der Weltmeere", "Große militärische Truppe von Soldaten zu Lande", "Zähflüssiger schwarzer Stoff für den Straßenbau", "Lebewesen mit eigenem Bewusstsein und Instinkten", "Genau an diesem gegenwärtigen Standort"]}, {"id": "crossclimb-12", "title": "Crossclimb #12: Torf bis Born", "words": ["TORF", "DORF", "DORN", "KORN", "BORN"], "clues": ["Brennbares getrocknetes Moormaterial", "Ländliche Siedlungsgemeinschaft, kleiner als eine Stadt", "Spitzer stechender Auswuchs am Stängel einer Rose", "Reife Samenkörner von Getreide auf dem Halm", "Poetisches altes Wort für eine sprudelnde Quelle"]}, {"id": "crossclimb-13", "title": "Crossclimb #13: Wein bis Fern", "words": ["WEIN", "BEIN", "DEIN", "FEIN", "FERN"], "clues": ["Fermentiertes alkoholisches Getränk aus Weintrauben", "Gliedmaße zum Stehen, Gehen und Laufen", "Possessivpronomen der zweiten Person Singular", "Zart, elegant, hochwertig oder von feiner Struktur", "In weiter Distanz am fernen Horizont"]}, {"id": "crossclimb-14", "title": "Crossclimb #14: Luft bis Rest", "words": ["LUFT", "LUST", "LAST", "RAST", "REST"], "clues": ["Unsichtbares Gasgemisch aus Stickstoff und Sauerstoff zum Atmen", "Innere Freude, Verlangen und Begeisterung", "Schweres Gewicht, das getragen werden muss", "Erholsame Pause während einer anstrengenden Wanderung", "Der verbleibende Teil, der am Schluss noch übrig ist"]}];
+      this.zipData = [{"id": "zip-1", "title": "Zip Tages-Pfad #1", "size": 5, "checkpoints": {"0,2": 1, "2,0": 5, "3,1": 9, "2,2": 13, "4,4": 17, "2,4": 21, "1,3": 25}, "pathSolution": [{"r": 0, "c": 2, "step": 1}, {"r": 0, "c": 1, "step": 2}, {"r": 0, "c": 0, "step": 3}, {"r": 1, "c": 0, "step": 4}, {"r": 2, "c": 0, "step": 5}, {"r": 3, "c": 0, "step": 6}, {"r": 4, "c": 0, "step": 7}, {"r": 4, "c": 1, "step": 8}, {"r": 3, "c": 1, "step": 9}, {"r": 2, "c": 1, "step": 10}, {"r": 1, "c": 1, "step": 11}, {"r": 1, "c": 2, "step": 12}, {"r": 2, "c": 2, "step": 13}, {"r": 3, "c": 2, "step": 14}, {"r": 4, "c": 2, "step": 15}, {"r": 4, "c": 3, "step": 16}, {"r": 4, "c": 4, "step": 17}, {"r": 3, "c": 4, "step": 18}, {"r": 3, "c": 3, "step": 19}, {"r": 2, "c": 3, "step": 20}, {"r": 2, "c": 4, "step": 21}, {"r": 1, "c": 4, "step": 22}, {"r": 0, "c": 4, "step": 23}, {"r": 0, "c": 3, "step": 24}, {"r": 1, "c": 3, "step": 25}]}, {"id": "zip-2", "title": "Zip Tages-Pfad #2", "size": 5, "checkpoints": {"0,0": 1, "4,0": 5, "4,4": 9, "3,1": 13, "0,2": 17, "2,4": 21, "1,3": 25}, "pathSolution": [{"r": 0, "c": 0, "step": 1}, {"r": 1, "c": 0, "step": 2}, {"r": 2, "c": 0, "step": 3}, {"r": 3, "c": 0, "step": 4}, {"r": 4, "c": 0, "step": 5}, {"r": 4, "c": 1, "step": 6}, {"r": 4, "c": 2, "step": 7}, {"r": 4, "c": 3, "step": 8}, {"r": 4, "c": 4, "step": 9}, {"r": 3, "c": 4, "step": 10}, {"r": 3, "c": 3, "step": 11}, {"r": 3, "c": 2, "step": 12}, {"r": 3, "c": 1, "step": 13}, {"r": 2, "c": 1, "step": 14}, {"r": 1, "c": 1, "step": 15}, {"r": 0, "c": 1, "step": 16}, {"r": 0, "c": 2, "step": 17}, {"r": 0, "c": 3, "step": 18}, {"r": 0, "c": 4, "step": 19}, {"r": 1, "c": 4, "step": 20}, {"r": 2, "c": 4, "step": 21}, {"r": 2, "c": 3, "step": 22}, {"r": 2, "c": 2, "step": 23}, {"r": 1, "c": 2, "step": 24}, {"r": 1, "c": 3, "step": 25}]}, {"id": "zip-3", "title": "Zip Tages-Pfad #3", "size": 5, "checkpoints": {"0,4": 1, "0,0": 5, "1,3": 9, "2,2": 13, "4,0": 17, "4,2": 21, "4,4": 25}, "pathSolution": [{"r": 0, "c": 4, "step": 1}, {"r": 0, "c": 3, "step": 2}, {"r": 0, "c": 2, "step": 3}, {"r": 0, "c": 1, "step": 4}, {"r": 0, "c": 0, "step": 5}, {"r": 1, "c": 0, "step": 6}, {"r": 1, "c": 1, "step": 7}, {"r": 1, "c": 2, "step": 8}, {"r": 1, "c": 3, "step": 9}, {"r": 1, "c": 4, "step": 10}, {"r": 2, "c": 4, "step": 11}, {"r": 2, "c": 3, "step": 12}, {"r": 2, "c": 2, "step": 13}, {"r": 2, "c": 1, "step": 14}, {"r": 2, "c": 0, "step": 15}, {"r": 3, "c": 0, "step": 16}, {"r": 4, "c": 0, "step": 17}, {"r": 4, "c": 1, "step": 18}, {"r": 3, "c": 1, "step": 19}, {"r": 3, "c": 2, "step": 20}, {"r": 4, "c": 2, "step": 21}, {"r": 4, "c": 3, "step": 22}, {"r": 3, "c": 3, "step": 23}, {"r": 3, "c": 4, "step": 24}, {"r": 4, "c": 4, "step": 25}]}, {"id": "zip-4", "title": "Zip Tages-Pfad #4", "size": 5, "checkpoints": {"4,4": 1, "4,0": 5, "0,0": 9, "3,1": 13, "2,4": 17, "0,2": 21, "1,3": 25}, "pathSolution": [{"r": 4, "c": 4, "step": 1}, {"r": 4, "c": 3, "step": 2}, {"r": 4, "c": 2, "step": 3}, {"r": 4, "c": 1, "step": 4}, {"r": 4, "c": 0, "step": 5}, {"r": 3, "c": 0, "step": 6}, {"r": 2, "c": 0, "step": 7}, {"r": 1, "c": 0, "step": 8}, {"r": 0, "c": 0, "step": 9}, {"r": 0, "c": 1, "step": 10}, {"r": 1, "c": 1, "step": 11}, {"r": 2, "c": 1, "step": 12}, {"r": 3, "c": 1, "step": 13}, {"r": 3, "c": 2, "step": 14}, {"r": 3, "c": 3, "step": 15}, {"r": 3, "c": 4, "step": 16}, {"r": 2, "c": 4, "step": 17}, {"r": 2, "c": 3, "step": 18}, {"r": 2, "c": 2, "step": 19}, {"r": 1, "c": 2, "step": 20}, {"r": 0, "c": 2, "step": 21}, {"r": 0, "c": 3, "step": 22}, {"r": 0, "c": 4, "step": 23}, {"r": 1, "c": 4, "step": 24}, {"r": 1, "c": 3, "step": 25}]}, {"id": "zip-5", "title": "Zip Tages-Pfad #5", "size": 5, "checkpoints": {"4,2": 1, "2,4": 5, "1,3": 9, "2,2": 13, "0,0": 17, "2,0": 21, "3,1": 25}, "pathSolution": [{"r": 4, "c": 2, "step": 1}, {"r": 4, "c": 3, "step": 2}, {"r": 4, "c": 4, "step": 3}, {"r": 3, "c": 4, "step": 4}, {"r": 2, "c": 4, "step": 5}, {"r": 1, "c": 4, "step": 6}, {"r": 0, "c": 4, "step": 7}, {"r": 0, "c": 3, "step": 8}, {"r": 1, "c": 3, "step": 9}, {"r": 2, "c": 3, "step": 10}, {"r": 3, "c": 3, "step": 11}, {"r": 3, "c": 2, "step": 12}, {"r": 2, "c": 2, "step": 13}, {"r": 1, "c": 2, "step": 14}, {"r": 0, "c": 2, "step": 15}, {"r": 0, "c": 1, "step": 16}, {"r": 0, "c": 0, "step": 17}, {"r": 1, "c": 0, "step": 18}, {"r": 1, "c": 1, "step": 19}, {"r": 2, "c": 1, "step": 20}, {"r": 2, "c": 0, "step": 21}, {"r": 3, "c": 0, "step": 22}, {"r": 4, "c": 0, "step": 23}, {"r": 4, "c": 1, "step": 24}, {"r": 3, "c": 1, "step": 25}]}, {"id": "zip-6", "title": "Zip Tages-Pfad #6", "size": 5, "checkpoints": {"2,4": 1, "4,2": 5, "3,1": 9, "2,2": 13, "0,0": 17, "0,2": 21, "0,4": 25}, "pathSolution": [{"r": 2, "c": 4, "step": 1}, {"r": 3, "c": 4, "step": 2}, {"r": 4, "c": 4, "step": 3}, {"r": 4, "c": 3, "step": 4}, {"r": 4, "c": 2, "step": 5}, {"r": 4, "c": 1, "step": 6}, {"r": 4, "c": 0, "step": 7}, {"r": 3, "c": 0, "step": 8}, {"r": 3, "c": 1, "step": 9}, {"r": 3, "c": 2, "step": 10}, {"r": 3, "c": 3, "step": 11}, {"r": 2, "c": 3, "step": 12}, {"r": 2, "c": 2, "step": 13}, {"r": 2, "c": 1, "step": 14}, {"r": 2, "c": 0, "step": 15}, {"r": 1, "c": 0, "step": 16}, {"r": 0, "c": 0, "step": 17}, {"r": 0, "c": 1, "step": 18}, {"r": 1, "c": 1, "step": 19}, {"r": 1, "c": 2, "step": 20}, {"r": 0, "c": 2, "step": 21}, {"r": 0, "c": 3, "step": 22}, {"r": 1, "c": 3, "step": 23}, {"r": 1, "c": 4, "step": 24}, {"r": 0, "c": 4, "step": 25}]}, {"id": "zip-7", "title": "Zip Tages-Pfad #7", "size": 5, "checkpoints": {"4,2": 1, "3,3": 5, "4,0": 9, "0,0": 13, "2,2": 17, "0,4": 21, "1,3": 25}, "pathSolution": [{"r": 4, "c": 2, "step": 1}, {"r": 4, "c": 3, "step": 2}, {"r": 4, "c": 4, "step": 3}, {"r": 3, "c": 4, "step": 4}, {"r": 3, "c": 3, "step": 5}, {"r": 3, "c": 2, "step": 6}, {"r": 3, "c": 1, "step": 7}, {"r": 4, "c": 1, "step": 8}, {"r": 4, "c": 0, "step": 9}, {"r": 3, "c": 0, "step": 10}, {"r": 2, "c": 0, "step": 11}, {"r": 1, "c": 0, "step": 12}, {"r": 0, "c": 0, "step": 13}, {"r": 0, "c": 1, "step": 14}, {"r": 1, "c": 1, "step": 15}, {"r": 2, "c": 1, "step": 16}, {"r": 2, "c": 2, "step": 17}, {"r": 2, "c": 3, "step": 18}, {"r": 2, "c": 4, "step": 19}, {"r": 1, "c": 4, "step": 20}, {"r": 0, "c": 4, "step": 21}, {"r": 0, "c": 3, "step": 22}, {"r": 0, "c": 2, "step": 23}, {"r": 1, "c": 2, "step": 24}, {"r": 1, "c": 3, "step": 25}]}, {"id": "zip-8", "title": "Zip Tages-Pfad #8", "size": 5, "checkpoints": {"4,2": 1, "2,4": 5, "1,3": 9, "2,2": 13, "0,0": 17, "2,0": 21, "3,1": 25}, "pathSolution": [{"r": 4, "c": 2, "step": 1}, {"r": 4, "c": 3, "step": 2}, {"r": 4, "c": 4, "step": 3}, {"r": 3, "c": 4, "step": 4}, {"r": 2, "c": 4, "step": 5}, {"r": 1, "c": 4, "step": 6}, {"r": 0, "c": 4, "step": 7}, {"r": 0, "c": 3, "step": 8}, {"r": 1, "c": 3, "step": 9}, {"r": 2, "c": 3, "step": 10}, {"r": 3, "c": 3, "step": 11}, {"r": 3, "c": 2, "step": 12}, {"r": 2, "c": 2, "step": 13}, {"r": 1, "c": 2, "step": 14}, {"r": 0, "c": 2, "step": 15}, {"r": 0, "c": 1, "step": 16}, {"r": 0, "c": 0, "step": 17}, {"r": 1, "c": 0, "step": 18}, {"r": 1, "c": 1, "step": 19}, {"r": 2, "c": 1, "step": 20}, {"r": 2, "c": 0, "step": 21}, {"r": 3, "c": 0, "step": 22}, {"r": 4, "c": 0, "step": 23}, {"r": 4, "c": 1, "step": 24}, {"r": 3, "c": 1, "step": 25}]}, {"id": "zip-9", "title": "Zip Tages-Pfad #9", "size": 5, "checkpoints": {"2,0": 1, "3,1": 5, "0,0": 9, "2,2": 13, "4,4": 17, "2,4": 21, "1,3": 25}, "pathSolution": [{"r": 2, "c": 0, "step": 1}, {"r": 3, "c": 0, "step": 2}, {"r": 4, "c": 0, "step": 3}, {"r": 4, "c": 1, "step": 4}, {"r": 3, "c": 1, "step": 5}, {"r": 2, "c": 1, "step": 6}, {"r": 1, "c": 1, "step": 7}, {"r": 1, "c": 0, "step": 8}, {"r": 0, "c": 0, "step": 9}, {"r": 0, "c": 1, "step": 10}, {"r": 0, "c": 2, "step": 11}, {"r": 1, "c": 2, "step": 12}, {"r": 2, "c": 2, "step": 13}, {"r": 3, "c": 2, "step": 14}, {"r": 4, "c": 2, "step": 15}, {"r": 4, "c": 3, "step": 16}, {"r": 4, "c": 4, "step": 17}, {"r": 3, "c": 4, "step": 18}, {"r": 3, "c": 3, "step": 19}, {"r": 2, "c": 3, "step": 20}, {"r": 2, "c": 4, "step": 21}, {"r": 1, "c": 4, "step": 22}, {"r": 0, "c": 4, "step": 23}, {"r": 0, "c": 3, "step": 24}, {"r": 1, "c": 3, "step": 25}]}, {"id": "zip-10", "title": "Zip Tages-Pfad #10", "size": 5, "checkpoints": {"3,3": 1, "2,4": 5, "0,2": 9, "2,0": 13, "4,2": 17, "1,1": 21, "2,2": 25}, "pathSolution": [{"r": 3, "c": 3, "step": 1}, {"r": 4, "c": 3, "step": 2}, {"r": 4, "c": 4, "step": 3}, {"r": 3, "c": 4, "step": 4}, {"r": 2, "c": 4, "step": 5}, {"r": 1, "c": 4, "step": 6}, {"r": 0, "c": 4, "step": 7}, {"r": 0, "c": 3, "step": 8}, {"r": 0, "c": 2, "step": 9}, {"r": 0, "c": 1, "step": 10}, {"r": 0, "c": 0, "step": 11}, {"r": 1, "c": 0, "step": 12}, {"r": 2, "c": 0, "step": 13}, {"r": 3, "c": 0, "step": 14}, {"r": 4, "c": 0, "step": 15}, {"r": 4, "c": 1, "step": 16}, {"r": 4, "c": 2, "step": 17}, {"r": 3, "c": 2, "step": 18}, {"r": 3, "c": 1, "step": 19}, {"r": 2, "c": 1, "step": 20}, {"r": 1, "c": 1, "step": 21}, {"r": 1, "c": 2, "step": 22}, {"r": 1, "c": 3, "step": 23}, {"r": 2, "c": 3, "step": 24}, {"r": 2, "c": 2, "step": 25}]}, {"id": "zip-11", "title": "Zip Tages-Pfad #11", "size": 5, "checkpoints": {"1,1": 1, "2,0": 5, "4,2": 9, "3,3": 13, "2,2": 17, "0,4": 21, "2,4": 25}, "pathSolution": [{"r": 1, "c": 1, "step": 1}, {"r": 0, "c": 1, "step": 2}, {"r": 0, "c": 0, "step": 3}, {"r": 1, "c": 0, "step": 4}, {"r": 2, "c": 0, "step": 5}, {"r": 3, "c": 0, "step": 6}, {"r": 4, "c": 0, "step": 7}, {"r": 4, "c": 1, "step": 8}, {"r": 4, "c": 2, "step": 9}, {"r": 4, "c": 3, "step": 10}, {"r": 4, "c": 4, "step": 11}, {"r": 3, "c": 4, "step": 12}, {"r": 3, "c": 3, "step": 13}, {"r": 3, "c": 2, "step": 14}, {"r": 3, "c": 1, "step": 15}, {"r": 2, "c": 1, "step": 16}, {"r": 2, "c": 2, "step": 17}, {"r": 1, "c": 2, "step": 18}, {"r": 0, "c": 2, "step": 19}, {"r": 0, "c": 3, "step": 20}, {"r": 0, "c": 4, "step": 21}, {"r": 1, "c": 4, "step": 22}, {"r": 1, "c": 3, "step": 23}, {"r": 2, "c": 3, "step": 24}, {"r": 2, "c": 4, "step": 25}]}, {"id": "zip-12", "title": "Zip Tages-Pfad #12", "size": 5, "checkpoints": {"2,2": 1, "0,4": 5, "2,4": 9, "3,3": 13, "4,0": 17, "2,0": 21, "1,1": 25}, "pathSolution": [{"r": 2, "c": 2, "step": 1}, {"r": 1, "c": 2, "step": 2}, {"r": 0, "c": 2, "step": 3}, {"r": 0, "c": 3, "step": 4}, {"r": 0, "c": 4, "step": 5}, {"r": 1, "c": 4, "step": 6}, {"r": 1, "c": 3, "step": 7}, {"r": 2, "c": 3, "step": 8}, {"r": 2, "c": 4, "step": 9}, {"r": 3, "c": 4, "step": 10}, {"r": 4, "c": 4, "step": 11}, {"r": 4, "c": 3, "step": 12}, {"r": 3, "c": 3, "step": 13}, {"r": 3, "c": 2, "step": 14}, {"r": 4, "c": 2, "step": 15}, {"r": 4, "c": 1, "step": 16}, {"r": 4, "c": 0, "step": 17}, {"r": 3, "c": 0, "step": 18}, {"r": 3, "c": 1, "step": 19}, {"r": 2, "c": 1, "step": 20}, {"r": 2, "c": 0, "step": 21}, {"r": 1, "c": 0, "step": 22}, {"r": 0, "c": 0, "step": 23}, {"r": 0, "c": 1, "step": 24}, {"r": 1, "c": 1, "step": 25}]}, {"id": "zip-13", "title": "Zip Tages-Pfad #13", "size": 5, "checkpoints": {"0,2": 1, "1,3": 5, "0,0": 9, "2,2": 13, "4,4": 17, "4,2": 21, "4,0": 25}, "pathSolution": [{"r": 0, "c": 2, "step": 1}, {"r": 0, "c": 3, "step": 2}, {"r": 0, "c": 4, "step": 3}, {"r": 1, "c": 4, "step": 4}, {"r": 1, "c": 3, "step": 5}, {"r": 1, "c": 2, "step": 6}, {"r": 1, "c": 1, "step": 7}, {"r": 0, "c": 1, "step": 8}, {"r": 0, "c": 0, "step": 9}, {"r": 1, "c": 0, "step": 10}, {"r": 2, "c": 0, "step": 11}, {"r": 2, "c": 1, "step": 12}, {"r": 2, "c": 2, "step": 13}, {"r": 2, "c": 3, "step": 14}, {"r": 2, "c": 4, "step": 15}, {"r": 3, "c": 4, "step": 16}, {"r": 4, "c": 4, "step": 17}, {"r": 4, "c": 3, "step": 18}, {"r": 3, "c": 3, "step": 19}, {"r": 3, "c": 2, "step": 20}, {"r": 4, "c": 2, "step": 21}, {"r": 4, "c": 1, "step": 22}, {"r": 3, "c": 1, "step": 23}, {"r": 3, "c": 0, "step": 24}, {"r": 4, "c": 0, "step": 25}]}, {"id": "zip-14", "title": "Zip Tages-Pfad #14", "size": 5, "checkpoints": {"0,2": 1, "2,0": 5, "3,1": 9, "2,2": 13, "4,4": 17, "2,4": 21, "1,3": 25}, "pathSolution": [{"r": 0, "c": 2, "step": 1}, {"r": 0, "c": 1, "step": 2}, {"r": 0, "c": 0, "step": 3}, {"r": 1, "c": 0, "step": 4}, {"r": 2, "c": 0, "step": 5}, {"r": 3, "c": 0, "step": 6}, {"r": 4, "c": 0, "step": 7}, {"r": 4, "c": 1, "step": 8}, {"r": 3, "c": 1, "step": 9}, {"r": 2, "c": 1, "step": 10}, {"r": 1, "c": 1, "step": 11}, {"r": 1, "c": 2, "step": 12}, {"r": 2, "c": 2, "step": 13}, {"r": 3, "c": 2, "step": 14}, {"r": 4, "c": 2, "step": 15}, {"r": 4, "c": 3, "step": 16}, {"r": 4, "c": 4, "step": 17}, {"r": 3, "c": 4, "step": 18}, {"r": 3, "c": 3, "step": 19}, {"r": 2, "c": 3, "step": 20}, {"r": 2, "c": 4, "step": 21}, {"r": 1, "c": 4, "step": 22}, {"r": 0, "c": 4, "step": 23}, {"r": 0, "c": 3, "step": 24}, {"r": 1, "c": 3, "step": 25}]}];
+      this.sudokuData = [{"id": "sudoku-1", "title": "Mini Sudoku #1", "givens": [[0, 2, 0, 5, 6, 0], [0, 5, 1, 3, 0, 2], [0, 6, 0, 1, 3, 4], [0, 0, 3, 0, 0, 5], [5, 0, 0, 0, 0, 0], [0, 1, 6, 0, 0, 0]], "solution": [[3, 2, 4, 5, 6, 1], [6, 5, 1, 3, 4, 2], [2, 6, 5, 1, 3, 4], [1, 4, 3, 6, 2, 5], [5, 3, 2, 4, 1, 6], [4, 1, 6, 2, 5, 3]]}, {"id": "sudoku-2", "title": "Mini Sudoku #2", "givens": [[3, 0, 0, 1, 0, 2], [0, 5, 0, 0, 4, 0], [0, 0, 0, 2, 0, 0], [0, 3, 0, 5, 0, 6], [4, 2, 0, 3, 6, 1], [0, 0, 3, 4, 0, 0]], "solution": [[3, 4, 6, 1, 5, 2], [1, 5, 2, 6, 4, 3], [5, 6, 1, 2, 3, 4], [2, 3, 4, 5, 1, 6], [4, 2, 5, 3, 6, 1], [6, 1, 3, 4, 2, 5]]}, {"id": "sudoku-3", "title": "Mini Sudoku #3", "givens": [[0, 4, 0, 0, 0, 5], [0, 5, 0, 0, 0, 0], [0, 0, 3, 0, 5, 6], [0, 6, 0, 4, 0, 1], [1, 0, 4, 0, 6, 0], [6, 3, 5, 0, 0, 4]], "solution": [[2, 4, 6, 3, 1, 5], [3, 5, 1, 6, 4, 2], [4, 1, 3, 2, 5, 6], [5, 6, 2, 4, 3, 1], [1, 2, 4, 5, 6, 3], [6, 3, 5, 1, 2, 4]]}, {"id": "sudoku-4", "title": "Mini Sudoku #4", "givens": [[0, 0, 0, 1, 3, 0], [3, 2, 1, 0, 6, 4], [6, 0, 2, 0, 1, 5], [0, 0, 0, 0, 0, 0], [0, 0, 0, 3, 5, 0], [5, 6, 0, 0, 4, 0]], "solution": [[4, 5, 6, 1, 3, 2], [3, 2, 1, 5, 6, 4], [6, 3, 2, 4, 1, 5], [1, 4, 5, 6, 2, 3], [2, 1, 4, 3, 5, 6], [5, 6, 3, 2, 4, 1]]}, {"id": "sudoku-5", "title": "Mini Sudoku #5", "givens": [[3, 4, 6, 0, 0, 0], [0, 5, 1, 0, 3, 6], [0, 0, 0, 0, 0, 0], [0, 0, 2, 5, 6, 0], [0, 0, 0, 3, 0, 1], [1, 0, 5, 6, 0, 4]], "solution": [[3, 4, 6, 2, 1, 5], [2, 5, 1, 4, 3, 6], [5, 6, 3, 1, 4, 2], [4, 1, 2, 5, 6, 3], [6, 2, 4, 3, 5, 1], [1, 3, 5, 6, 2, 4]]}, {"id": "sudoku-6", "title": "Mini Sudoku #6", "givens": [[0, 1, 0, 2, 0, 0], [2, 5, 0, 0, 0, 0], [4, 0, 1, 0, 2, 5], [5, 0, 2, 0, 0, 6], [3, 0, 0, 0, 6, 2], [0, 0, 6, 0, 3, 0]], "solution": [[6, 1, 4, 2, 5, 3], [2, 5, 3, 6, 4, 1], [4, 6, 1, 3, 2, 5], [5, 3, 2, 4, 1, 6], [3, 4, 5, 1, 6, 2], [1, 2, 6, 5, 3, 4]]}, {"id": "sudoku-7", "title": "Mini Sudoku #7", "givens": [[0, 0, 6, 4, 0, 2], [4, 1, 0, 0, 3, 6], [5, 0, 0, 0, 0, 3], [1, 6, 0, 0, 0, 5], [0, 4, 0, 3, 0, 1], [0, 0, 0, 0, 0, 4]], "solution": [[3, 5, 6, 4, 1, 2], [4, 1, 2, 5, 3, 6], [5, 2, 4, 1, 6, 3], [1, 6, 3, 2, 4, 5], [6, 4, 5, 3, 2, 1], [2, 3, 1, 6, 5, 4]]}, {"id": "sudoku-8", "title": "Mini Sudoku #8", "givens": [[1, 0, 0, 0, 0, 6], [2, 5, 6, 0, 0, 0], [0, 1, 0, 2, 5, 3], [3, 0, 5, 6, 1, 0], [0, 0, 2, 0, 0, 5], [0, 0, 0, 3, 0, 0]], "solution": [[1, 4, 3, 5, 2, 6], [2, 5, 6, 4, 3, 1], [6, 1, 4, 2, 5, 3], [3, 2, 5, 6, 1, 4], [4, 3, 2, 1, 6, 5], [5, 6, 1, 3, 4, 2]]}, {"id": "sudoku-9", "title": "Mini Sudoku #9", "givens": [[0, 6, 5, 1, 0, 0], [0, 0, 3, 6, 5, 2], [0, 2, 4, 0, 6, 0], [6, 0, 1, 0, 4, 0], [0, 3, 2, 0, 0, 0], [0, 4, 0, 0, 0, 0]], "solution": [[2, 6, 5, 1, 3, 4], [4, 1, 3, 6, 5, 2], [3, 2, 4, 5, 6, 1], [6, 5, 1, 2, 4, 3], [5, 3, 2, 4, 1, 6], [1, 4, 6, 3, 2, 5]]}, {"id": "sudoku-10", "title": "Mini Sudoku #10", "givens": [[0, 0, 0, 3, 1, 0], [3, 0, 0, 0, 2, 0], [0, 3, 2, 0, 0, 4], [4, 5, 0, 1, 0, 0], [0, 1, 5, 0, 0, 3], [2, 0, 3, 5, 0, 0]], "solution": [[5, 2, 4, 3, 1, 6], [3, 6, 1, 4, 2, 5], [1, 3, 2, 6, 5, 4], [4, 5, 6, 1, 3, 2], [6, 1, 5, 2, 4, 3], [2, 4, 3, 5, 6, 1]]}, {"id": "sudoku-11", "title": "Mini Sudoku #11", "givens": [[1, 0, 0, 0, 0, 5], [5, 4, 0, 3, 2, 1], [0, 0, 0, 0, 1, 0], [3, 5, 0, 0, 6, 0], [4, 0, 2, 1, 0, 0], [0, 0, 0, 0, 3, 2]], "solution": [[1, 2, 3, 6, 4, 5], [5, 4, 6, 3, 2, 1], [2, 6, 4, 5, 1, 3], [3, 5, 1, 2, 6, 4], [4, 3, 2, 1, 5, 6], [6, 1, 5, 4, 3, 2]]}, {"id": "sudoku-12", "title": "Mini Sudoku #12", "givens": [[0, 2, 0, 0, 0, 0], [1, 0, 4, 0, 6, 0], [2, 0, 0, 6, 0, 5], [6, 0, 0, 3, 0, 2], [0, 0, 0, 1, 2, 0], [4, 1, 0, 5, 3, 0]], "solution": [[3, 2, 6, 4, 5, 1], [1, 5, 4, 2, 6, 3], [2, 3, 1, 6, 4, 5], [6, 4, 5, 3, 1, 2], [5, 6, 3, 1, 2, 4], [4, 1, 2, 5, 3, 6]]}, {"id": "sudoku-13", "title": "Mini Sudoku #13", "givens": [[1, 0, 2, 5, 0, 0], [6, 5, 4, 1, 0, 0], [0, 6, 0, 2, 0, 0], [2, 0, 3, 0, 5, 0], [0, 0, 0, 0, 0, 1], [0, 0, 1, 0, 4, 5]], "solution": [[1, 3, 2, 5, 6, 4], [6, 5, 4, 1, 3, 2], [4, 6, 5, 2, 1, 3], [2, 1, 3, 4, 5, 6], [5, 4, 6, 3, 2, 1], [3, 2, 1, 6, 4, 5]]}, {"id": "sudoku-14", "title": "Mini Sudoku #14", "givens": [[0, 2, 0, 0, 0, 0], [0, 0, 0, 6, 1, 0], [0, 5, 0, 2, 0, 0], [4, 6, 2, 0, 0, 1], [6, 4, 0, 0, 0, 3], [2, 0, 0, 5, 4, 6]], "solution": [[1, 2, 6, 4, 3, 5], [5, 3, 4, 6, 1, 2], [3, 5, 1, 2, 6, 4], [4, 6, 2, 3, 5, 1], [6, 4, 5, 1, 2, 3], [2, 1, 3, 5, 4, 6]]}];
+
+      // Crossclimb State
+      this.crossclimbCurrentLevel = 'daily';
+      this.crossclimbRungs = [];
+
+      // Zip State
+      this.zipCurrentLevel = 'daily';
+      this.zipPath = [];
+
+      // Sudoku State
+      this.sudokuCurrentLevel = 'daily';
+      this.sudokuUserGrid = Array(6).fill(0).map(() => Array(6).fill(0));
+      this.sudokuSelectedCell = null;
+      this.sudokuTime = 0;
+      this.sudokuTimerInterval = null;
+
+
+this.defaultRiddles = [{"id": "opt-riddle-1", "title": "Die Raven-Matrix der Formen", "category": "Muster", "difficulty": "Einfach", "visualSvg": "<svg viewBox=\"0 0 320 320\" width=\"100%\" height=\"240\" xmlns=\"http://www.w3.org/2000/svg\"><defs><filter id=\"glow-p\" x=\"-20%\" y=\"-20%\" width=\"140%\" height=\"140%\"><feGaussianBlur stdDeviation=\"3\" result=\"blur\"/><feMerge><feMergeNode in=\"blur\"/><feMergeNode in=\"SourceGraphic\"/></feMerge></filter></defs><rect x=\"15\" y=\"15\" width=\"85\" height=\"85\" rx=\"10\" fill=\"#1e293b\" stroke=\"#334155\" stroke-width=\"2\"/><rect x=\"117\" y=\"15\" width=\"85\" height=\"85\" rx=\"10\" fill=\"#1e293b\" stroke=\"#334155\" stroke-width=\"2\"/><rect x=\"220\" y=\"15\" width=\"85\" height=\"85\" rx=\"10\" fill=\"#1e293b\" stroke=\"#334155\" stroke-width=\"2\"/><rect x=\"15\" y=\"117\" width=\"85\" height=\"85\" rx=\"10\" fill=\"#1e293b\" stroke=\"#334155\" stroke-width=\"2\"/><rect x=\"117\" y=\"117\" width=\"85\" height=\"85\" rx=\"10\" fill=\"#1e293b\" stroke=\"#334155\" stroke-width=\"2\"/><rect x=\"220\" y=\"117\" width=\"85\" height=\"85\" rx=\"10\" fill=\"#1e293b\" stroke=\"#334155\" stroke-width=\"2\"/><rect x=\"15\" y=\"220\" width=\"85\" height=\"85\" rx=\"10\" fill=\"#1e293b\" stroke=\"#334155\" stroke-width=\"2\"/><rect x=\"117\" y=\"220\" width=\"85\" height=\"85\" rx=\"10\" fill=\"#1e293b\" stroke=\"#334155\" stroke-width=\"2\"/><rect x=\"220\" y=\"220\" width=\"85\" height=\"85\" rx=\"10\" fill=\"#2e1065\" stroke=\"#a855f7\" stroke-width=\"2.5\" stroke-dasharray=\"4 4\"/><circle cx=\"57\" cy=\"57\" r=\"28\" fill=\"rgba(56,189,248,0.12)\" stroke=\"#38bdf8\" stroke-width=\"2.5\"/><circle cx=\"57\" cy=\"57\" r=\"4\" fill=\"#38bdf8\"/><circle cx=\"160\" cy=\"57\" r=\"28\" fill=\"rgba(56,189,248,0.12)\" stroke=\"#38bdf8\" stroke-width=\"2.5\"/><circle cx=\"151\" cy=\"57\" r=\"4\" fill=\"#38bdf8\"/><circle cx=\"169\" cy=\"57\" r=\"4\" fill=\"#38bdf8\"/><circle cx=\"262\" cy=\"57\" r=\"28\" fill=\"rgba(56,189,248,0.12)\" stroke=\"#38bdf8\" stroke-width=\"2.5\"/><circle cx=\"250\" cy=\"57\" r=\"4\" fill=\"#38bdf8\"/><circle cx=\"262\" cy=\"57\" r=\"4\" fill=\"#38bdf8\"/><circle cx=\"274\" cy=\"57\" r=\"4\" fill=\"#38bdf8\"/><rect x=\"35\" y=\"137\" width=\"44\" height=\"44\" rx=\"4\" fill=\"rgba(245,158,11,0.12)\" stroke=\"#f59e0b\" stroke-width=\"2.5\"/><circle cx=\"57\" cy=\"159\" r=\"4\" fill=\"#f59e0b\"/><rect x=\"138\" y=\"137\" width=\"44\" height=\"44\" rx=\"4\" fill=\"rgba(245,158,11,0.12)\" stroke=\"#f59e0b\" stroke-width=\"2.5\"/><circle cx=\"151\" cy=\"159\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"169\" cy=\"159\" r=\"4\" fill=\"#f59e0b\"/><rect x=\"240\" y=\"137\" width=\"44\" height=\"44\" rx=\"4\" fill=\"rgba(245,158,11,0.12)\" stroke=\"#f59e0b\" stroke-width=\"2.5\"/><circle cx=\"250\" cy=\"159\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"262\" cy=\"159\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"274\" cy=\"159\" r=\"4\" fill=\"#f59e0b\"/><polygon points=\"57,235 32,282 82,282\" fill=\"rgba(16,185,129,0.12)\" stroke=\"#10b981\" stroke-width=\"2.5\"/><circle cx=\"57\" cy=\"265\" r=\"4\" fill=\"#10b981\"/><polygon points=\"160,235 135,282 185,282\" fill=\"rgba(16,185,129,0.12)\" stroke=\"#10b981\" stroke-width=\"2.5\"/><circle cx=\"152\" cy=\"265\" r=\"4\" fill=\"#10b981\"/><circle cx=\"168\" cy=\"265\" r=\"4\" fill=\"#10b981\"/><text x=\"262\" y=\"278\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"44\" font-weight=\"bold\" fill=\"#c084fc\" text-anchor=\"middle\" filter=\"url(#glow-p)\">?</text></svg>", "question": "Welche geometrische Form und wie viele Punkte gehören in das Feld mit dem Fragezeichen (?)?", "hint": "Untersuche die geometrischen Formen zeilenweise und die Punktanzahl spaltenweise.", "solutionTitle": "Dreieck mit 3 Punkten", "solutionExplanation": "Zeile 1 enthält Kreise, Zeile 2 Quadrate, Zeile 3 Dreiecke. Spalte 1 hat 1 Punkt, Spalte 2 hat 2 Punkte, Spalte 3 hat 3 Punkte. In das Zielfeld gehört daher ein Dreieck mit 3 Punkten.", "keywords": ["dreieck", "3", "dreieck mit 3 punkten", "dreieck 3", "dreieck 3 punkte", "dreieck mit drei punkten", "3 punkte"]}, {"id": "opt-riddle-2", "title": "Das fraktale Dreiecks-Gitter", "category": "Geometrie", "difficulty": "Mittel", "visualSvg": "<svg viewBox=\"0 0 360 260\" width=\"100%\" height=\"240\" xmlns=\"http://www.w3.org/2000/svg\"><defs><linearGradient id=\"tri-grad\" x1=\"0%\" y1=\"0%\" x2=\"100%\" y2=\"100%\"><stop offset=\"0%\" stop-color=\"#10b981\" stop-opacity=\"0.25\"/><stop offset=\"100%\" stop-color=\"#064e3b\" stop-opacity=\"0.1\"/></linearGradient></defs><polygon points=\"180,20 40,240 320,240\" fill=\"url(#tri-grad)\" stroke=\"#10b981\" stroke-width=\"3\"/><line x1=\"133.3\" y1=\"93.3\" x2=\"226.7\" y2=\"93.3\" stroke=\"#34d399\" stroke-width=\"2\"/><line x1=\"86.7\" y1=\"166.7\" x2=\"273.3\" y2=\"166.7\" stroke=\"#34d399\" stroke-width=\"2\"/><line x1=\"133.3\" y1=\"93.3\" x2=\"86.7\" y2=\"166.7\" stroke=\"#34d399\" stroke-width=\"2\"/><line x1=\"226.7\" y1=\"93.3\" x2=\"273.3\" y2=\"166.7\" stroke=\"#34d399\" stroke-width=\"2\"/><line x1=\"133.3\" y1=\"93.3\" x2=\"180\" y2=\"166.7\" stroke=\"#34d399\" stroke-width=\"2\"/><line x1=\"226.7\" y1=\"93.3\" x2=\"180\" y2=\"166.7\" stroke=\"#34d399\" stroke-width=\"2\"/><line x1=\"86.7\" y1=\"166.7\" x2=\"133.3\" y2=\"240\" stroke=\"#34d399\" stroke-width=\"2\"/><line x1=\"180\" y1=\"166.7\" x2=\"133.3\" y2=\"240\" stroke=\"#34d399\" stroke-width=\"2\"/><line x1=\"180\" y1=\"166.7\" x2=\"226.7\" y2=\"240\" stroke=\"#34d399\" stroke-width=\"2\"/><line x1=\"273.3\" y1=\"166.7\" x2=\"226.7\" y2=\"240\" stroke=\"#34d399\" stroke-width=\"2\"/></svg>", "question": "Wie viele aufrechte und zusammengesetzte Dreiecke verbergen sich insgesamt in dieser Figur?", "hint": "Zähle die 9 kleinen 1×1-Dreiecke, die 3 mittleren 2×2-Dreiecke sowie das 1 große Gesamtdreieck.", "solutionTitle": "Exakt 13 Dreiecke", "solutionExplanation": "9 kleine Dreiecke (1x1) + 3 mittlere Dreiecke (aus je 4 Teilflächen zusammengesetzt) + 1 großes Außendreieck (3x3) = insgesamt 13 Dreiecke.", "keywords": ["13", "dreizehn", "13 dreiecke"]}, {"id": "opt-riddle-3", "title": "Kosmisches Symbol-Gleichungssystem", "category": "Gleichung", "difficulty": "Mittel", "visualSvg": "<svg viewBox=\"0 0 380 230\" width=\"100%\" height=\"240\" xmlns=\"http://www.w3.org/2000/svg\"><style>.math-row { font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; fill: #f8fafc; } .symbol { font-size: 26px; } .op { fill: #94a3b8; font-size: 22px; font-weight: 500; } .res { fill: #38bdf8; font-weight: 700; } .target { fill: #f43f5e; font-weight: 900; font-size: 24px; }</style><rect x=\"15\" y=\"10\" width=\"350\" height=\"44\" rx=\"8\" fill=\"#1e293b\" stroke=\"#334155\"/><text x=\"35\" y=\"40\" class=\"symbol\">🚀</text><text x=\"75\" y=\"40\" class=\"op\">+</text><text x=\"100\" y=\"40\" class=\"symbol\">🚀</text><text x=\"140\" y=\"40\" class=\"op\">+</text><text x=\"165\" y=\"40\" class=\"symbol\">🚀</text><text x=\"210\" y=\"40\" class=\"op\">=</text><text x=\"245\" y=\"40\" class=\"math-row res\">30</text><rect x=\"15\" y=\"64\" width=\"350\" height=\"44\" rx=\"8\" fill=\"#1e293b\" stroke=\"#334155\"/><text x=\"35\" y=\"94\" class=\"symbol\">🚀</text><text x=\"75\" y=\"94\" class=\"op\">+</text><text x=\"100\" y=\"94\" class=\"symbol\">🛸</text><text x=\"140\" y=\"94\" class=\"op\">+</text><text x=\"165\" y=\"94\" class=\"symbol\">🛸</text><text x=\"210\" y=\"94\" class=\"op\">=</text><text x=\"245\" y=\"94\" class=\"math-row res\">20</text><rect x=\"15\" y=\"118\" width=\"350\" height=\"44\" rx=\"8\" fill=\"#1e293b\" stroke=\"#334155\"/><text x=\"35\" y=\"148\" class=\"symbol\">🛸</text><text x=\"75\" y=\"148\" class=\"op\">+</text><text x=\"100\" y=\"148\" class=\"symbol\">⭐</text><text x=\"140\" y=\"148\" class=\"op\">+</text><text x=\"165\" y=\"148\" class=\"symbol\">⭐</text><text x=\"210\" y=\"148\" class=\"op\">=</text><text x=\"245\" y=\"148\" class=\"math-row res\">9</text><rect x=\"15\" y=\"172\" width=\"350\" height=\"48\" rx=\"8\" fill=\"#2a1532\" stroke=\"#f43f5e\" stroke-width=\"2\"/><text x=\"35\" y=\"204\" class=\"symbol\">🚀</text><text x=\"75\" y=\"204\" class=\"op\">+</text><text x=\"100\" y=\"204\" class=\"symbol\">⭐</text><text x=\"140\" y=\"204\" class=\"op\">×</text><text x=\"165\" y=\"204\" class=\"symbol\">🛸</text><text x=\"210\" y=\"204\" class=\"op\">=</text><text x=\"250\" y=\"206\" class=\"math-row target\">?</text></svg>", "question": "Welche Zahl ersetzt das Fragezeichen (?)? Vorsicht: Achte auf Punkt- vor Strichrechnung!", "hint": "3 Raketen = 30 -> Rakete = 10. Berechne Ufo und Stern, und multipliziere am Schluss vor der Addition.", "solutionTitle": "Die Lösung ist 20", "solutionExplanation": "🚀 = 10 (30 / 3). 🛸 = 5 ((20 - 10) / 2). ⭐ = 2 ((9 - 5) / 2). Letzte Zeile: 10 + (2 × 5) = 10 + 10 = 20 (Multiplikation vor Addition!).", "keywords": ["20", "zwanzig"]}, {"id": "opt-riddle-4", "title": "Müller-Lyer Linientäuschung", "category": "Illusion", "difficulty": "Einfach", "visualSvg": "<svg viewBox=\"0 0 380 200\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\"><defs><filter id=\"glow-line\"><feGaussianBlur stdDeviation=\"2\" result=\"b\"/><feMerge><feMergeNode in=\"b\"/><feMergeNode in=\"SourceGraphic\"/></feMerge></filter></defs><text x=\"30\" y=\"65\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"16\" font-weight=\"700\" fill=\"#38bdf8\">Linie A:</text><line x1=\"90\" y1=\"60\" x2=\"310\" y2=\"60\" stroke=\"#fff\" stroke-width=\"4\" filter=\"url(#glow-line)\"/><line x1=\"65\" y1=\"40\" x2=\"90\" y2=\"60\" stroke=\"#38bdf8\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><line x1=\"65\" y1=\"80\" x2=\"90\" y2=\"60\" stroke=\"#38bdf8\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><line x1=\"335\" y1=\"40\" x2=\"310\" y2=\"60\" stroke=\"#38bdf8\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><line x1=\"335\" y1=\"80\" x2=\"310\" y2=\"60\" stroke=\"#38bdf8\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><text x=\"30\" y=\"145\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"16\" font-weight=\"700\" fill=\"#f59e0b\">Linie B:</text><line x1=\"90\" y1=\"140\" x2=\"310\" y2=\"140\" stroke=\"#fff\" stroke-width=\"4\" filter=\"url(#glow-line)\"/><line x1=\"115\" y1=\"120\" x2=\"90\" y2=\"140\" stroke=\"#f59e0b\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><line x1=\"115\" y1=\"160\" x2=\"90\" y2=\"140\" stroke=\"#f59e0b\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><line x1=\"285\" y1=\"120\" x2=\"310\" y2=\"140\" stroke=\"#f59e0b\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><line x1=\"285\" y1=\"160\" x2=\"310\" y2=\"140\" stroke=\"#f59e0b\" stroke-width=\"3.5\" stroke-linecap=\"round\"/></svg>", "question": "Welche der beiden horizontalen Linien (Linie A oder Linie B) ist in Wirklichkeit länger?", "hint": "Lass dich nicht von den Pfeilspitzen an den Enden täuschen – betrachte nur die weißen horizontalen Linien.", "solutionTitle": "Beide Linien sind exakt gleich lang!", "solutionExplanation": "Die 1889 von Franz Müller-Lyer entdeckte geometrisch-optische Täuschung: Nach außen zeigende Pfeilflügel lassen eine Strecke deutlich kürzer wirken als nach innen zeigende Flügel, obwohl beide Horizontalen exakt 220 Pixel lang sind.", "keywords": ["gleich", "beide gleich", "gleich lang", "beide", "keine", "identisch", "sie sind gleich lang"]}, {"id": "opt-riddle-5", "title": "Streichholz-Gleichung: 6 + 4 = 4", "category": "Streichholz", "difficulty": "Einfach", "visualSvg": "<svg viewBox=\"0 0 380 200\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\"><defs><g id=\"h-match\"><rect x=\"0\" y=\"2\" width=\"46\" height=\"8\" rx=\"2\" fill=\"#d97706\"/><circle cx=\"4\" cy=\"6\" r=\"5\" fill=\"#ef4444\"/></g><g id=\"v-match\"><rect x=\"2\" y=\"0\" width=\"8\" height=\"46\" rx=\"2\" fill=\"#d97706\"/><circle cx=\"6\" cy=\"4\" r=\"5\" fill=\"#ef4444\"/></g></defs><use href=\"#h-match\" x=\"40\" y=\"30\"/><use href=\"#v-match\" x=\"34\" y=\"36\"/><use href=\"#v-match\" x=\"34\" y=\"86\"/><use href=\"#h-match\" x=\"40\" y=\"80\"/><use href=\"#v-match\" x=\"80\" y=\"86\"/><use href=\"#h-match\" x=\"40\" y=\"130\"/><use href=\"#h-match\" x=\"110\" y=\"80\"/><use href=\"#v-match\" x=\"129\" y=\"61\"/><use href=\"#v-match\" x=\"175\" y=\"36\"/><use href=\"#h-match\" x=\"180\" y=\"80\"/><use href=\"#v-match\" x=\"220\" y=\"36\"/><use href=\"#v-match\" x=\"220\" y=\"86\"/><use href=\"#h-match\" x=\"250\" y=\"72\"/><use href=\"#h-match\" x=\"250\" y=\"92\"/><use href=\"#v-match\" x=\"315\" y=\"36\"/><use href=\"#h-match\" x=\"320\" y=\"80\"/><use href=\"#v-match\" x=\"360\" y=\"36\"/><use href=\"#v-match\" x=\"360\" y=\"86\"/><text x=\"190\" y=\"180\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"14\" fill=\"#94a3b8\" text-anchor=\"middle\">Bewege genau 1 Streichholz!</text></svg>", "question": "Bewege genau 1 Streichholz, um diese Gleichung mathematisch wahr zu machen. Welche Rechnung entsteht?", "hint": "Nimm das mittlere Streichholz der 6 und mache daraus eine 0 (oder verändere das Plus in ein Minus).", "solutionTitle": "0 + 4 = 4 (oder 8 - 4 = 4)", "solutionExplanation": "Entferne das mittlere Querstäbchen der 6 und setze es oben rechts ein, um aus der 6 eine 0 zu machen: 0 + 4 = 4! Alternativ: Nimm das vertikale Holz des Pluszeichens und schließe die 6 zu einer 8: 8 - 4 = 4.", "keywords": ["0+4=4", "0 + 4 = 4", "0+4", "8-4=4", "8 - 4 = 4", "5+4=9", "5 + 4 = 9"]}, {"id": "opt-riddle-6", "title": "Isometrische 3D-Würfelpyramide", "category": "Raumdenken", "difficulty": "Mittel", "visualSvg": "<svg viewBox=\"0 0 360 260\" width=\"100%\" height=\"240\" xmlns=\"http://www.w3.org/2000/svg\"><defs><g id=\"iso-cube\"><polygon points=\"0,0 26,-15 52,0 26,15\" fill=\"#38bdf8\" stroke=\"#0284c7\" stroke-width=\"1.2\"/><polygon points=\"0,0 26,15 26,45 0,30\" fill=\"#0284c7\" stroke=\"#0369a1\" stroke-width=\"1.2\"/><polygon points=\"26,15 52,0 52,30 26,45\" fill=\"#0369a1\" stroke=\"#075985\" stroke-width=\"1.2\"/></g></defs><g transform=\"translate(154, 180)\"><use href=\"#iso-cube\"/></g><g transform=\"translate(128, 165)\"><use href=\"#iso-cube\"/></g><g transform=\"translate(180, 165)\"><use href=\"#iso-cube\"/></g><g transform=\"translate(102, 150)\"><use href=\"#iso-cube\"/></g><g transform=\"translate(154, 150)\"><use href=\"#iso-cube\"/></g><g transform=\"translate(206, 150)\"><use href=\"#iso-cube\"/></g><g transform=\"translate(128, 135)\"><use href=\"#iso-cube\"/></g><g transform=\"translate(180, 135)\"><use href=\"#iso-cube\"/></g><g transform=\"translate(154, 120)\"><use href=\"#iso-cube\"/></g><g transform=\"translate(154, 135)\"><use href=\"#iso-cube\"/></g><g transform=\"translate(128, 120)\"><use href=\"#iso-cube\"/></g><g transform=\"translate(180, 120)\"><use href=\"#iso-cube\"/></g><g transform=\"translate(154, 105)\"><use href=\"#iso-cube\"/></g><g transform=\"translate(154, 75)\"><use href=\"#iso-cube\"/></g></svg>", "question": "Aus wie vielen gleich großen Würfeln besteht diese 3D-Pyramide insgesamt (inklusive aller verdeckten Stützwürfel)?", "hint": "Zähle ebenenweise von oben nach unten: 1 (Spitze) + 4 (mittlere Ebene) + 9 (Grundfläche).", "solutionTitle": "Genau 14 Würfel", "solutionExplanation": "1. Ebene (oben): 1 Würfel (1×1). 2. Ebene (Mitte): 4 Würfel (2×2). 3. Ebene (unten): 9 Würfel (3×3). 1 + 4 + 9 = 14 Würfel insgesamt.", "keywords": ["14", "vierzehn", "14 wuerfel", "14 würfel"]}, {"id": "opt-riddle-7", "title": "Die Ebbinghaus-Größentäuschung", "category": "Illusion", "difficulty": "Einfach", "visualSvg": "<svg viewBox=\"0 0 380 210\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\"><g transform=\"translate(100, 105)\"><circle cx=\"0\" cy=\"-62\" r=\"28\" fill=\"#334155\" stroke=\"#475569\"/><circle cx=\"54\" cy=\"-31\" r=\"28\" fill=\"#334155\" stroke=\"#475569\"/><circle cx=\"54\" cy=\"31\" r=\"28\" fill=\"#334155\" stroke=\"#475569\"/><circle cx=\"0\" cy=\"62\" r=\"28\" fill=\"#334155\" stroke=\"#475569\"/><circle cx=\"-54\" cy=\"31\" r=\"28\" fill=\"#334155\" stroke=\"#475569\"/><circle cx=\"-54\" cy=\"-31\" r=\"28\" fill=\"#334155\" stroke=\"#475569\"/><circle cx=\"0\" cy=\"0\" r=\"22\" fill=\"#f97316\" stroke=\"#fb923c\" stroke-width=\"2\"/><text x=\"0\" y=\"5\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"14\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">A</text></g><g transform=\"translate(280, 105)\"><circle cx=\"0\" cy=\"-38\" r=\"10\" fill=\"#334155\" stroke=\"#475569\"/><circle cx=\"27\" cy=\"-27\" r=\"10\" fill=\"#334155\" stroke=\"#475569\"/><circle cx=\"38\" cy=\"0\" r=\"10\" fill=\"#334155\" stroke=\"#475569\"/><circle cx=\"27\" cy=\"27\" r=\"10\" fill=\"#334155\" stroke=\"#475569\"/><circle cx=\"0\" cy=\"38\" r=\"10\" fill=\"#334155\" stroke=\"#475569\"/><circle cx=\"-27\" cy=\"27\" r=\"10\" fill=\"#334155\" stroke=\"#475569\"/><circle cx=\"-38\" cy=\"0\" r=\"10\" fill=\"#334155\" stroke=\"#475569\"/><circle cx=\"-27\" cy=\"-27\" r=\"10\" fill=\"#334155\" stroke=\"#475569\"/><circle cx=\"0\" cy=\"0\" r=\"22\" fill=\"#f97316\" stroke=\"#fb923c\" stroke-width=\"2\"/><text x=\"0\" y=\"5\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"14\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">B</text></g></svg>", "question": "Welcher der beiden inneren orangen Kreise (A oder B) besitzt den größeren Durchmesser?", "hint": "Das menschliche Gehirn schätzt Größen immer im relativen Kontrast zur Umgebung ab.", "solutionTitle": "Beide Kreise sind absolut gleich groß!", "solutionExplanation": "Die Ebbinghaus-Täuschung (Titchener-Kreise): Kreis A wirkt optisch geschrumpft, weil er von riesigen Kreisen umgeben ist. Kreis B wirkt vergrößert durch die winzigen Nachbarkreise. Beide orangen Kreise haben exakt 22 Pixel Radius.", "keywords": ["gleich", "beide gleich", "gleich gross", "gleich groß", "beide", "keiner", "identisch"]}, {"id": "opt-riddle-8", "title": "Die rotierende Zeiger-Sequenz", "category": "Muster", "difficulty": "Mittel", "visualSvg": "<svg viewBox=\"0 0 420 140\" width=\"100%\" height=\"160\" xmlns=\"http://www.w3.org/2000/svg\"><g transform=\"translate(45, 60)\"><circle cx=\"0\" cy=\"0\" r=\"34\" fill=\"#1e293b\" stroke=\"#475569\" stroke-width=\"2\"/><line x1=\"0\" y1=\"0\" x2=\"0\" y2=\"-25\" stroke=\"#38bdf8\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><circle cx=\"0\" cy=\"0\" r=\"3.5\" fill=\"#38bdf8\"/><text x=\"0\" y=\"52\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"12\" fill=\"#94a3b8\" text-anchor=\"middle\">12:00</text></g><g transform=\"translate(130, 60)\"><circle cx=\"0\" cy=\"0\" r=\"34\" fill=\"#1e293b\" stroke=\"#475569\" stroke-width=\"2\"/><line x1=\"0\" y1=\"0\" x2=\"17.7\" y2=\"-17.7\" stroke=\"#38bdf8\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><circle cx=\"0\" cy=\"0\" r=\"3.5\" fill=\"#38bdf8\"/><text x=\"0\" y=\"52\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"12\" fill=\"#94a3b8\" text-anchor=\"middle\">1:30</text></g><g transform=\"translate(215, 60)\"><circle cx=\"0\" cy=\"0\" r=\"34\" fill=\"#1e293b\" stroke=\"#475569\" stroke-width=\"2\"/><line x1=\"0\" y1=\"0\" x2=\"17.7\" y2=\"17.7\" stroke=\"#38bdf8\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><circle cx=\"0\" cy=\"0\" r=\"3.5\" fill=\"#38bdf8\"/><text x=\"0\" y=\"52\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"12\" fill=\"#94a3b8\" text-anchor=\"middle\">4:30</text></g><g transform=\"translate(300, 60)\"><circle cx=\"0\" cy=\"0\" r=\"34\" fill=\"#1e293b\" stroke=\"#475569\" stroke-width=\"2\"/><line x1=\"0\" y1=\"0\" x2=\"-25\" y2=\"0\" stroke=\"#38bdf8\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><circle cx=\"0\" cy=\"0\" r=\"3.5\" fill=\"#38bdf8\"/><text x=\"0\" y=\"52\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"12\" fill=\"#94a3b8\" text-anchor=\"middle\">9:00</text></g><g transform=\"translate(385, 60)\"><circle cx=\"0\" cy=\"0\" r=\"34\" fill=\"#2e1065\" stroke=\"#a855f7\" stroke-width=\"2.5\" stroke-dasharray=\"4 3\"/><text x=\"0\" y=\"8\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"28\" font-weight=\"900\" fill=\"#c084fc\" text-anchor=\"middle\">?</text><text x=\"0\" y=\"52\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"12\" fill=\"#c084fc\" text-anchor=\"middle\">Ziel</text></g></svg>", "question": "Auf welche Uhrzeit (oder wie viel Grad) zeigt der Zeiger der 5. Uhr, wenn das Muster fortgesetzt wird?", "hint": "Die Drehung vergrößert sich in jedem Schritt um 45 Grad: +45°, dann +90°, dann +135° ... Wie viel Grad Drehung folgt nun?", "solutionTitle": "3:00 Uhr (oder 90 Grad)", "solutionExplanation": "Die Winkelschritte wachsen linear: +45° (1:30), +90° (4:30), +135° (9:00). Der nächste Schritt beträgt +180°: 270° + 180° = 450° ≡ 90°, was exakt 3:00 Uhr entspricht.", "keywords": ["3:00", "3 uhr", "3", "drei uhr", "03:00", "90 grad", "90°"]}, {"id": "opt-riddle-9", "title": "Das 3x3 Schachbrett-Raster", "category": "Geometrie", "difficulty": "Mittel", "visualSvg": "<svg viewBox=\"0 0 300 260\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\"><defs><pattern id=\"checkers\" width=\"40\" height=\"40\" patternUnits=\"userSpaceOnUse\"><rect width=\"20\" height=\"20\" fill=\"rgba(56,189,248,0.08)\"/><rect x=\"20\" y=\"20\" width=\"20\" height=\"20\" fill=\"rgba(56,189,248,0.08)\"/></pattern></defs><rect x=\"60\" y=\"25\" width=\"180\" height=\"180\" rx=\"4\" fill=\"url(#checkers)\" stroke=\"#38bdf8\" stroke-width=\"3\"/><line x1=\"120\" y1=\"25\" x2=\"120\" y2=\"205\" stroke=\"#38bdf8\" stroke-width=\"2.5\"/><line x1=\"180\" y1=\"25\" x2=\"180\" y2=\"205\" stroke=\"#38bdf8\" stroke-width=\"2.5\"/><line x1=\"60\" y1=\"85\" x2=\"240\" y2=\"85\" stroke=\"#38bdf8\" stroke-width=\"2.5\"/><line x1=\"60\" y1=\"145\" x2=\"240\" y2=\"145\" stroke=\"#38bdf8\" stroke-width=\"2.5\"/><text x=\"150\" y=\"235\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"14\" fill=\"#94a3b8\" text-anchor=\"middle\">Zähle 1×1, 2×2 und 3×3 Quadrate</text></svg>", "question": "Wie viele Quadrate aller Größen (1×1, 2×2, 3×3) befinden sich insgesamt in diesem 3×3-Gitter?", "hint": "Vergiss nicht die vier 2×2-Quadrate und das große 3×3-Außenquadrat.", "solutionTitle": "Genau 14 Quadrate", "solutionExplanation": "In einem 3×3-Gitter gibt es: 9 kleine Quadrate (1×1) + 4 mittlere Quadrate (2×2) + 1 großes Quadrat (3×3). 9 + 4 + 1 = 14 Quadrate (Formel: 1² + 2² + 3² = 14).", "keywords": ["14", "vierzehn", "14 quadrate"]}, {"id": "opt-riddle-10", "title": "Additive RGB-Farbmischung", "category": "Illusion", "difficulty": "Einfach", "visualSvg": "<svg viewBox=\"0 0 340 250\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"170\" cy=\"85\" r=\"60\" fill=\"#ef4444\" fill-opacity=\"0.75\"/><circle cx=\"130\" cy=\"155\" r=\"60\" fill=\"#22c55e\" fill-opacity=\"0.75\"/><circle cx=\"210\" cy=\"155\" r=\"60\" fill=\"#3b82f6\" fill-opacity=\"0.75\"/><text x=\"170\" y=\"50\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#fca5a5\" text-anchor=\"middle\">ROT</text><text x=\"85\" y=\"195\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#86efac\" text-anchor=\"middle\">GRÜN</text><text x=\"255\" y=\"195\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#93c5fd\" text-anchor=\"middle\">BLAU</text><circle cx=\"170\" cy=\"132\" r=\"16\" fill=\"#0f172a\" stroke=\"#fff\" stroke-width=\"2\"/><text x=\"170\" y=\"139\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"18\" font-weight=\"900\" fill=\"#fff\" text-anchor=\"middle\">?</text></svg>", "question": "Welche Lichtfarbe entsteht im Zentrum (?), wenn alle drei Lichtquellen (Rot, Grün, Blau) aufeinandertreffen?", "hint": "Hier geht es um die additive Lichtmischung von Bildschirmen (RGB), nicht um Farbkasten-Pigmente.", "solutionTitle": "Weiß (Weißes Licht)", "solutionExplanation": "Bei additiver Farbmischung (wie bei Pixeln oder Bühnen-Scheinwerfern) erzeugen alle drei Grundfarben bei voller Intensität pures Weiß. (Rot + Grün = Gelb, Grün + Blau = Cyan, Rot + Blau = Magenta, alle drei = Weiß).", "keywords": ["weiss", "weiß", "white", "lichtweiss", "weißes licht"]}, {"id": "opt-riddle-11", "title": "Würfel-Netz Faltung", "category": "Raumdenken", "difficulty": "Mittel", "visualSvg": "<svg viewBox=\"0 0 360 220\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\"><style>.net-box { fill: #1e293b; stroke: #38bdf8; stroke-width: 2; rx: 4; } .net-sym { font-size: 26px; }</style><rect x=\"155\" y=\"15\" width=\"50\" height=\"50\" class=\"net-box\"/><text x=\"180\" y=\"50\" text-anchor=\"middle\" class=\"net-sym\">🔺</text><rect x=\"55\" y=\"65\" width=\"50\" height=\"50\" class=\"net-box\" stroke=\"#f59e0b\" stroke-width=\"3\"/><text x=\"80\" y=\"100\" text-anchor=\"middle\" class=\"net-sym\">⚪</text><rect x=\"105\" y=\"65\" width=\"50\" height=\"50\" class=\"net-box\"/><text x=\"130\" y=\"100\" text-anchor=\"middle\" class=\"net-sym\">⬛</text><rect x=\"155\" y=\"65\" width=\"50\" height=\"50\" class=\"net-box\"/><text x=\"180\" y=\"100\" text-anchor=\"middle\" class=\"net-sym\">⭐</text><rect x=\"205\" y=\"65\" width=\"50\" height=\"50\" class=\"net-box\"/><text x=\"230\" y=\"100\" text-anchor=\"middle\" class=\"net-sym\">🔷</text><rect x=\"155\" y=\"115\" width=\"50\" height=\"50\" class=\"net-box\"/><text x=\"180\" y=\"150\" text-anchor=\"middle\" class=\"net-sym\">⚫</text><text x=\"180\" y=\"195\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"14\" fill=\"#94a3b8\" text-anchor=\"middle\">Welches Symbol liegt ⚪ im gefalteten Würfel gegenüber?</text></svg>", "question": "Welches Symbol liegt dem weißen Kreis (⚪) genau gegenüber, wenn dieses Netz zu einem Würfel gefaltet wird?", "hint": "In einem Band von Quadraten liegt immer jedes zweite Quadrat der Reihe gegenüber.", "solutionTitle": "Der Stern (⭐)", "solutionExplanation": "In der horizontalen Reihe liegt immer eine Fläche zwischen zwei gegenüberliegenden Seiten. Der Kreis (Position 1) und der Stern (Position 3) haben das schwarze Quadrat (Position 2) dazwischen und stehen sich im gefalteten 3D-Würfel daher genau gegenüber.", "keywords": ["stern", "star", "⭐", "der stern"]}, {"id": "opt-riddle-12", "title": "Das verzweigte Röhrensystem", "category": "Muster", "difficulty": "Mittel", "visualSvg": "<svg viewBox=\"0 0 380 230\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\"><rect x=\"175\" y=\"10\" width=\"30\" height=\"15\" fill=\"#94a3b8\" rx=\"2\"/><path d=\"M190,25 Q190,40 190,45\" stroke=\"#38bdf8\" stroke-width=\"4\" stroke-linecap=\"round\"/><rect x=\"140\" y=\"45\" width=\"100\" height=\"45\" fill=\"none\" stroke=\"#64748b\" stroke-width=\"2.5\"/><text x=\"190\" y=\"72\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"14\" font-weight=\"700\" fill=\"#94a3b8\" text-anchor=\"middle\">Tank 1</text><path d=\"M140,75 L80,75 L80,120\" fill=\"none\" stroke=\"#64748b\" stroke-width=\"6\"/><circle cx=\"80\" cy=\"100\" r=\"8\" fill=\"#ef4444\"/><text x=\"80\" y=\"104\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"11\" font-weight=\"900\" fill=\"#fff\" text-anchor=\"middle\">✕</text><path d=\"M190,90 L190,130\" fill=\"none\" stroke=\"#38bdf8\" stroke-width=\"6\"/><path d=\"M240,55 L300,55 L300,120\" fill=\"none\" stroke=\"#64748b\" stroke-width=\"6\"/><rect x=\"45\" y=\"120\" width=\"70\" height=\"55\" fill=\"none\" stroke=\"#64748b\" stroke-width=\"2.5\"/><text x=\"80\" y=\"152\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"16\" font-weight=\"700\" fill=\"#94a3b8\" text-anchor=\"middle\">2</text><rect x=\"155\" y=\"130\" width=\"70\" height=\"55\" fill=\"none\" stroke=\"#10b981\" stroke-width=\"2.5\"/><text x=\"190\" y=\"162\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"16\" font-weight=\"700\" fill=\"#10b981\" text-anchor=\"middle\">3</text><rect x=\"265\" y=\"120\" width=\"70\" height=\"55\" fill=\"none\" stroke=\"#64748b\" stroke-width=\"2.5\"/><text x=\"300\" y=\"152\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"16\" font-weight=\"700\" fill=\"#94a3b8\" text-anchor=\"middle\">4</text><text x=\"190\" y=\"215\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"14\" fill=\"#cbd5e1\" text-anchor=\"middle\">Welcher Behälter füllt sich als Allererster?</text></svg>", "question": "Welcher Behälter (2, 3 oder 4) füllt sich als Allererster vollständig mit Wasser?", "hint": "Prüfe die Verbindungsrohre: Rohr 2 ist durch eine rote Sperre verschlossen, Rohr 4 zweigt zu weit oben ab.", "solutionTitle": "Behälter 3", "solutionExplanation": "Die Zuleitung zu Tank 2 ist verstopft (rotes ✕). Die Leitung zu Tank 4 liegt am oberen Rand und wird erst bei Überlauf erreicht. Die Röhre zu Tank 3 ist tief und komplett frei – Tank 3 füllt sich zuerst.", "keywords": ["3", "drei", "behaelter 3", "behälter 3", "tank 3"]}, {"id": "opt-riddle-13", "title": "Die Ponzo-Perspektive", "category": "Illusion", "difficulty": "Einfach", "visualSvg": "<svg viewBox=\"0 0 340 230\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\"><defs><filter id=\"bar-glow\"><feGaussianBlur stdDeviation=\"2\" result=\"b\"/><feMerge><feMergeNode in=\"b\"/><feMergeNode in=\"SourceGraphic\"/></feMerge></filter></defs><line x1=\"140\" y1=\"20\" x2=\"40\" y2=\"210\" stroke=\"#475569\" stroke-width=\"4\"/><line x1=\"200\" y1=\"20\" x2=\"300\" y2=\"210\" stroke=\"#475569\" stroke-width=\"4\"/><line x1=\"135\" y1=\"35\" x2=\"205\" y2=\"35\" stroke=\"#334155\" stroke-width=\"2\"/><line x1=\"125\" y1=\"65\" x2=\"215\" y2=\"65\" stroke=\"#334155\" stroke-width=\"2.5\"/><line x1=\"110\" y1=\"105\" x2=\"230\" y2=\"105\" stroke=\"#334155\" stroke-width=\"3\"/><line x1=\"90\" y1=\"150\" x2=\"250\" y2=\"150\" stroke=\"#334155\" stroke-width=\"3.5\"/><line x1=\"60\" y1=\"200\" x2=\"280\" y2=\"200\" stroke=\"#334155\" stroke-width=\"4\"/><rect x=\"130\" y=\"58\" width=\"80\" height=\"12\" rx=\"3\" fill=\"#fbbf24\" stroke=\"#f59e0b\" filter=\"url(#bar-glow)\"/><text x=\"110\" y=\"68\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"14\" font-weight=\"700\" fill=\"#fbbf24\">A</text><rect x=\"130\" y=\"170\" width=\"80\" height=\"12\" rx=\"3\" fill=\"#fbbf24\" stroke=\"#f59e0b\" filter=\"url(#bar-glow)\"/><text x=\"110\" y=\"180\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"14\" font-weight=\"700\" fill=\"#fbbf24\">B</text></svg>", "question": "Welcher der beiden gelben Balken (A = Oben oder B = Unten) ist in realer Linienbreite länger?", "hint": "Die Schienen erzeugen eine Tiefenperspektive, die dein Gehirn täuscht.", "solutionTitle": "Beide Balken sind exakt gleich lang!", "solutionExplanation": "Die klassische Ponzo-Täuschung: Da das menschliche Sehzentrum die zusammenlaufenden Linien als Ferne interpretiert, vergrößert es Balken A unbewusst. Beide Balken sind auf den Pixel genau 80 Pixel breit.", "keywords": ["gleich", "beide gleich", "gleich lang", "beide", "keiner", "identisch"]}, {"id": "opt-riddle-14", "title": "Das magische Summen-Dreieck", "category": "Geometrie", "difficulty": "Schwer", "visualSvg": "<svg viewBox=\"0 0 340 260\" width=\"100%\" height=\"240\" xmlns=\"http://www.w3.org/2000/svg\"><defs><g id=\"num-node\"><circle cx=\"0\" cy=\"0\" r=\"18\" fill=\"#1e293b\" stroke=\"#38bdf8\" stroke-width=\"2.5\"/></g></defs><polygon points=\"170,40 50,220 290,220\" fill=\"none\" stroke=\"#475569\" stroke-width=\"2.5\"/><g transform=\"translate(170, 40)\"><use href=\"#num-node\"/><text x=\"0\" y=\"5\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"16\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">1</text></g><g transform=\"translate(230, 130)\"><use href=\"#num-node\"/><text x=\"0\" y=\"5\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"16\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">4</text></g><g transform=\"translate(290, 220)\"><use href=\"#num-node\"/><text x=\"0\" y=\"5\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"16\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">5</text></g><g transform=\"translate(170, 220)\"><use href=\"#num-node\"/><text x=\"0\" y=\"5\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"16\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">2</text></g><g transform=\"translate(110, 130)\"><use href=\"#num-node\"/><text x=\"0\" y=\"5\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"16\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">6</text></g><g transform=\"translate(50, 220)\"><circle cx=\"0\" cy=\"0\" r=\"19\" fill=\"#2e1065\" stroke=\"#a855f7\" stroke-width=\"3\"/><text x=\"0\" y=\"6\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"18\" font-weight=\"900\" fill=\"#c084fc\" text-anchor=\"middle\">?</text></g></svg>", "question": "Welche Zahl (von 1 bis 6) gehört in die linke untere Ecke (?), damit jede Seite die Summe 10 ergibt?", "hint": "Prüfe die linke Dreiecksseite: 1 + 6 + ? = 10.", "solutionTitle": "Die Zahl 3", "solutionExplanation": "Linke Kante: 1 + 6 + 3 = 10. Untere Kante: 3 + 2 + 5 = 10. Rechte Kante: 1 + 4 + 5 = 10. Jede der drei Seiten ergibt damit exakt die Zielsumme 10.", "keywords": ["3", "drei"]}, {"id": "opt-riddle-15", "title": "Die Getriebe-Kette", "category": "Muster", "difficulty": "Einfach", "visualSvg": "<svg viewBox=\"0 0 420 150\" width=\"100%\" height=\"160\" xmlns=\"http://www.w3.org/2000/svg\"><defs><g id=\"gear\"><circle cx=\"0\" cy=\"0\" r=\"28\" fill=\"#1e293b\" stroke=\"#38bdf8\" stroke-width=\"2.5\"/><circle cx=\"0\" cy=\"0\" r=\"9\" fill=\"#0f172a\" stroke=\"#38bdf8\" stroke-width=\"2\"/><line x1=\"-34\" y1=\"0\" x2=\"34\" y2=\"0\" stroke=\"#38bdf8\" stroke-width=\"3\"/><line x1=\"0\" y1=\"-34\" x2=\"0\" y2=\"34\" stroke=\"#38bdf8\" stroke-width=\"3\"/><line x1=\"-24\" y1=\"-24\" x2=\"24\" y2=\"24\" stroke=\"#38bdf8\" stroke-width=\"3\"/><line x1=\"-24\" y1=\"24\" x2=\"24\" y2=\"-24\" stroke=\"#38bdf8\" stroke-width=\"3\"/></g></defs><g transform=\"translate(50, 75)\"><use href=\"#gear\"/><text x=\"0\" y=\"5\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">A</text></g><g transform=\"translate(125, 75)\"><use href=\"#gear\"/><text x=\"0\" y=\"5\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">B</text></g><g transform=\"translate(200, 75)\"><use href=\"#gear\"/><text x=\"0\" y=\"5\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">C</text></g><g transform=\"translate(275, 75)\"><use href=\"#gear\"/><text x=\"0\" y=\"5\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">D</text></g><g transform=\"translate(350, 75)\"><use href=\"#gear\"/><text x=\"0\" y=\"5\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" font-weight=\"700\" fill=\"#fff\" text-anchor=\"middle\">E</text></g><text x=\"50\" y=\"28\" font-size=\"20\" fill=\"#10b981\" text-anchor=\"middle\">↻</text><text x=\"350\" y=\"28\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"20\" font-weight=\"900\" fill=\"#f43f5e\" text-anchor=\"middle\">?</text><text x=\"210\" y=\"138\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" fill=\"#94a3b8\" text-anchor=\"middle\">Rad A dreht im Uhrzeigersinn (↻)</text></svg>", "question": "In welche Richtung dreht sich das letzte Zahnrad E (Uhrzeigersinn oder Gegen den Uhrzeigersinn)?", "hint": "Zwei ineinandergreifende Zahnräder kehren ihre Drehrichtung um. Zähle die Schritte ungerade/gerade.", "solutionTitle": "Im Uhrzeigersinn (CW)", "solutionExplanation": "A dreht im Uhrzeigersinn -> B dreht gegen -> C im Uhrzeigersinn -> D dreht gegen -> E dreht wieder im Uhrzeigersinn. Bei einer ungeraden Kette (1, 3, 5) hat das letzte Rad stets dieselbe Drehrichtung wie das erste.", "keywords": ["uhrzeigersinn", "im uhrzeigersinn", "rechts", "cw", "wie a"]}, {"id": "opt-riddle-16", "title": "Streichholz-Quadrate: Von 4 auf 2", "category": "Streichholz", "difficulty": "Mittel", "visualSvg": "<svg viewBox=\"0 0 340 240\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\"><defs><g id=\"h-m\"><rect x=\"0\" y=\"2\" width=\"60\" height=\"8\" rx=\"2\" fill=\"#d97706\"/><circle cx=\"5\" cy=\"6\" r=\"5\" fill=\"#ef4444\"/></g><g id=\"v-m\"><rect x=\"2\" y=\"0\" width=\"8\" height=\"60\" rx=\"2\" fill=\"#d97706\"/><circle cx=\"6\" cy=\"5\" r=\"5\" fill=\"#ef4444\"/></g></defs><use href=\"#h-m\" x=\"100\" y=\"30\"/><use href=\"#h-m\" x=\"170\" y=\"30\"/><use href=\"#h-m\" x=\"100\" y=\"100\"/><use href=\"#h-m\" x=\"170\" y=\"100\"/><use href=\"#h-m\" x=\"100\" y=\"170\"/><use href=\"#h-m\" x=\"170\" y=\"170\"/><use href=\"#v-m\" x=\"90\" y=\"35\"/><use href=\"#v-m\" x=\"90\" y=\"105\"/><use href=\"#v-m\" x=\"160\" y=\"35\"/><use href=\"#v-m\" x=\"160\" y=\"105\"/><use href=\"#v-m\" x=\"230\" y=\"35\"/><use href=\"#v-m\" x=\"230\" y=\"105\"/><text x=\"170\" y=\"215\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" fill=\"#cbd5e1\" text-anchor=\"middle\">4 Quadrate aus 12 Streichhölzern</text></svg>", "question": "Wie viele Streichhölzer musst du MINDESTENS entfernen, damit genau 2 Quadrate (ohne überstehende lose Enden) übrig bleiben?", "hint": "Entferne zwei Außenhölzer einer Ecke.", "solutionTitle": "Mindestens 2 Streichhölzer", "solutionExplanation": "Wenn man 2 Hölzer einer Außenecke wegnimmt (z. B. oben und rechts des Eck-Quadrats), verschwindet dieses Quadrat vollständig und es bleiben genau 2 intakte Quadrate stehen.", "keywords": ["2", "zwei", "2 streichhoelzer", "2 streichhölzer"]}, {"id": "opt-riddle-17", "title": "Das unmögliche Penrose-Dreieck", "category": "Illusion", "difficulty": "Mittel", "visualSvg": "<svg viewBox=\"0 0 340 260\" width=\"100%\" height=\"240\" xmlns=\"http://www.w3.org/2000/svg\"><g transform=\"translate(170, 130) scale(1.15)\"><polygon points=\"-70,50 -20,50 -20,-10 30,-10 30,50 80,50 80,-70 -70,-70\" fill=\"#c084fc\" opacity=\"0.9\"/><polygon points=\"-70,50 -70,-70 -35,-50 -35,20 30,20 30,50\" fill=\"#9333ea\" opacity=\"0.9\"/><polygon points=\"80,-70 45,-50 -20,-50 -20,20 -35,20 -35,-70\" fill=\"#581c87\" opacity=\"0.9\"/><polygon points=\"-70,50 80,50 65,25 -50,25\" fill=\"#a855f7\" opacity=\"0.85\"/></g><text x=\"170\" y=\"240\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" fill=\"#cbd5e1\" text-anchor=\"middle\">Optisch unmögliche 3D-Geometrie</text></svg>", "question": "Wie viele scheinbare 90-Grad-Winkel (rechte Winkel) scheint dieser unmögliche Körper optisch zu besitzen?", "hint": "Betrachte jede der 3 Ecken des Balkendreiecks aus der jeweiligen lokalen Perspektive.", "solutionTitle": "3 rechte Winkel", "solutionExplanation": "Jede der drei Ecken des Penrose-Tribars wirkt lokal wie ein perfekter 90°-Winkel (drei rechte Winkel ergäben 270°, was in einem ebenen Dreieck mit 180° Winkelsumme geometrisch unmöglich ist).", "keywords": ["3", "drei", "3 rechte winkel", "drei rechte winkel"]}, {"id": "opt-riddle-18", "title": "Die kosmische Symbol-Waage", "category": "Gleichung", "difficulty": "Einfach", "visualSvg": "<svg viewBox=\"0 0 380 230\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\"><style>.scale-bar { stroke: #64748b; stroke-width: 3; } .scale-sym { font-size: 20px; }</style><g transform=\"translate(30, 20)\"><line x1=\"20\" y1=\"35\" x2=\"140\" y2=\"35\" class=\"scale-bar\"/><polygon points=\"80,35 70,55 90,55\" fill=\"#475569\"/><text x=\"35\" y=\"30\" class=\"scale-sym\">💎</text><text x=\"75\" y=\"30\" font-size=\"14\" fill=\"#94a3b8\">=</text><text x=\"95\" y=\"30\" class=\"scale-sym\">🪙🪙🪙</text></g><g transform=\"translate(200, 20)\"><line x1=\"20\" y1=\"35\" x2=\"140\" y2=\"35\" class=\"scale-bar\"/><polygon points=\"80,35 70,55 90,55\" fill=\"#475569\"/><text x=\"35\" y=\"30\" class=\"scale-sym\">👑</text><text x=\"75\" y=\"30\" font-size=\"14\" fill=\"#94a3b8\">=</text><text x=\"95\" y=\"30\" class=\"scale-sym\">💎💎</text></g><g transform=\"translate(115, 110)\"><rect x=\"0\" y=\"0\" width=\"160\" height=\"75\" rx=\"10\" fill=\"#1e293b\" stroke=\"#f59e0b\" stroke-width=\"2\"/><text x=\"30\" y=\"48\" font-size=\"28\">👑</text><text x=\"75\" y=\"48\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"20\" font-weight=\"700\" fill=\"#94a3b8\">=</text><text x=\"110\" y=\"48\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"28\" font-weight=\"900\" fill=\"#f59e0b\">?</text><text x=\"80\" y=\"68\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"11\" fill=\"#cbd5e1\" text-anchor=\"middle\">Wie viele Münzen (🪙)?</text></g></svg>", "question": "Wie viele Goldmünzen (🪙) werden benötigt, um 1 Krone (👑) auf der Ziel-Waage im Gleichgewicht zu halten?", "hint": "Setze den Wert eines Diamanten in Münzen in die Gleichung der Krone ein: 1 💎 = 3 🪙.", "solutionTitle": "Genau 6 Goldmünzen (🪙)", "solutionExplanation": "1 Diamant wiegt 3 Münzen. 1 Krone wiegt 2 Diamanten. Da jeder Diamant 3 Münzen wiegt: 2 × 3 = 6 Goldmünzen.", "keywords": ["6", "sechs", "6 muenzen", "6 münzen"]}, {"id": "opt-riddle-19", "title": "Das Hermann-Gitter", "category": "Illusion", "difficulty": "Einfach", "visualSvg": "<svg viewBox=\"0 0 340 250\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"340\" height=\"250\" fill=\"#0f172a\"/><g fill=\"#ffffff\"><rect x=\"30\" y=\"25\" width=\"60\" height=\"60\" rx=\"3\"/><rect x=\"105\" y=\"25\" width=\"60\" height=\"60\" rx=\"3\"/><rect x=\"180\" y=\"25\" width=\"60\" height=\"60\" rx=\"3\"/><rect x=\"255\" y=\"25\" width=\"60\" height=\"60\" rx=\"3\"/><rect x=\"30\" y=\"100\" width=\"60\" height=\"60\" rx=\"3\"/><rect x=\"105\" y=\"100\" width=\"60\" height=\"60\" rx=\"3\"/><rect x=\"180\" y=\"100\" width=\"60\" height=\"60\" rx=\"3\"/><rect x=\"255\" y=\"100\" width=\"60\" height=\"60\" rx=\"3\"/><rect x=\"30\" y=\"175\" width=\"60\" height=\"60\" rx=\"3\"/><rect x=\"105\" y=\"175\" width=\"60\" height=\"60\" rx=\"3\"/><rect x=\"180\" y=\"175\" width=\"60\" height=\"60\" rx=\"3\"/><rect x=\"255\" y=\"175\" width=\"60\" height=\"60\" rx=\"3\"/></g><text x=\"170\" y=\"244\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"12\" fill=\"#94a3b8\" text-anchor=\"middle\">Was siehst du in den dunklen Kreuzungen?</text></svg>", "question": "Welche scheinbare optische Erscheinung nimmst du an den Schnittpunkten der dunklen Straßen wahr (obwohl dort keine sind)?", "hint": "Bewege deine Augen über das Raster: An den Kreuzungen im peripheren Sehfeld blitzen flüchtige Flecken auf.", "solutionTitle": "Graue Flecken / Schattenpunkte", "solutionExplanation": "Die Hermann-Gitter-Täuschung (1870 von Ludimar Hermann entdeckt): Durch die laterale Hemmung in den retinalen Ganglienzellen des Auges erscheinen an den Schnittpunkten geisterhafte graue Punkte, die verschwinden, sobald man sie direkt fokussiert.", "keywords": ["graue punkte", "punkte", "graue flecken", "flecken", "schatten", "schattenpunkte", "punkte an kreuzungen"]}, {"id": "opt-riddle-20", "title": "Das Kanizsa-Dreieck", "category": "Illusion", "difficulty": "Einfach", "visualSvg": "<svg viewBox=\"0 0 340 250\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M170,30 L100,165\" stroke=\"#475569\" stroke-width=\"2.5\"/><path d=\"M100,165 L240,165\" stroke=\"#475569\" stroke-width=\"2.5\"/><path d=\"M240,165 L170,30\" stroke=\"#475569\" stroke-width=\"2.5\"/><path d=\"M170,55 A25,25 0 1,0 152,38 L170,55 Z\" fill=\"#38bdf8\"/><path d=\"M90,185 A25,25 0 1,0 115,185 L90,160 Z\" fill=\"#38bdf8\"/><path d=\"M250,185 A25,25 0 1,0 225,185 L250,160 Z\" fill=\"#38bdf8\"/><polygon points=\"170,180 85,60 255,60\" fill=\"#0f172a\"/><polygon points=\"170,40 90,175 250,175\" fill=\"#1e293b\" opacity=\"0.95\"/><text x=\"170\" y=\"240\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" fill=\"#cbd5e1\" text-anchor=\"middle\">Wie viele echte Umrisslinien hat das weiße Dreieck?</text></svg>", "question": "Wie viele physisch gezeichnete Außenkanten besitzt das scheinbar leuchtende zentrale weiße Dreieck in Wirklichkeit?", "hint": "Schau genau hin: Existieren die Linien des Dreiecks tatsächlich als Striche auf dem Bildschirm oder vervollständigt sie dein Gehirn?", "solutionTitle": "Genau 0 (Keine einzige Linie!)", "solutionExplanation": "Das Kanizsa-Dreieck (1955 von Gaetano Kanizsa): Das zentrale helle Dreieck existiert rein als illusorische Kontur. Das Gehirn schließt die offenen Ausschnitte der Pacman-Kreise und Winkel zu einer zusammenhängenden Gestalt.", "keywords": ["0", "null", "keine", "keine linien", "0 linien", "kein", "keine kanten", "0 kanten"]}, {"id": "opt-riddle-21", "title": "Der wendende Streichholz-Fisch", "category": "Streichholz", "difficulty": "Mittel", "visualSvg": "<svg viewBox=\"0 0 360 230\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\"><defs><g id=\"m-fish\"><rect x=\"0\" y=\"2\" width=\"55\" height=\"7\" rx=\"2\" fill=\"#d97706\"/><circle cx=\"5\" cy=\"5.5\" r=\"4.5\" fill=\"#ef4444\"/></g></defs><g transform=\"translate(180, 110)\"><g transform=\"rotate(45)\"><use href=\"#m-fish\" x=\"0\" y=\"0\"/></g><g transform=\"rotate(135)\"><use href=\"#m-fish\" x=\"0\" y=\"0\"/></g><g transform=\"rotate(225)\"><use href=\"#m-fish\" x=\"0\" y=\"0\"/></g><g transform=\"rotate(315)\"><use href=\"#m-fish\" x=\"0\" y=\"0\"/></g><g transform=\"translate(39, -39) rotate(0)\"><use href=\"#m-fish\" x=\"0\" y=\"0\"/></g><g transform=\"translate(39, 39) rotate(0)\"><use href=\"#m-fish\" x=\"0\" y=\"0\"/></g><g transform=\"translate(39, -39) rotate(90)\"><use href=\"#m-fish\" x=\"0\" y=\"0\"/></g><g transform=\"translate(39, -39) rotate(45)\"><use href=\"#m-fish\" x=\"0\" y=\"0\"/></g></g><text x=\"80\" y=\"115\" font-size=\"24\">🐟 ➔</text><text x=\"180\" y=\"210\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" fill=\"#cbd5e1\" text-anchor=\"middle\">Der Fisch schwimmt nach links. Wie viele Hölzer für Richtungswechsel?</text></svg>", "question": "Wie viele Streichhölzer musst du MINDESTENS umlegen, damit der Fisch in die genau entgegengesetzte Richtung schwimmt?", "hint": "Um die Flossen und den Schwanz umzukehren, müssen 2 Flossenhölzer und 1 Schwanzholz bewegt werden.", "solutionTitle": "Mindestens 3 Streichhölzer", "solutionExplanation": "Durch das Umlegen von genau 3 Hölzern (zwei an den äußeren Flossen und eines an der Schwanzflosse) dreht sich die gesamte Körperform um 180 Grad nach rechts.", "keywords": ["3", "drei", "3 streichhoelzer", "3 streichhölzer", "drei streichhölzer"]}, {"id": "opt-riddle-22", "title": "3D-Faltpapier mit Lochstanze", "category": "Raumdenken", "difficulty": "Mittel", "visualSvg": "<svg viewBox=\"0 0 380 220\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\"><rect x=\"30\" y=\"35\" width=\"80\" height=\"80\" fill=\"#1e293b\" stroke=\"#38bdf8\" stroke-width=\"2\"/><text x=\"70\" y=\"135\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"12\" fill=\"#94a3b8\" text-anchor=\"middle\">1. Blatt (Quadrat)</text><path d=\"M120,75 L150,75\" stroke=\"#64748b\" stroke-width=\"2\" stroke-dasharray=\"3 3\"/><rect x=\"160\" y=\"35\" width=\"40\" height=\"80\" fill=\"#1e293b\" stroke=\"#38bdf8\" stroke-width=\"2\"/><line x1=\"160\" y1=\"35\" x2=\"160\" y2=\"115\" stroke=\"#f59e0b\" stroke-width=\"2\"/><text x=\"180\" y=\"135\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"12\" fill=\"#94a3b8\" text-anchor=\"middle\">2. Mitte falten</text><path d=\"M210,75 L240,75\" stroke=\"#64748b\" stroke-width=\"2\" stroke-dasharray=\"3 3\"/><rect x=\"250\" y=\"75\" width=\"40\" height=\"40\" fill=\"#1e293b\" stroke=\"#38bdf8\" stroke-width=\"2\"/><circle cx=\"270\" cy=\"95\" r=\"7\" fill=\"#ef4444\" stroke=\"#fff\" stroke-width=\"1.5\"/><text x=\"270\" y=\"135\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"12\" fill=\"#94a3b8\" text-anchor=\"middle\">3. Nochmal falten & Loch</text><text x=\"190\" y=\"195\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"14\" font-weight=\"700\" fill=\"#38bdf8\" text-anchor=\"middle\">Wie viele Löcher hat das aufgefaltete Blatt?</text></svg>", "question": "Wie viele gestanzte Löcher besitzt das Blatt Papier, wenn es wieder vollständig zu seiner ursprünglichen Größe aufgefaltet wird?", "hint": "Das Blatt wurde 2-mal gefaltet: 1-mal halbiert (2 Schichten), dann nochmals halbiert (4 Schichten).", "solutionTitle": "Genau 4 Löcher", "solutionExplanation": "Jede Faltung verdoppelt die Lagenanzahl des Papiers. 1 Falte = 2 Lagen, 2 Falten = 4 Lagen. Die Stanze durchdringt alle 4 Lagen gleichzeitig, sodass beim Auseinanderfalten exakt 4 Löcher symmetrisch verteilt sind.", "keywords": ["4", "vier", "4 loecher", "4 löcher", "vier löcher"]}, {"id": "opt-riddle-23", "title": "Kosmische Planeten-Waage", "category": "Gleichung", "difficulty": "Einfach", "visualSvg": "<svg viewBox=\"0 0 380 230\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\"><style>.p-bar { stroke: #64748b; stroke-width: 3.5; } .p-sym { font-size: 22px; }</style><g transform=\"translate(30, 25)\"><line x1=\"20\" y1=\"35\" x2=\"140\" y2=\"35\" class=\"p-bar\"/><polygon points=\"80,35 70,55 90,55\" fill=\"#475569\"/><text x=\"35\" y=\"30\" class=\"p-sym\">🪐</text><text x=\"75\" y=\"30\" font-size=\"14\" fill=\"#94a3b8\">=</text><text x=\"95\" y=\"30\" class=\"p-sym\">🌍🌍</text></g><g transform=\"translate(200, 25)\"><line x1=\"20\" y1=\"35\" x2=\"140\" y2=\"35\" class=\"p-bar\"/><polygon points=\"80,35 70,55 90,55\" fill=\"#475569\"/><text x=\"35\" y=\"30\" class=\"p-sym\">🌍</text><text x=\"75\" y=\"30\" font-size=\"14\" fill=\"#94a3b8\">=</text><text x=\"95\" y=\"30\" class=\"p-sym\">🌕🌕🌕🌕</text></g><g transform=\"translate(115, 115)\"><rect x=\"0\" y=\"0\" width=\"160\" height=\"75\" rx=\"10\" fill=\"#1e293b\" stroke=\"#f59e0b\" stroke-width=\"2\"/><text x=\"30\" y=\"48\" font-size=\"28\">🪐</text><text x=\"75\" y=\"48\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"20\" font-weight=\"700\" fill=\"#94a3b8\">=</text><text x=\"110\" y=\"48\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"28\" font-weight=\"900\" fill=\"#f59e0b\">?</text><text x=\"80\" y=\"68\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"11\" fill=\"#cbd5e1\" text-anchor=\"middle\">Wie viele Monde (🌕)?</text></g></svg>", "question": "Wie viele Monde (🌕) wiegt 1 Saturn (🪐) laut den oberen beiden Gleichgewichtswaagen?", "hint": "1 Saturn wiegt 2 Erden. Jede Erde wiegt 4 Monde.", "solutionTitle": "Genau 8 Monde (🌕)", "solutionExplanation": "1 🪐 = 2 🌍. Da 1 🌍 = 4 🌕, wiegt 1 🪐 = 2 × 4 = 8 🌕 Monde.", "keywords": ["8", "acht", "8 monde", "acht monde"]}, {"id": "opt-riddle-24", "title": "Hexagonale Bienenwaben-Zählung", "category": "Geometrie", "difficulty": "Mittel", "visualSvg": "<svg viewBox=\"0 0 340 240\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\"><defs><polygon id=\"hex\" points=\"0,-25 21.65,-12.5 21.65,12.5 0,25 -21.65,12.5 -21.65,-12.5\" fill=\"rgba(245,158,11,0.12)\" stroke=\"#f59e0b\" stroke-width=\"2.2\"/></defs><g transform=\"translate(170, 115)\"><use href=\"#hex\" x=\"0\" y=\"0\"/><use href=\"#hex\" x=\"0\" y=\"-43.3\"/><use href=\"#hex\" x=\"0\" y=\"43.3\"/><use href=\"#hex\" x=\"37.5\" y=\"-21.65\"/><use href=\"#hex\" x=\"37.5\" y=\"21.65\"/><use href=\"#hex\" x=\"-37.5\" y=\"-21.65\"/><use href=\"#hex\" x=\"-37.5\" y=\"21.65\"/></g><text x=\"170\" y=\"220\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" fill=\"#cbd5e1\" text-anchor=\"middle\">Wie viele Sechsecke bilden diesen Wabenring + Zentrum?</text></svg>", "question": "Aus wie vielen einzelnen regulären Sechsecken (Hexagonen) besteht diese symmetrische Wabenblüte?", "hint": "Zähle das mittlere Sechseck und alle direkt angrenzenden Waben des äußeren Rings.", "solutionTitle": "Genau 7 Sechsecke", "solutionExplanation": "1 Zentrumswabe + 6 direkt anliegende Nachbarwaben (eine an jeder der 6 Kanten des Innenhexagons) = 7 Sechsecke insgesamt.", "keywords": ["7", "sieben", "7 sechsecke", "7 waben"]}, {"id": "opt-riddle-25", "title": "Die Schröder-Treppe", "category": "Illusion", "difficulty": "Einfach", "visualSvg": "<svg viewBox=\"0 0 360 230\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"60,60 140,60 140,90 190,90 190,120 240,120 240,150 300,150 220,190 60,190\" fill=\"#1e293b\" stroke=\"#38bdf8\" stroke-width=\"2.5\"/><line x1=\"60\" y1=\"60\" x2=\"60\" y2=\"190\" stroke=\"#38bdf8\" stroke-width=\"3\"/><line x1=\"140\" y1=\"60\" x2=\"60\" y2=\"100\" stroke=\"#64748b\" stroke-width=\"1.5\"/><line x1=\"190\" y1=\"90\" x2=\"110\" y2=\"130\" stroke=\"#64748b\" stroke-width=\"1.5\"/><line x1=\"240\" y1=\"120\" x2=\"160\" y2=\"160\" stroke=\"#64748b\" stroke-width=\"1.5\"/><line x1=\"300\" y1=\"150\" x2=\"220\" y2=\"190\" stroke=\"#64748b\" stroke-width=\"1.5\"/><text x=\"180\" y=\"215\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" fill=\"#cbd5e1\" text-anchor=\"middle\">Ist Wand A oben oder Wand B oben?</text></svg>", "question": "Um wie viel Grad muss man diese reversible Treppe auf den Kopf drehen, damit sie wieder wie eine normale Treppe aussieht?", "hint": "Die Schröder-Treppe ist eine bistabile Kippfigur mit Punktsymmetrie.", "solutionTitle": "180 Grad", "solutionExplanation": "Die berühmte Schröder-Treppe (1858) ist punktsymmetrisch: Dreht man das Bild um 180 Grad, sieht man erneut eine normale Treppe, wobei die vorherige Unterseite zur neuen Oberseite wird.", "keywords": ["180", "180 grad", "180°", "auf den kopf"]}, {"id": "opt-riddle-26", "title": "Domino-Musterfolge", "category": "Muster", "difficulty": "Mittel", "visualSvg": "<svg viewBox=\"0 0 380 200\" width=\"100%\" height=\"200\" xmlns=\"http://www.w3.org/2000/svg\"><defs><g id=\"domino\"><rect x=\"0\" y=\"0\" width=\"55\" height=\"110\" rx=\"8\" fill=\"#1e293b\" stroke=\"#38bdf8\" stroke-width=\"2\"/><line x1=\"0\" y1=\"55\" x2=\"55\" y2=\"55\" stroke=\"#38bdf8\" stroke-width=\"2\"/></g></defs><g transform=\"translate(30, 30)\"><use href=\"#domino\"/><circle cx=\"27.5\" cy=\"27.5\" r=\"4.5\" fill=\"#38bdf8\"/><circle cx=\"16\" cy=\"73\" r=\"4\" fill=\"#38bdf8\"/><circle cx=\"39\" cy=\"92\" r=\"4\" fill=\"#38bdf8\"/><text x=\"27.5\" y=\"130\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"12\" fill=\"#94a3b8\" text-anchor=\"middle\">1 / 2</text></g><g transform=\"translate(115, 30)\"><use href=\"#domino\"/><circle cx=\"16\" cy=\"16\" r=\"4\" fill=\"#38bdf8\"/><circle cx=\"39\" cy=\"39\" r=\"4\" fill=\"#38bdf8\"/><circle cx=\"16\" cy=\"73\" r=\"4\" fill=\"#38bdf8\"/><circle cx=\"27.5\" cy=\"82.5\" r=\"4\" fill=\"#38bdf8\"/><circle cx=\"39\" cy=\"92\" r=\"4\" fill=\"#38bdf8\"/><text x=\"27.5\" y=\"130\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"12\" fill=\"#94a3b8\" text-anchor=\"middle\">2 / 3</text></g><g transform=\"translate(200, 30)\"><use href=\"#domino\"/><circle cx=\"16\" cy=\"16\" r=\"4\" fill=\"#38bdf8\"/><circle cx=\"27.5\" cy=\"27.5\" r=\"4\" fill=\"#38bdf8\"/><circle cx=\"39\" cy=\"39\" r=\"4\" fill=\"#38bdf8\"/><circle cx=\"16\" cy=\"70\" r=\"4\" fill=\"#38bdf8\"/><circle cx=\"39\" cy=\"70\" r=\"4\" fill=\"#38bdf8\"/><circle cx=\"16\" cy=\"95\" r=\"4\" fill=\"#38bdf8\"/><circle cx=\"39\" cy=\"95\" r=\"4\" fill=\"#38bdf8\"/><text x=\"27.5\" y=\"130\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"12\" fill=\"#94a3b8\" text-anchor=\"middle\">3 / 4</text></g><g transform=\"translate(285, 30)\"><rect x=\"0\" y=\"0\" width=\"55\" height=\"110\" rx=\"8\" fill=\"#2e1065\" stroke=\"#a855f7\" stroke-width=\"2.5\" stroke-dasharray=\"4 3\"/><text x=\"27.5\" y=\"65\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"28\" font-weight=\"900\" fill=\"#c084fc\" text-anchor=\"middle\">?</text><text x=\"27.5\" y=\"130\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"12\" fill=\"#c084fc\" text-anchor=\"middle\">Ziel</text></g></svg>", "question": "Welche Punkt-Kombination (Oben / Unten) muss der 4. Dominostein besitzen?", "hint": "Die obere Hälfte zählt: 1, 2, 3 ... Die untere Hälfte zählt: 2, 3, 4 ...", "solutionTitle": "4 oben / 5 unten (4/5)", "solutionExplanation": "In beiden Hälften steigt die Punktzahl pro Stein jeweils um 1 an: Oben 1 ➔ 2 ➔ 3 ➔ 4. Unten 2 ➔ 3 ➔ 4 ➔ 5. Der gesuchte Stein ist 4/5.", "keywords": ["4/5", "4 5", "4 und 5", "4/5", "vier fuenf", "4 oben 5 unten"]}, {"id": "opt-riddle-27", "title": "Der unmögliche Dreizack (Blivet)", "category": "Illusion", "difficulty": "Mittel", "visualSvg": "<svg viewBox=\"0 0 380 200\" width=\"100%\" height=\"200\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M50,70 L250,70 A12,12 0 0,0 250,94 L150,94 A12,12 0 0,0 150,118 L250,118 A12,12 0 0,0 250,142 L50,142 Z\" fill=\"#1e293b\" stroke=\"#38bdf8\" stroke-width=\"2.5\"/><line x1=\"50\" y1=\"70\" x2=\"50\" y2=\"142\" stroke=\"#38bdf8\" stroke-width=\"3.5\"/><ellipse cx=\"250\" cy=\"82\" rx=\"10\" ry=\"12\" fill=\"#38bdf8\" opacity=\"0.6\"/><ellipse cx=\"250\" cy=\"130\" rx=\"10\" ry=\"12\" fill=\"#38bdf8\" opacity=\"0.6\"/><text x=\"190\" y=\"185\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" fill=\"#cbd5e1\" text-anchor=\"middle\">Links 2 Zinken, rechts 3 runde Stangen?</text></svg>", "question": "Wie viele runde Zinken scheint dieser Körper am offenen rechten Ende zu besitzen?", "hint": "Zähle die runden Stangenenden auf der rechten Seite.", "solutionTitle": "3 Zinken", "solutionExplanation": "Das 'Poiuyt' bzw. 'Blivet': Rechts scheinen drei runde Zinken ins Leere zu ragen, während links nur zwei rechteckige Fortsätze zusammenlaufen – eine klassische unmögliche Figur der Wahrnehmungspsychologie.", "keywords": ["3", "drei", "3 zinken", "drei zinken"]}, {"id": "opt-riddle-28", "title": "Draufsicht des 3D-Stufenblocks", "category": "Raumdenken", "difficulty": "Mittel", "visualSvg": "<svg viewBox=\"0 0 360 220\" width=\"100%\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"120,80 160,60 200,80 160,100\" fill=\"#38bdf8\" stroke=\"#0284c7\" stroke-width=\"1.5\"/><polygon points=\"120,80 120,120 160,140 160,100\" fill=\"#0284c7\" stroke=\"#0369a1\" stroke-width=\"1.5\"/><polygon points=\"160,100 160,140 200,120 200,80\" fill=\"#0369a1\" stroke=\"#075985\" stroke-width=\"1.5\"/><polygon points=\"200,120 240,100 280,120 240,140\" fill=\"#38bdf8\" stroke=\"#0284c7\" stroke-width=\"1.5\"/><polygon points=\"200,120 200,160 240,180 240,140\" fill=\"#0284c7\" stroke=\"#0369a1\" stroke-width=\"1.5\"/><polygon points=\"240,140 240,180 280,160 280,120\" fill=\"#0369a1\" stroke=\"#075985\" stroke-width=\"1.5\"/><text x=\"180\" y=\"205\" font-family=\"'Space Grotesk', sans-serif\" font-size=\"13\" fill=\"#cbd5e1\" text-anchor=\"middle\">Aus der Vogelperspektive senkrecht von oben: Wie viele Flächen?</text></svg>", "question": "Wie viele ebene Dachflächen siehst du direkt von oben in der senkrechten 2D-Draufsicht (Vogelperspektive)?", "hint": "Betrachte nur die nach oben zeigenden, hellblauen Dachflächen der Stufen.", "solutionTitle": "Genau 2 Flächen", "solutionExplanation": "In der senkrechten Draufsicht (von oben) sind ausschließlich die beiden horizontalen oberen Begrenzungsflächen sichtbar. Die senkrechten Seitenflächen projizieren sich zu Linien.", "keywords": ["2", "zwei", "2 flaechen", "2 flächen"]}];
+
+
+
+      this.customRiddles = this.loadCustomRiddles();
+
+      this.solvedRiddles = new Set(this.loadSolved());
+
+      this.streak = parseInt(localStorage.getItem('orbitsuite_riddle_streak') || '0', 10);
+
+      // Synchronize streak if legacy dataset was reset and no optical riddles are solved
+
+      if (this.solvedRiddles.size === 0 && this.streak > 0 && localStorage.getItem('orbitsuite_riddle_dataset_version') === 'v2_optical') {
+
+        const rawLegacy = localStorage.getItem('orbitsuite_riddles_solved');
+
+        if (!rawLegacy || JSON.parse(rawLegacy).length === 0) {
+
+          this.streak = 0;
+
+          localStorage.setItem('orbitsuite_riddle_streak', '0');
+
+        }
+
+      }
+
+
+
+      // Daily 07:00 German Time Riddle System
+
+      this.dailyStreak = parseInt(localStorage.getItem('orbitsuite_riddle_daily_streak') || '0', 10);
+
+      this.dailySolvedDates = new Set(this.loadDailySolved());
+
+      this.lastActiveDailyCycle = '';
+
+      this.dailyTimerInterval = null;
+
+
+
+      this.currentIndex = 0;
+
+      this.filterCategory = 'all';
+
+      this.filterDifficulty = 'all';
+
+
+
+      this.dom = {
+
+        badgeScore: document.getElementById('riddle-badge-score'),
+
+        badgeStreak: document.getElementById('riddle-badge-streak'),
+
+        badgeDailyStreak: document.getElementById('riddle-badge-daily-streak'),
+
+        badgeCountdown: document.getElementById('riddle-badge-countdown'),
+
+        dailyBanner: document.getElementById('riddle-daily-banner'),
+
+        dailyDateTitle: document.getElementById('riddle-daily-date-title'),
+
+        dailyStatusPill: document.getElementById('daily-status-pill'),
+
+        dailyCountdown: document.getElementById('riddle-daily-countdown'),
+
+        btnSwitchDaily: document.getElementById('btn-switch-daily-riddle'),
+
+        chipDaily: document.getElementById('chip-filter-daily'),
+
+                // LinkedIn Games Navigation
+
+        gamesNavBtns: document.querySelectorAll('.game-nav-btn'),
+
+        gamePanels: {
+          queens: document.getElementById('panel-game-queens'),
+          tango: document.getElementById('panel-game-tango'),
+          crossclimb: document.getElementById('panel-game-crossclimb'),
+          pinpoint: document.getElementById('panel-game-pinpoint'),
+          zip: document.getElementById('panel-game-zip'),
+          sudoku: document.getElementById('panel-game-sudoku'),
+          optical: document.getElementById('panel-game-optical')
+        },
+
+
+
+        // Queens DOM
+
+        queensLevelSelect: document.getElementById('queens-level-select'),
+
+        queensMovesBadge: document.getElementById('queens-moves-badge'),
+
+        queensTimerBadge: document.getElementById('queens-timer-badge'),
+
+        queensGrid: document.getElementById('queens-grid'),
+
+        queensFeedback: document.getElementById('queens-feedback'),
+
+        queensStatusPill: document.getElementById('queens-status-pill'),
+
+        queensCountdown: document.getElementById('queens-daily-countdown'),
+
+        queensDateTitle: document.getElementById('queens-daily-date-title'),
+
+        btnQueensAutoX: document.getElementById('btn-queens-autox'),
+
+        btnQueensUndo: document.getElementById('btn-queens-undo'),
+
+        btnQueensReset: document.getElementById('btn-queens-reset'),
+
+
+
+        // Tango DOM
+
+        tangoLevelSelect: document.getElementById('tango-level-select'),
+
+        tangoTimerBadge: document.getElementById('tango-timer-badge'),
+
+        tangoGrid: document.getElementById('tango-grid'),
+
+        tangoFeedback: document.getElementById('tango-feedback'),
+
+        tangoStatusPill: document.getElementById('tango-status-pill'),
+
+        tangoCountdown: document.getElementById('tango-daily-countdown'),
+
+        tangoDateTitle: document.getElementById('tango-daily-date-title'),
+
+        btnTangoReset: document.getElementById('btn-tango-reset'),
+
+
+
+        // Pinpoint DOM
+
+        pinpointLevelSelect: document.getElementById('pinpoint-level-select'),
+
+        pinpointAttemptsBadge: document.getElementById('pinpoint-attempts-badge'),
+
+        pinpointCluesList: document.getElementById('pinpoint-clues-list'),
+
+        pinpointGuessInput: document.getElementById('pinpoint-guess-input'),
+
+        pinpointFeedback: document.getElementById('pinpoint-feedback'),
+
+        pinpointStatusPill: document.getElementById('pinpoint-status-pill'),
+
+        pinpointCountdown: document.getElementById('pinpoint-daily-countdown'),
+
+        pinpointDateTitle: document.getElementById('pinpoint-daily-date-title'),
+
+        btnPinpointSubmit: document.getElementById('btn-pinpoint-submit'),
+
+        btnPinpointRevealClue: document.getElementById('btn-pinpoint-reveal-clue'),
+
+        btnPinpointReset: document.getElementById('btn-pinpoint-reset'),
+        // Crossclimb DOM
+        crossclimbLevelSelect: document.getElementById('crossclimb-level-select'),
+        crossclimbStatusBadge: document.getElementById('crossclimb-status-badge'),
+        crossclimbLadderList: document.getElementById('crossclimb-ladder-list'),
+        crossclimbFeedback: document.getElementById('crossclimb-feedback'),
+        crossclimbStatusPill: document.getElementById('crossclimb-status-pill'),
+        crossclimbCountdown: document.getElementById('crossclimb-daily-countdown'),
+        crossclimbDateTitle: document.getElementById('crossclimb-daily-date-title'),
+        btnCrossclimbCheck: document.getElementById('btn-crossclimb-check'),
+        btnCrossclimbReset: document.getElementById('btn-crossclimb-reset'),
+
+        // Zip DOM
+        zipLevelSelect: document.getElementById('zip-level-select'),
+        zipProgressBadge: document.getElementById('zip-progress-badge'),
+        zipGrid: document.getElementById('zip-grid'),
+        zipFeedback: document.getElementById('zip-feedback'),
+        zipStatusPill: document.getElementById('zip-status-pill'),
+        zipCountdown: document.getElementById('zip-daily-countdown'),
+        zipDateTitle: document.getElementById('zip-daily-date-title'),
+        btnZipUndo: document.getElementById('btn-zip-undo'),
+        btnZipReset: document.getElementById('btn-zip-reset'),
+
+        // Sudoku DOM
+        sudokuLevelSelect: document.getElementById('sudoku-level-select'),
+        sudokuTimerBadge: document.getElementById('sudoku-timer-badge'),
+        sudokuGrid: document.getElementById('sudoku-grid'),
+        sudokuNumpad: document.getElementById('sudoku-numpad'),
+        sudokuFeedback: document.getElementById('sudoku-feedback'),
+        sudokuStatusPill: document.getElementById('sudoku-status-pill'),
+        sudokuCountdown: document.getElementById('sudoku-daily-countdown'),
+        sudokuDateTitle: document.getElementById('sudoku-daily-date-title'),
+        btnSudokuReset: document.getElementById('btn-sudoku-reset'),
+
+
+btnRandom: document.getElementById('btn-riddle-random'),
+
+        btnCreate: document.getElementById('btn-riddle-create'),
+
+        filterChips: document.querySelectorAll('.riddle-filter-chip'),
+
+        diffSelect: document.getElementById('riddle-difficulty-select'),
+
+        catPill: document.getElementById('riddle-active-cat'),
+
+        diffPill: document.getElementById('riddle-active-diff'),
+
+        countLabel: document.getElementById('riddle-active-counter'),
+
+        statusIndicator: document.getElementById('riddle-status-indicator'),
+
+        statusText: document.getElementById('riddle-status-text'),
+
+        visualBox: document.getElementById('riddle-visual-box'),
+
+        questionText: document.getElementById('riddle-question-text'),
+
+        answerInput: document.getElementById('riddle-answer-input'),
+
+        btnSubmit: document.getElementById('btn-riddle-submit'),
+
+        feedbackBox: document.getElementById('riddle-feedback-box'),
+
+        btnHint: document.getElementById('btn-riddle-hint'),
+
+        hintBox: document.getElementById('riddle-hint-box'),
+
+        hintText: document.getElementById('riddle-hint-text'),
+
+        btnReveal: document.getElementById('btn-riddle-reveal'),
+
+        solutionBox: document.getElementById('riddle-solution-box'),
+
+        solutionContent: document.getElementById('riddle-solution-content'),
+
+        solutionTitle: document.getElementById('riddle-solution-title'),
+
+        solutionExplanation: document.getElementById('riddle-solution-explanation'),
+
+        btnPrev: document.getElementById('btn-riddle-prev'),
+
+        btnShuffle: document.getElementById('btn-riddle-shuffle'),
+
+        btnNext: document.getElementById('btn-riddle-next'),
+
+        cardsGrid: document.getElementById('riddle-cards-grid'),
+
+        // Modal
+
+        modal: document.getElementById('riddle-create-modal'),
+
+        modalClose: document.getElementById('riddle-modal-close'),
+
+        form: document.getElementById('riddle-form'),
+
+        newQuestion: document.getElementById('riddle-new-question'),
+
+        newCat: document.getElementById('riddle-new-cat'),
+
+        newDiff: document.getElementById('riddle-new-diff'),
+
+        newAnswer: document.getElementById('riddle-new-answer'),
+
+        newHint: document.getElementById('riddle-new-hint'),
+
+        newExplanation: document.getElementById('riddle-new-explanation'),
+
+        btnModalCancel: document.getElementById('btn-riddle-modal-cancel')
+
+      };
+
+
+
+      this.init();
+
+    }
+
+
+
+    get allRiddles() {
+
+      return [...this.customRiddles, ...this.defaultRiddles];
+
+    }
+
+
+
+    get filteredRiddles() {
+
+      if (this.filterCategory === 'daily') {
+
+        const cycle = this.getGermanDailyCycle();
+
+        const dailyRiddle = this.getDailyRiddleForCycle(cycle.cycleKey);
+
+        return dailyRiddle ? [dailyRiddle] : [];
+
+      }
+
+      return this.allRiddles.filter(r => {
+
+        const catMatch = this.filterCategory === 'all' || r.category === this.filterCategory;
+
+        const diffMatch = this.filterDifficulty === 'all' || r.difficulty === this.filterDifficulty;
+
+        return catMatch && diffMatch;
+
+      });
+
+    }
+
+
+
+    get currentRiddle() {
+
+      const list = this.filteredRiddles;
+
+      if (!list.length) return null;
+
+      if (this.currentIndex >= list.length) this.currentIndex = 0;
+
+      if (this.currentIndex < 0) this.currentIndex = list.length - 1;
+
+      return list[this.currentIndex];
+
+    }
+
+
+
+    loadCustomRiddles() {
+
+      try {
+
+        const raw = localStorage.getItem('orbitsuite_custom_riddles');
+
+        return raw ? JSON.parse(raw) : [];
+
+      } catch (e) {
+
+        return [];
+
+      }
+
+    }
+
+
+
+    saveCustomRiddles() {
+
+      localStorage.setItem('orbitsuite_custom_riddles', JSON.stringify(this.customRiddles));
+
+    }
+
+
+
+    loadSolved() {
+
+      try {
+
+        const datasetVer = localStorage.getItem('orbitsuite_riddle_dataset_version');
+
+        const raw = localStorage.getItem('orbitsuite_riddles_solved');
+
+        let solved = raw ? JSON.parse(raw) : [];
+
+        if (!Array.isArray(solved)) solved = [];
+
+
+
+        // Dataset Migration: purge legacy text riddle IDs (riddle-1 through riddle-18)
+
+        if (datasetVer !== 'v2_optical') {
+
+          const legacyIds = new Set(Array.from({ length: 18 }, (_, i) => `riddle-${i + 1}`));
+
+          solved = solved.filter(id => !legacyIds.has(id));
+
+          localStorage.setItem('orbitsuite_riddle_dataset_version', 'v2_optical');
+
+          localStorage.setItem('orbitsuite_riddles_solved', JSON.stringify(solved));
+
+        }
+
+
+
+        // Only retain solved IDs that actually exist in the current active riddle collection
+
+        const validIds = new Set(this.allRiddles.map(r => r.id));
+
+        return solved.filter(id => validIds.has(id));
+
+      } catch (e) {
+
+        return [];
+
+      }
+
+    }
+
+
+
+    saveSolved() {
+
+      localStorage.setItem('orbitsuite_riddles_solved', JSON.stringify(Array.from(this.solvedRiddles)));
+
+      localStorage.setItem('orbitsuite_riddle_streak', String(this.streak));
+
+    }
+
+
+
+    loadDailySolved() {
+
+      try {
+
+        const raw = localStorage.getItem('orbitsuite_riddle_daily_solved');
+
+        return raw ? JSON.parse(raw) : [];
+
+      } catch (e) {
+
+        return [];
+
+      }
+
+    }
+
+
+
+    saveDailySolved() {
+
+      localStorage.setItem('orbitsuite_riddle_daily_solved', JSON.stringify(Array.from(this.dailySolvedDates)));
+
+      localStorage.setItem('orbitsuite_riddle_daily_streak', String(this.dailyStreak));
+
+    }
+
+
+
+    // Accurate calculation of 07:00:00 Europe/Berlin cycle
+
+    getGermanDailyCycle(targetDate = new Date()) {
+
+      const formatter = new Intl.DateTimeFormat('en-US', {
+
+        timeZone: 'Europe/Berlin',
+
+        year: 'numeric',
+
+        month: 'numeric',
+
+        day: 'numeric',
+
+        hour: 'numeric',
+
+        minute: 'numeric',
+
+        second: 'numeric',
+
+        hour12: false
+
+      });
+
+
+
+      const parts = {};
+
+      formatter.formatToParts(targetDate).forEach(p => {
+
+        if (p.type !== 'literal') parts[p.type] = parseInt(p.value, 10);
+
+      });
+
+
+
+      const bYear = parts.year;
+
+      const bMonth = parts.month;
+
+      const bDay = parts.day;
+
+      const bHour = parts.hour;
+
+      const bMinute = parts.minute;
+
+      const bSecond = parts.second;
+
+
+
+      // Riddle cycle starts at 07:00:00 Berlin time.
+
+      // If hour < 7, the cycle started yesterday at 07:00.
+
+      let cycleYear = bYear;
+
+      let cycleMonth = bMonth;
+
+      let cycleDay = bDay;
+
+
+
+      if (bHour < 7) {
+
+        const prev = new Date(Date.UTC(bYear, bMonth - 1, bDay - 1, 12, 0, 0));
+
+        const prevParts = {};
+
+        formatter.formatToParts(prev).forEach(p => {
+
+          if (p.type !== 'literal') prevParts[p.type] = parseInt(p.value, 10);
+
+        });
+
+        cycleYear = prevParts.year;
+
+        cycleMonth = prevParts.month;
+
+        cycleDay = prevParts.day;
+
+      }
+
+
+
+      const cycleKey = `${cycleYear}-${String(cycleMonth).padStart(2, '0')}-${String(cycleDay).padStart(2, '0')}`;
+
+
+
+      // Target for next drop: 07:00:00 Europe/Berlin
+
+      let targetYear = bYear;
+
+      let targetMonth = bMonth;
+
+      let targetDay = bDay;
+
+
+
+      if (bHour >= 7) {
+
+        const nextD = new Date(Date.UTC(bYear, bMonth - 1, bDay + 1, 12, 0, 0));
+
+        const nextParts = {};
+
+        formatter.formatToParts(nextD).forEach(p => {
+
+          if (p.type !== 'literal') nextParts[p.type] = parseInt(p.value, 10);
+
+        });
+
+        targetYear = nextParts.year;
+
+        targetMonth = nextParts.month;
+
+        targetDay = nextParts.day;
+
+      }
+
+
+
+      // Resolve exact UTC timestamp for 07:00 Berlin time (handles CET UTC+1 / CEST UTC+2)
+
+      let next7Timestamp = 0;
+
+      for (const utcHour of [5, 6]) {
+
+        const cand = new Date(Date.UTC(targetYear, targetMonth - 1, targetDay, utcHour, 0, 0));
+
+        const cParts = {};
+
+        formatter.formatToParts(cand).forEach(p => {
+
+          if (p.type !== 'literal') cParts[p.type] = parseInt(p.value, 10);
+
+        });
+
+        if (cParts.hour === 7 && cParts.day === targetDay && cParts.minute === 0) {
+
+          next7Timestamp = cand.getTime();
+
+          break;
+
+        }
+
+      }
+
+      if (!next7Timestamp) {
+
+        next7Timestamp = targetDate.getTime() + 86400000;
+
+      }
+
+
+
+      const msRemaining = Math.max(0, next7Timestamp - targetDate.getTime());
+
+      const totalSec = Math.floor(msRemaining / 1000);
+
+      const hours = Math.floor(totalSec / 3600);
+
+      const minutes = Math.floor((totalSec % 3600) / 60);
+
+      const seconds = totalSec % 60;
+
+
+
+      const formattedCountdown = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+
+
+      const deDateFormatter = new Intl.DateTimeFormat('de-DE', {
+
+        timeZone: 'Europe/Berlin',
+
+        weekday: 'long',
+
+        day: 'numeric',
+
+        month: 'long',
+
+        year: 'numeric'
+
+      });
+
+      const cycleDateObj = new Date(Date.UTC(cycleYear, cycleMonth - 1, cycleDay, 12, 0, 0));
+
+      const displayDate = deDateFormatter.format(cycleDateObj);
+
+
+
+      return {
+
+        cycleKey,
+
+        displayDate,
+
+        bHour,
+
+        bMinute,
+
+        bSecond,
+
+        next7Timestamp,
+
+        msRemaining,
+
+        hours,
+
+        minutes,
+
+        seconds,
+
+        formattedCountdown
+
+      };
+
+    }
+
+
+
+    // Deterministic selection of the Riddle of the Day for any cycle date
+
+    getDailyRiddleForCycle(cycleKey) {
+
+      if (!this.defaultRiddles || !this.defaultRiddles.length) return null;
+
+      const parts = cycleKey.split('-').map(Number);
+
+      const epoch = Date.UTC(2026, 0, 1);
+
+      const cycleUtc = Date.UTC(parts[0], parts[1] - 1, parts[2]);
+
+      const dayDiff = Math.max(0, Math.floor((cycleUtc - epoch) / 86400000));
+
+      // Disperse categories using prime stride
+
+      const pool = this.defaultRiddles;
+
+      const index = (dayDiff * 7 + 3) % pool.length;
+
+      return pool[index];
+
+    }
+
+
+
+    isTodayDailySolved() {
+
+      const cycle = this.getGermanDailyCycle();
+
+      return this.dailySolvedDates.has(cycle.cycleKey);
+
+    }
+
+
+
+    startDailyTimer() {
+
+      if (this.dailyTimerInterval) clearInterval(this.dailyTimerInterval);
+
+
+
+      const updateTimer = () => {
+
+        const cycle = this.getGermanDailyCycle();
+
+
+
+        // 1. Update countdown displays
+
+        if (this.dom.queensCountdown) this.dom.queensCountdown.textContent = cycle.formattedCountdown;
+
+        if (this.dom.tangoCountdown) this.dom.tangoCountdown.textContent = cycle.formattedCountdown;
+
+        if (this.dom.pinpointCountdown) this.dom.pinpointCountdown.textContent = cycle.formattedCountdown;
+        if (this.dom.crossclimbCountdown) this.dom.crossclimbCountdown.textContent = cycle.formattedCountdown;
+        if (this.dom.zipCountdown) this.dom.zipCountdown.textContent = cycle.formattedCountdown;
+        if (this.dom.sudokuCountdown) this.dom.sudokuCountdown.textContent = cycle.formattedCountdown;
+
+
+        if (this.dom.dailyCountdown) {
+
+          this.dom.dailyCountdown.textContent = cycle.formattedCountdown;
+
+        }
+
+        if (this.dom.badgeCountdown) {
+
+          this.dom.badgeCountdown.textContent = `⏳ 07:00 Drop: ${cycle.formattedCountdown}`;
+
+        }
+
+
+
+        // 2. Detect 07:00:00 German time drop event
+
+        if (this.lastActiveDailyCycle && this.lastActiveDailyCycle !== cycle.cycleKey) {
+
+          this.lastActiveDailyCycle = cycle.cycleKey;
+
+          this.suite.showToast('🎉 Ein neues Tagesrätsel ist soeben um 07:00 Uhr online gegangen!');
+
+          if (this.suite.sound) this.suite.sound.playSuccess();
+
+          this.renderDailyBanner();
+
+          if (this.filterCategory === 'daily') {
+
+            this.currentIndex = 0;
+
+            this.render();
+
+          }
+
+          if (this.suite.hubApp) {
+
+            this.suite.hubApp.render();
+
+          }
+
+        } else if (!this.lastActiveDailyCycle) {
+
+          this.lastActiveDailyCycle = cycle.cycleKey;
+
+        }
+
+      };
+
+
+
+      updateTimer();
+
+      this.dailyTimerInterval = setInterval(updateTimer, 1000);
+
+    }
+
+
+
+    renderDailyBanner() {
+
+      const cycle = this.getGermanDailyCycle();
+
+      const isSolved = this.dailySolvedDates.has(cycle.cycleKey);
+
+
+
+      if (this.dom.dailyDateTitle) {
+
+        this.dom.dailyDateTitle.textContent = `Tagesrätsel für ${cycle.displayDate}`;
+
+      }
+
+
+
+      if (this.dom.dailyStatusPill) {
+
+        this.dom.dailyStatusPill.textContent = isSolved ? 'Gelöst ✓' : 'Offen ⏳';
+
+        this.dom.dailyStatusPill.classList.toggle('solved', isSolved);
+
+      }
+
+
+
+      if (this.dom.badgeDailyStreak) {
+
+        this.dom.badgeDailyStreak.textContent = `⭐ ${this.dailyStreak} Tage Daily`;
+
+      }
+
+    }
+
+    
+
+    // ==========================================
+
+    // LINKEDIN GAMES CONTROLLER
+
+    // ==========================================
+
+    switchGameMode(mode) {
+
+      if (!this.dom.gamePanels[mode]) return;
+
+      this.activeGameMode = mode;
+
+
+
+      // Update Nav Tabs
+
+      if (this.dom.gamesNavBtns) {
+
+        this.dom.gamesNavBtns.forEach(btn => {
+
+          btn.classList.toggle('active', btn.dataset.gameMode === mode);
+
+        });
+
+      }
+
+
+
+      // Update Panels
+
+      Object.keys(this.dom.gamePanels).forEach(key => {
+
+        const panel = this.dom.gamePanels[key];
+
+        if (panel) {
+
+          panel.classList.toggle('hidden', key !== mode);
+
+        }
+
+      });
+
+
+
+      this.suite.sound.playPop();
+
+
+
+      // Render mode specific content
+
+      if (mode === 'queens') {
+        this.initQueens();
+      } else if (mode === 'tango') {
+        this.initTango();
+      } else if (mode === 'crossclimb') {
+        this.initCrossclimb();
+      } else if (mode === 'pinpoint') {
+        this.initPinpoint();
+      } else if (mode === 'zip') {
+        this.initZip();
+      } else if (mode === 'sudoku') {
+        this.initSudoku();
+      } else if (mode === 'optical') {
+
+        this.render();
+
+      }
+
+    }
+
+
+
+    // ==========================================
+
+    // 1. QUEENS LOGIC ENGINE
+
+    // ==========================================
+
+    getQueensDailyBoard() {
+
+      const cycle = this.getGermanDailyCycle();
+
+      const parts = cycle.cycleKey.split('-').map(Number);
+
+      const epoch = Date.UTC(2026, 0, 1);
+
+      const cycleUtc = Date.UTC(parts[0], parts[1] - 1, parts[2]);
+
+      const dayDiff = Math.max(0, Math.floor((cycleUtc - epoch) / 86400000));
+
+      const idx = (dayDiff * 5 + 1) % this.queensData.length;
+
+      return this.queensData[idx];
+
+    }
+
+
+
+    getActiveQueensBoard() {
+
+      if (this.queensCurrentLevel === 'daily') {
+
+        return this.getQueensDailyBoard();
+
+      }
+
+      const lvl = parseInt(this.queensCurrentLevel, 10);
+
+      return this.queensData[lvl - 1] || this.queensData[0];
+
+    }
+
+
+
+    initQueens() {
+
+      // Populate level dropdown once
+
+      if (this.dom.queensLevelSelect && this.dom.queensLevelSelect.options.length <= 1) {
+
+        this.queensData.forEach((b, i) => {
+
+          const opt = document.createElement('option');
+
+          opt.value = String(i + 1);
+
+          opt.textContent = `Board Level ${i + 1} (6x6)`;
+
+          this.dom.queensLevelSelect.appendChild(opt);
+
+        });
+
+      }
+
+
+
+      this.resetQueensBoard(false);
+
+      this.startQueensTimer();
+
+      this.renderQueens();
+
+    }
+
+
+
+    startQueensTimer() {
+
+      if (this.queensTimerInterval) clearInterval(this.queensTimerInterval);
+
+      this.queensTime = 0;
+
+      this.queensTimerInterval = setInterval(() => {
+
+        this.queensTime += 1;
+
+        if (this.dom.queensTimerBadge) {
+
+          const m = String(Math.floor(this.queensTime / 60)).padStart(2, '0');
+
+          const s = String(this.queensTime % 60).padStart(2, '0');
+
+          this.dom.queensTimerBadge.textContent = `⏱️ ${m}:${s}`;
+
+        }
+
+      }, 1000);
+
+    }
+
+
+
+    resetQueensBoard(clearHistory = true) {
+
+      this.queensUserGrid = Array(6).fill(null).map(() => Array(6).fill(null));
+
+      if (clearHistory) {
+
+        this.queensHistory = [];
+
+        this.queensMoves = 0;
+
+      }
+
+      if (this.dom.queensMovesBadge) {
+
+        this.dom.queensMovesBadge.textContent = `Züge: ${this.queensMoves}`;
+
+      }
+
+      if (this.dom.queensFeedback) {
+
+        this.dom.queensFeedback.className = 'game-inline-feedback';
+
+        this.dom.queensFeedback.textContent = '';
+
+      }
+
+      this.renderQueens();
+
+    }
+
+
+
+    undoQueensMove() {
+
+      if (!this.queensHistory.length) return;
+
+      const last = this.queensHistory.pop();
+
+      this.queensUserGrid[last.r][last.c] = last.prevVal;
+
+      this.queensMoves = Math.max(0, this.queensMoves - 1);
+
+      if (this.dom.queensMovesBadge) {
+
+        this.dom.queensMovesBadge.textContent = `Züge: ${this.queensMoves}`;
+
+      }
+
+      this.renderQueens();
+
+    }
+
+
+
+    autoXQueens() {
+
+      // Place 'X' in all cells that clash with currently placed queens
+
+      const board = this.getActiveQueensBoard();
+
+      const size = board.size;
+
+      let changed = false;
+
+
+
+      for (let r = 0; r < size; r++) {
+
+        for (let c = 0; c < size; c++) {
+
+          if (this.queensUserGrid[r][c] === 'Q') {
+
+            const reg = board.regions[r][c];
+
+            // Mark same row, same col, same region, and 8-neighbors with X
+
+            for (let tr = 0; tr < size; tr++) {
+
+              for (let tc = 0; tc < size; tc++) {
+
+                if (tr === r && tc === c) continue;
+
+                if (this.queensUserGrid[tr][tc] === null) {
+
+                  const isNeighbor = Math.abs(tr - r) <= 1 && Math.abs(tc - c) <= 1;
+
+                  const isRow = tr === r;
+
+                  const isCol = tc === c;
+
+                  const isRegion = board.regions[tr][tc] === reg;
+
+                  if (isNeighbor || isRow || isCol || isRegion) {
+
+                    this.queensUserGrid[tr][tc] = 'X';
+
+                    changed = true;
+
+                  }
+
+                }
+
+              }
+
+            }
+
+          }
+
+        }
+
+      }
+
+
+
+      if (changed) {
+
+        this.suite.sound.playClick();
+
+        this.renderQueens();
+
+      }
+
+    }
+
+
+
+    handleQueensCellClick(r, c, forceQueen = false) {
+
+      const cur = this.queensUserGrid[r][c];
+
+      let nextVal = null;
+
+
+
+      if (forceQueen) {
+
+        nextVal = cur === 'Q' ? null : 'Q';
+
+      } else {
+
+        // Cycle: null -> 'X' -> 'Q' -> null
+
+        if (cur === null) nextVal = 'X';
+
+        else if (cur === 'X') nextVal = 'Q';
+
+        else nextVal = null;
+
+      }
+
+
+
+      this.queensHistory.push({ r, c, prevVal: cur, newVal: nextVal });
+
+      this.queensUserGrid[r][c] = nextVal;
+
+      this.queensMoves += 1;
+
+
+
+      if (this.dom.queensMovesBadge) {
+
+        this.dom.queensMovesBadge.textContent = `Züge: ${this.queensMoves}`;
+
+      }
+
+
+
+      this.suite.sound.playClick();
+
+      this.renderQueens();
+
+      this.checkQueensStatus();
+
+    }
+
+
+
+    getQueensClashes() {
+
+      const board = this.getActiveQueensBoard();
+
+      const size = board.size;
+
+      const clashes = new Set();
+
+      const placedQueens = [];
+
+
+
+      for (let r = 0; r < size; r++) {
+
+        for (let c = 0; c < size; c++) {
+
+          if (this.queensUserGrid[r][c] === 'Q') {
+
+            placedQueens.push({ r, c, reg: board.regions[r][c] });
+
+          }
+
+        }
+
+      }
+
+
+
+      for (let i = 0; i < placedQueens.length; i++) {
+
+        for (let j = i + 1; j < placedQueens.length; j++) {
+
+          const q1 = placedQueens[i];
+
+          const q2 = placedQueens[j];
+
+
+
+          const sameRow = q1.r === q2.r;
+
+          const sameCol = q1.c === q2.c;
+
+          const sameReg = q1.reg === q2.reg;
+
+          const touch = Math.abs(q1.r - q2.r) <= 1 && Math.abs(q1.c - q2.c) <= 1;
+
+
+
+          if (sameRow || sameCol || sameReg || touch) {
+
+            clashes.add(`${q1.r},${q1.c}`);
+
+            clashes.add(`${q2.r},${q2.c}`);
+
+          }
+
+        }
+
+      }
+
+
+
+      return { clashes, count: placedQueens.length };
+
+    }
+
+
+
+    checkQueensStatus() {
+
+      const board = this.getActiveQueensBoard();
+
+      const size = board.size;
+
+      const { clashes, count } = this.getQueensClashes();
+
+
+
+      if (clashes.size > 0) {
+
+        if (this.dom.queensFeedback) {
+
+          this.dom.queensFeedback.className = 'game-inline-feedback error show';
+
+          this.dom.queensFeedback.textContent = '⚠️ Konflikt! Kronen dürfen sich nicht berühren und nur 1 pro Zeile/Spalte/Farbzone.';
+
+        }
+
+        return;
+
+      }
+
+
+
+      if (count === size && clashes.size === 0) {
+
+        // Solved!
+
+        if (this.queensTimerInterval) clearInterval(this.queensTimerInterval);
+
+        this.suite.sound.playSuccess();
+
+        this.suite.confetti.fire();
+
+
+
+        const cycle = this.getGermanDailyCycle();
+
+        if (this.queensCurrentLevel === 'daily') {
+
+          const solvedSet = new Set(JSON.parse(localStorage.getItem('orbitsuite_queens_daily_solved') || '[]'));
+
+          solvedSet.add(cycle.cycleKey);
+
+          localStorage.setItem('orbitsuite_queens_daily_solved', JSON.stringify(Array.from(solvedSet)));
+
+        }
+
+
+
+        if (this.dom.queensFeedback) {
+
+          const m = Math.floor(this.queensTime / 60);
+
+          const s = this.queensTime % 60;
+
+          this.dom.queensFeedback.className = 'game-inline-feedback success show';
+
+          this.dom.queensFeedback.textContent = `👑 Perfekt gelöst in ${this.queensMoves} Zügen (${m}m ${s}s)!`;
+
+        }
+
+
+
+        this.suite.showToast('🎉 Queens Board fehlerfrei gemeistert!');
+
+        this.renderQueensBanner();
+
+      } else {
+
+        if (this.dom.queensFeedback) {
+
+          this.dom.queensFeedback.className = 'game-inline-feedback';
+
+          this.dom.queensFeedback.textContent = '';
+
+        }
+
+      }
+
+    }
+
+
+
+    renderQueensBanner() {
+
+      const cycle = this.getGermanDailyCycle();
+
+      const solvedSet = new Set(JSON.parse(localStorage.getItem('orbitsuite_queens_daily_solved') || '[]'));
+
+      const isDailySolved = solvedSet.has(cycle.cycleKey);
+
+
+
+      if (this.dom.queensDateTitle) {
+
+        this.dom.queensDateTitle.textContent = `👑 Queens Tages-Board für ${cycle.displayDate}`;
+
+      }
+
+      if (this.dom.queensStatusPill) {
+
+        this.dom.queensStatusPill.textContent = isDailySolved ? 'Gelöst ✓' : 'Offen ⏳';
+
+        this.dom.queensStatusPill.classList.toggle('solved', isDailySolved);
+
+      }
+
+      if (this.dom.queensCountdown) {
+
+        this.dom.queensCountdown.textContent = cycle.formattedCountdown;
+
+      }
+
+    }
+
+
+
+    renderQueens() {
+
+      this.renderQueensBanner();
+
+      if (!this.dom.queensGrid) return;
+
+
+
+      const board = this.getActiveQueensBoard();
+
+      const size = board.size;
+
+      const { clashes } = this.getQueensClashes();
+
+      const gridEl = this.dom.queensGrid;
+
+      gridEl.innerHTML = '';
+
+      gridEl.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+
+      gridEl.style.gridTemplateRows = `repeat(${size}, 1fr)`;
+
+
+
+      for (let r = 0; r < size; r++) {
+
+        for (let c = 0; c < size; c++) {
+
+          const cell = document.createElement('div');
+
+          const reg = board.regions[r][c];
+
+          cell.className = `queens-cell reg-${reg}`;
+
+
+
+          // Heavy region borders between different colored regions
+
+          if (r === 0 || board.regions[r - 1][c] !== reg) cell.classList.add('border-top');
+
+          if (c === size - 1 || board.regions[r][c + 1] !== reg) cell.classList.add('border-right');
+
+          if (r === size - 1 || board.regions[r + 1][c] !== reg) cell.classList.add('border-bottom');
+
+          if (c === 0 || board.regions[r][c - 1] !== reg) cell.classList.add('border-left');
+
+
+
+          const val = this.queensUserGrid[r][c];
+
+          if (val === 'Q') cell.classList.add('cell-queen');
+
+          else if (val === 'X') cell.classList.add('cell-cross');
+
+
+
+          if (clashes.has(`${r},${c}`)) {
+
+            cell.classList.add('cell-clash');
+
+          }
+
+
+
+          cell.addEventListener('click', () => this.handleQueensCellClick(r, c, false));
+
+          cell.addEventListener('contextmenu', (e) => {
+
+            e.preventDefault();
+
+            this.handleQueensCellClick(r, c, true);
+
+          });
+
+
+
+          gridEl.appendChild(cell);
+
+        }
+
+      }
+
+    }
+
+
+
+    // ==========================================
+
+    // 2. TANGO LOGIC ENGINE
+
+    // ==========================================
+
+    getTangoDailyPuzzle() {
+
+      const cycle = this.getGermanDailyCycle();
+
+      const parts = cycle.cycleKey.split('-').map(Number);
+
+      const epoch = Date.UTC(2026, 0, 1);
+
+      const cycleUtc = Date.UTC(parts[0], parts[1] - 1, parts[2]);
+
+      const dayDiff = Math.max(0, Math.floor((cycleUtc - epoch) / 86400000));
+
+      const idx = (dayDiff * 3 + 2) % this.tangoData.length;
+
+      return this.tangoData[idx];
+
+    }
+
+
+
+    getActiveTangoPuzzle() {
+
+      if (this.tangoCurrentLevel === 'daily') {
+
+        return this.getTangoDailyPuzzle();
+
+      }
+
+      const lvl = parseInt(this.tangoCurrentLevel, 10);
+
+      return this.tangoData[lvl - 1] || this.tangoData[0];
+
+    }
+
+
+
+    initTango() {
+
+      if (this.dom.tangoLevelSelect && this.dom.tangoLevelSelect.options.length <= 1) {
+
+        this.tangoData.forEach((b, i) => {
+
+          const opt = document.createElement('option');
+
+          opt.value = String(i + 1);
+
+          opt.textContent = `Tango Board #${i + 1} (6x6)`;
+
+          this.dom.tangoLevelSelect.appendChild(opt);
+
+        });
+
+      }
+
+
+
+      this.resetTangoBoard();
+
+      this.startTangoTimer();
+
+      this.renderTango();
+
+    }
+
+
+
+    startTangoTimer() {
+
+      if (this.tangoTimerInterval) clearInterval(this.tangoTimerInterval);
+
+      this.tangoTime = 0;
+
+      this.tangoTimerInterval = setInterval(() => {
+
+        this.tangoTime += 1;
+
+        if (this.dom.tangoTimerBadge) {
+
+          const m = String(Math.floor(this.tangoTime / 60)).padStart(2, '0');
+
+          const s = String(this.tangoTime % 60).padStart(2, '0');
+
+          this.dom.tangoTimerBadge.textContent = `⏱️ ${m}:${s}`;
+
+        }
+
+      }, 1000);
+
+    }
+
+
+
+    resetTangoBoard() {
+
+      const puzzle = this.getActiveTangoPuzzle();
+
+      const size = puzzle.size;
+
+      this.tangoUserGrid = Array(size).fill(null).map((_, r) =>
+
+        Array(size).fill(null).map((_, c) => puzzle.givens[r][c])
+
+      );
+
+      if (this.dom.tangoFeedback) {
+
+        this.dom.tangoFeedback.className = 'game-inline-feedback';
+
+        this.dom.tangoFeedback.textContent = '';
+
+      }
+
+      this.renderTango();
+
+    }
+
+
+
+    handleTangoCellClick(r, c) {
+
+      const puzzle = this.getActiveTangoPuzzle();
+
+      if (puzzle.givens[r][c] !== null) return; // Locked given cell
+
+
+
+      const cur = this.tangoUserGrid[r][c];
+
+      let next = null;
+
+      if (cur === null) next = 'S';
+
+      else if (cur === 'S') next = 'M';
+
+      else next = null;
+
+
+
+      this.tangoUserGrid[r][c] = next;
+
+      this.suite.sound.playClick();
+
+      this.renderTango();
+
+      this.checkTangoStatus();
+
+    }
+
+
+
+    checkTangoStatus() {
+
+      const puzzle = this.getActiveTangoPuzzle();
+
+      const size = puzzle.size;
+
+      const grid = this.tangoUserGrid;
+
+      let hasError = false;
+
+      let filledCount = 0;
+
+
+
+      // Check rows: count <= 3 and no 3 in a row
+
+      for (let r = 0; r < size; r++) {
+
+        let sCnt = 0, mCnt = 0;
+
+        for (let c = 0; c < size; c++) {
+
+          if (grid[r][c] === 'S') sCnt++;
+
+          if (grid[r][c] === 'M') mCnt++;
+
+          if (grid[r][c] !== null) filledCount++;
+
+        }
+
+        if (sCnt > 3 || mCnt > 3) hasError = true;
+
+        for (let c = 0; c < size - 2; c++) {
+
+          if (grid[r][c] && grid[r][c] === grid[r][c+1] && grid[r][c+1] === grid[r][c+2]) {
+
+            hasError = true;
+
+          }
+
+        }
+
+      }
+
+
+
+      // Check cols: count <= 3 and no 3 in a col
+
+      for (let c = 0; c < size; c++) {
+
+        let sCnt = 0, mCnt = 0;
+
+        for (let r = 0; r < size; r++) {
+
+          if (grid[r][c] === 'S') sCnt++;
+
+          if (grid[r][c] === 'M') mCnt++;
+
+        }
+
+        if (sCnt > 3 || mCnt > 3) hasError = true;
+
+        for (let r = 0; r < size - 2; r++) {
+
+          if (grid[r][c] && grid[r][c] === grid[r+1][c] && grid[r+1][c] === grid[r+2][c]) {
+
+            hasError = true;
+
+          }
+
+        }
+
+      }
+
+
+
+      // Check constraints
+
+      puzzle.hEdges.forEach(e => {
+
+        const v1 = grid[e.r][e.c];
+
+        const v2 = grid[e.r][e.c+1];
+
+        if (v1 && v2) {
+
+          if (e.op === '=' && v1 !== v2) hasError = true;
+
+          if (e.op === 'x' && v1 === v2) hasError = true;
+
+        }
+
+      });
+
+
+
+      puzzle.vEdges.forEach(e => {
+
+        const v1 = grid[e.r][e.c];
+
+        const v2 = grid[e.r+1][e.c];
+
+        if (v1 && v2) {
+
+          if (e.op === '=' && v1 !== v2) hasError = true;
+
+          if (e.op === 'x' && v1 === v2) hasError = true;
+
+        }
+
+      });
+
+
+
+      if (hasError) {
+
+        if (this.dom.tangoFeedback) {
+
+          this.dom.tangoFeedback.className = 'game-inline-feedback error show';
+
+          this.dom.tangoFeedback.textContent = '⚠️ Bedingung verletzt! Beachte max. 2 gleiche Symbole und = / ✕.';
+
+        }
+
+        return;
+
+      }
+
+
+
+      if (filledCount === size * size && !hasError) {
+
+        if (this.tangoTimerInterval) clearInterval(this.tangoTimerInterval);
+
+        this.suite.sound.playSuccess();
+
+        this.suite.confetti.fire();
+
+
+
+        const cycle = this.getGermanDailyCycle();
+
+        if (this.tangoCurrentLevel === 'daily') {
+
+          const solvedSet = new Set(JSON.parse(localStorage.getItem('orbitsuite_tango_daily_solved') || '[]'));
+
+          solvedSet.add(cycle.cycleKey);
+
+          localStorage.setItem('orbitsuite_tango_daily_solved', JSON.stringify(Array.from(solvedSet)));
+
+        }
+
+
+
+        if (this.dom.tangoFeedback) {
+
+          const m = Math.floor(this.tangoTime / 60);
+
+          const s = this.tangoTime % 60;
+
+          this.dom.tangoFeedback.className = 'game-inline-feedback success show';
+
+          this.dom.tangoFeedback.textContent = `☀️🌙 Tango meisterhaft gelöst (${m}m ${s}s)!`;
+
+        }
+
+
+
+        this.suite.showToast('🎉 Tango Board erfolgreich abgeschlossen!');
+
+        this.renderTangoBanner();
+
+      } else {
+
+        if (this.dom.tangoFeedback) {
+
+          this.dom.tangoFeedback.className = 'game-inline-feedback';
+
+          this.dom.tangoFeedback.textContent = '';
+
+        }
+
+      }
+
+    }
+
+
+
+    renderTangoBanner() {
+
+      const cycle = this.getGermanDailyCycle();
+
+      const solvedSet = new Set(JSON.parse(localStorage.getItem('orbitsuite_tango_daily_solved') || '[]'));
+
+      const isDailySolved = solvedSet.has(cycle.cycleKey);
+
+
+
+      if (this.dom.tangoDateTitle) {
+
+        this.dom.tangoDateTitle.textContent = `☀️🌙 Tango Tages-Board für ${cycle.displayDate}`;
+
+      }
+
+      if (this.dom.tangoStatusPill) {
+
+        this.dom.tangoStatusPill.textContent = isDailySolved ? 'Gelöst ✓' : 'Offen ⏳';
+
+        this.dom.tangoStatusPill.classList.toggle('solved', isDailySolved);
+
+      }
+
+      if (this.dom.tangoCountdown) {
+
+        this.dom.tangoCountdown.textContent = cycle.formattedCountdown;
+
+      }
+
+    }
+
+
+
+    renderTango() {
+
+      this.renderTangoBanner();
+
+      if (!this.dom.tangoGrid) return;
+
+
+
+      const puzzle = this.getActiveTangoPuzzle();
+
+      const size = puzzle.size;
+
+      const gridEl = this.dom.tangoGrid;
+
+      gridEl.innerHTML = '';
+
+
+
+      const container = document.createElement('div');
+
+      container.className = 'tango-board-card-inner';
+
+      container.style.gridTemplateColumns = `repeat(${size}, 58px)`;
+
+      container.style.gridTemplateRows = `repeat(${size}, 58px)`;
+
+
+
+      // Render cells
+
+      for (let r = 0; r < size; r++) {
+
+        for (let c = 0; c < size; c++) {
+
+          const cell = document.createElement('div');
+
+          const isGiven = puzzle.givens[r][c] !== null;
+
+          cell.className = `tango-cell ${isGiven ? 'given' : ''}`;
+
+
+
+          const val = this.tangoUserGrid[r][c];
+
+          if (val === 'S') cell.classList.add('val-sun');
+
+          else if (val === 'M') cell.classList.add('val-moon');
+
+
+
+          cell.addEventListener('click', () => this.handleTangoCellClick(r, c));
+
+          container.appendChild(cell);
+
+        }
+
+      }
+
+
+
+      // Overlay horizontal constraint badges
+
+      puzzle.hEdges.forEach(e => {
+
+        const badge = document.createElement('div');
+
+        badge.className = 'tango-constraint-h';
+
+        badge.textContent = e.op === '=' ? '=' : '✕';
+
+        // Position between (e.r, e.c) and (e.r, e.c + 1)
+
+        const cellW = 58 + 12; // cell + gap
+
+        badge.style.left = `${(e.c + 1) * cellW - 6}px`;
+
+        badge.style.top = `${e.r * cellW + 29}px`;
+
+        container.appendChild(badge);
+
+      });
+
+
+
+      // Overlay vertical constraint badges
+
+      puzzle.vEdges.forEach(e => {
+
+        const badge = document.createElement('div');
+
+        badge.className = 'tango-constraint-v';
+
+        badge.textContent = e.op === '=' ? '=' : '✕';
+
+        const cellW = 58 + 12;
+
+        badge.style.left = `${e.c * cellW + 29}px`;
+
+        badge.style.top = `${(e.r + 1) * cellW - 6}px`;
+
+        container.appendChild(badge);
+
+      });
+
+
+
+      gridEl.appendChild(container);
+
+    }
+
+
+
+    // ==========================================
+
+    // 3. PINPOINT LOGIC ENGINE
+
+    // ==========================================
+
+    getPinpointDailyChallenge() {
+
+      const cycle = this.getGermanDailyCycle();
+
+      const parts = cycle.cycleKey.split('-').map(Number);
+
+      const epoch = Date.UTC(2026, 0, 1);
+
+      const cycleUtc = Date.UTC(parts[0], parts[1] - 1, parts[2]);
+
+      const dayDiff = Math.max(0, Math.floor((cycleUtc - epoch) / 86400000));
+
+      const idx = (dayDiff * 7 + 4) % this.pinpointData.length;
+
+      return this.pinpointData[idx];
+
+    }
+
+
+
+    getActivePinpointChallenge() {
+
+      if (this.pinpointCurrentLevel === 'daily') {
+
+        return this.getPinpointDailyChallenge();
+
+      }
+
+      const lvl = parseInt(this.pinpointCurrentLevel, 10);
+
+      return this.pinpointData[lvl - 1] || this.pinpointData[0];
+
+    }
+
+
+
+    initPinpoint() {
+
+      if (this.dom.pinpointLevelSelect && this.dom.pinpointLevelSelect.options.length <= 1) {
+
+        this.pinpointData.forEach((p, i) => {
+
+          const opt = document.createElement('option');
+
+          opt.value = String(i + 1);
+
+          opt.textContent = `Pinpoint Challenge #${i + 1}`;
+
+          this.dom.pinpointLevelSelect.appendChild(opt);
+
+        });
+
+      }
+
+
+
+      this.resetPinpoint();
+
+    }
+
+
+
+    resetPinpoint() {
+
+      this.pinpointRevealedClues = 1;
+
+      this.pinpointAttemptsLeft = 5;
+
+      this.pinpointIsSolved = false;
+
+
+
+      if (this.dom.pinpointGuessInput) {
+
+        this.dom.pinpointGuessInput.value = '';
+
+        this.dom.pinpointGuessInput.disabled = false;
+
+      }
+
+      if (this.dom.pinpointFeedback) {
+
+        this.dom.pinpointFeedback.className = 'game-inline-feedback';
+
+        this.dom.pinpointFeedback.textContent = '';
+
+      }
+
+      if (this.dom.btnPinpointSubmit) {
+
+        this.dom.btnPinpointSubmit.disabled = false;
+
+      }
+
+
+
+      this.renderPinpoint();
+
+    }
+
+
+
+    revealNextPinpointClue() {
+
+      if (this.pinpointIsSolved || this.pinpointRevealedClues >= 5) return;
+
+      this.pinpointRevealedClues += 1;
+
+      this.pinpointAttemptsLeft = Math.max(1, this.pinpointAttemptsLeft - 1);
+
+      this.suite.sound.playClick();
+
+      this.renderPinpoint();
+
+    }
+
+
+
+    submitPinpointGuess() {
+
+      if (this.pinpointIsSolved || !this.dom.pinpointGuessInput) return;
+
+      const guess = this.dom.pinpointGuessInput.value.trim().toLowerCase();
+
+      if (!guess) return;
+
+
+
+      const challenge = this.getActivePinpointChallenge();
+
+      const normalize = s => s.toLowerCase().replace(/[^a-z0-9äöüß]/g, '');
+
+      const normGuess = normalize(guess);
+
+
+
+      const isMatch = challenge.keywords.some(k => {
+
+        const normK = normalize(k);
+
+        return normGuess.includes(normK) || normK.includes(normGuess);
+
+      });
+
+
+
+      if (isMatch) {
+
+        // Success!
+
+        this.pinpointIsSolved = true;
+
+        this.pinpointRevealedClues = 5;
+
+        this.dom.pinpointGuessInput.disabled = true;
+
+        if (this.dom.btnPinpointSubmit) this.dom.btnPinpointSubmit.disabled = true;
+
+
+
+        this.suite.sound.playSuccess();
+
+        this.suite.confetti.fire();
+
+
+
+        const cycle = this.getGermanDailyCycle();
+
+        if (this.pinpointCurrentLevel === 'daily') {
+
+          const solvedSet = new Set(JSON.parse(localStorage.getItem('orbitsuite_pinpoint_daily_solved') || '[]'));
+
+          solvedSet.add(cycle.cycleKey);
+
+          localStorage.setItem('orbitsuite_pinpoint_daily_solved', JSON.stringify(Array.from(solvedSet)));
+
+        }
+
+
+
+        if (this.dom.pinpointFeedback) {
+
+          this.dom.pinpointFeedback.className = 'game-inline-feedback success show';
+
+          this.dom.pinpointFeedback.textContent = `🎯 Volltreffer! Die Kategorie lautet "${challenge.category}"!`;
+
+        }
+
+
+
+        this.suite.showToast(`⭐ Pinpoint gelöst: ${challenge.category}!`);
+
+        this.renderPinpoint();
+
+      } else {
+
+        // Wrong guess
+
+        this.pinpointAttemptsLeft -= 1;
+
+        this.suite.sound.playError();
+
+
+
+        if (this.pinpointAttemptsLeft <= 0) {
+
+          // Out of attempts, reveal category
+
+          this.pinpointRevealedClues = 5;
+
+          this.dom.pinpointGuessInput.disabled = true;
+
+          if (this.dom.btnPinpointSubmit) this.dom.btnPinpointSubmit.disabled = true;
+
+
+
+          if (this.dom.pinpointFeedback) {
+
+            this.dom.pinpointFeedback.className = 'game-inline-feedback error show';
+
+            this.dom.pinpointFeedback.textContent = `Leider vorbei! Die gesuchte Kategorie war: "${challenge.category}".`;
+
+          }
+
+        } else {
+
+          // Reveal next clue
+
+          if (this.pinpointRevealedClues < 5) {
+
+            this.pinpointRevealedClues += 1;
+
+          }
+
+          if (this.dom.pinpointFeedback) {
+
+            this.dom.pinpointFeedback.className = 'game-inline-feedback error show';
+
+            this.dom.pinpointFeedback.textContent = `Nicht ganz! Noch ${this.pinpointAttemptsLeft} Versuche übrig.`;
+
+          }
+
+        }
+
+
+
+        this.renderPinpoint();
+
+      }
+
+    }
+
+
+
+    renderPinpointBanner() {
+
+      const cycle = this.getGermanDailyCycle();
+
+      const solvedSet = new Set(JSON.parse(localStorage.getItem('orbitsuite_pinpoint_daily_solved') || '[]'));
+
+      const isDailySolved = solvedSet.has(cycle.cycleKey);
+
+
+
+      if (this.dom.pinpointDateTitle) {
+
+        this.dom.pinpointDateTitle.textContent = `🎯 Pinpoint Tages-Rätsel für ${cycle.displayDate}`;
+
+      }
+
+      if (this.dom.pinpointStatusPill) {
+
+        this.dom.pinpointStatusPill.textContent = isDailySolved ? 'Gelöst ✓' : 'Offen ⏳';
+
+        this.dom.pinpointStatusPill.classList.toggle('solved', isDailySolved);
+
+      }
+
+      if (this.dom.pinpointCountdown) {
+
+        this.dom.pinpointCountdown.textContent = cycle.formattedCountdown;
+
+      }
+
+    }
+
+
+
+    renderPinpoint() {
+
+      this.renderPinpointBanner();
+
+      const challenge = this.getActivePinpointChallenge();
+
+
+
+      if (this.dom.pinpointAttemptsBadge) {
+
+        this.dom.pinpointAttemptsBadge.textContent = `Versuche: ${this.pinpointAttemptsLeft} übrig`;
+
+      }
+
+
+
+      if (this.dom.pinpointCluesList) {
+
+        this.dom.pinpointCluesList.innerHTML = '';
+
+        challenge.clues.forEach((clueText, idx) => {
+
+          const isRevealed = idx < this.pinpointRevealedClues;
+
+          const card = document.createElement('div');
+
+          card.className = `pinpoint-clue-card ${isRevealed ? 'revealed' : 'locked'}`;
+
+          card.innerHTML = `
+
+            <div class="clue-number-pill">${idx + 1}</div>
+
+            <div class="clue-text-body">${isRevealed ? clueText : '••••••••••••'}</div>
+
+          `;
+
+          this.dom.pinpointCluesList.appendChild(card);
+
+        });
+
+      }
+
+    }
+
+
+    // ==========================================
+    // 4. CROSSCLIMB LOGIC ENGINE (Word Ladder)
+    // ==========================================
+    getCrossclimbDaily() {
+      const cycle = this.getGermanDailyCycle();
+      const parts = cycle.cycleKey.split('-').map(Number);
+      const epoch = Date.UTC(2026, 0, 1);
+      const cycleUtc = Date.UTC(parts[0], parts[1] - 1, parts[2]);
+      const dayDiff = Math.max(0, Math.floor((cycleUtc - epoch) / 86400000));
+      const idx = (dayDiff * 4 + 3) % this.crossclimbData.length;
+      return this.crossclimbData[idx];
+    }
+
+    getActiveCrossclimb() {
+      if (this.crossclimbCurrentLevel === 'daily') {
+        return this.getCrossclimbDaily();
+      }
+      const lvl = parseInt(this.crossclimbCurrentLevel, 10);
+      return this.crossclimbData[lvl - 1] || this.crossclimbData[0];
+    }
+
+    initCrossclimb() {
+      if (this.dom.crossclimbLevelSelect && this.dom.crossclimbLevelSelect.options.length <= 1) {
+        this.crossclimbData.forEach((c, i) => {
+          const opt = document.createElement('option');
+          opt.value = String(i + 1);
+          opt.textContent = `Crossclimb #${i + 1}`;
+          this.dom.crossclimbLevelSelect.appendChild(opt);
+        });
+      }
+      this.resetCrossclimb();
+    }
+
+    resetCrossclimb() {
+      const challenge = this.getActiveCrossclimb();
+      // Scramble rungs order for the player to sort
+      const items = challenge.words.map((w, idx) => ({
+        targetWord: w,
+        clue: challenge.clues[idx],
+        currentWord: '',
+        origIndex: idx
+      }));
+      // Deterministic slight shuffle
+      this.crossclimbRungs = [items[2], items[0], items[4], items[1], items[3]];
+      if (this.dom.crossclimbFeedback) {
+        this.dom.crossclimbFeedback.className = 'game-inline-feedback';
+        this.dom.crossclimbFeedback.textContent = '';
+      }
+      this.renderCrossclimb();
+    }
+
+    moveCrossclimbRung(idx, dir) {
+      const targetIdx = idx + dir;
+      if (targetIdx < 0 || targetIdx >= this.crossclimbRungs.length) return;
+      const tmp = this.crossclimbRungs[idx];
+      this.crossclimbRungs[idx] = this.crossclimbRungs[targetIdx];
+      this.crossclimbRungs[targetIdx] = tmp;
+      this.suite.sound.playClick();
+      this.renderCrossclimb();
+    }
+
+    checkCrossclimb() {
+      const rungs = this.crossclimbRungs;
+      let allWordsCorrect = true;
+      let validLadder = true;
+
+      for (let i = 0; i < rungs.length; i++) {
+        const inputVal = (rungs[i].currentWord || '').trim().toUpperCase();
+        if (inputVal !== rungs[i].targetWord) {
+          allWordsCorrect = false;
+        }
+      }
+
+      if (!allWordsCorrect) {
+        this.suite.sound.playError();
+        if (this.dom.crossclimbFeedback) {
+          this.dom.crossclimbFeedback.className = 'game-inline-feedback error show';
+          this.dom.crossclimbFeedback.textContent = 'Trage zuerst für alle 5 Hinweise das passende 4-Buchstaben-Wort ein!';
+        }
+        return;
+      }
+
+      // Check ladder distance of 1 between all adjacent rungs
+      for (let i = 0; i < rungs.length - 1; i++) {
+        const w1 = rungs[i].targetWord;
+        const w2 = rungs[i+1].targetWord;
+        let diff = 0;
+        for (let j = 0; j < w1.length; j++) {
+          if (w1[j] !== w2[j]) diff++;
+        }
+        if (diff !== 1) {
+          validLadder = false;
+          break;
+        }
+      }
+
+      if (!validLadder) {
+        this.suite.sound.playError();
+        if (this.dom.crossclimbFeedback) {
+          this.dom.crossclimbFeedback.className = 'game-inline-feedback error show';
+          this.dom.crossclimbFeedback.textContent = 'Fast! Die Wörter stimmen, aber die Reihenfolge bildet noch keine 1-Buchstaben-Kette. Nutze ▲ / ▼!';
+        }
+        return;
+      }
+
+      // Ladder Complete!
+      this.suite.sound.playSuccess();
+      this.suite.confetti.fire();
+
+      const cycle = this.getGermanDailyCycle();
+      if (this.crossclimbCurrentLevel === 'daily') {
+        const solvedSet = new Set(JSON.parse(localStorage.getItem('orbitsuite_crossclimb_daily_solved') || '[]'));
+        solvedSet.add(cycle.cycleKey);
+        localStorage.setItem('orbitsuite_crossclimb_daily_solved', JSON.stringify(Array.from(solvedSet)));
+      }
+
+      if (this.dom.crossclimbFeedback) {
+        this.dom.crossclimbFeedback.className = 'game-inline-feedback success show';
+        this.dom.crossclimbFeedback.textContent = '🎉 Genial! Die Wortleiter steht perfekt von Sprosse zu Sprosse!';
+      }
+
+      this.suite.showToast('🪜 Crossclimb fehlerfrei erklommen!');
+      this.renderCrossclimbBanner();
+    }
+
+    renderCrossclimbBanner() {
+      const cycle = this.getGermanDailyCycle();
+      const solvedSet = new Set(JSON.parse(localStorage.getItem('orbitsuite_crossclimb_daily_solved') || '[]'));
+      const isDailySolved = solvedSet.has(cycle.cycleKey);
+
+      if (this.dom.crossclimbDateTitle) {
+        this.dom.crossclimbDateTitle.textContent = `🪜 Crossclimb Tages-Leiter für ${cycle.displayDate}`;
+      }
+      if (this.dom.crossclimbStatusPill) {
+        this.dom.crossclimbStatusPill.textContent = isDailySolved ? 'Gelöst ✓' : 'Offen ⏳';
+        this.dom.crossclimbStatusPill.classList.toggle('solved', isDailySolved);
+      }
+      if (this.dom.crossclimbCountdown) {
+        this.dom.crossclimbCountdown.textContent = cycle.formattedCountdown;
+      }
+    }
+
+    renderCrossclimb() {
+      this.renderCrossclimbBanner();
+      if (!this.dom.crossclimbLadderList) return;
+
+      const listEl = this.dom.crossclimbLadderList;
+      listEl.innerHTML = '';
+      let solvedCount = 0;
+
+      this.crossclimbRungs.forEach((rung, idx) => {
+        const card = document.createElement('div');
+        const isMatch = (rung.currentWord || '').trim().toUpperCase() === rung.targetWord;
+        if (isMatch) solvedCount++;
+
+        card.className = `crossclimb-rung-card ${isMatch ? 'valid-rung' : ''}`;
+        card.innerHTML = `
+          <div class="rung-left">
+            <div class="rung-number-pill">${idx + 1}</div>
+            <div class="rung-clue-text">${rung.clue}</div>
+          </div>
+          <input type="text" class="rung-word-input" maxlength="4" value="${rung.currentWord || ''}" placeholder="____" />
+          <div class="rung-reorder-btns">
+            <button class="btn-rung-move" ${idx === 0 ? 'disabled' : ''} data-dir="-1">▲</button>
+            <button class="btn-rung-move" ${idx === this.crossclimbRungs.length - 1 ? 'disabled' : ''} data-dir="1">▼</button>
+          </div>
+        `;
+
+        const input = card.querySelector('.rung-word-input');
+        input.addEventListener('input', (e) => {
+          rung.currentWord = e.target.value.toUpperCase();
+          if (rung.currentWord === rung.targetWord) {
+            this.suite.sound.playPop();
+          }
+          this.renderCrossclimb();
+        });
+
+        const btnUp = card.querySelector('[data-dir="-1"]');
+        const btnDown = card.querySelector('[data-dir="1"]');
+        if (btnUp) btnUp.addEventListener('click', () => this.moveCrossclimbRung(idx, -1));
+        if (btnDown) btnDown.addEventListener('click', () => this.moveCrossclimbRung(idx, 1));
+
+        listEl.appendChild(card);
+      });
+
+      if (this.dom.crossclimbStatusBadge) {
+        this.dom.crossclimbStatusBadge.textContent = `Sprossen: ${solvedCount}/5 gelöst`;
+      }
+    }
+
+    // ==========================================
+    // 5. ZIP LOGIC ENGINE (Path Connecting)
+    // ==========================================
+    getZipDaily() {
+      const cycle = this.getGermanDailyCycle();
+      const parts = cycle.cycleKey.split('-').map(Number);
+      const epoch = Date.UTC(2026, 0, 1);
+      const cycleUtc = Date.UTC(parts[0], parts[1] - 1, parts[2]);
+      const dayDiff = Math.max(0, Math.floor((cycleUtc - epoch) / 86400000));
+      const idx = (dayDiff * 6 + 1) % this.zipData.length;
+      return this.zipData[idx];
+    }
+
+    getActiveZip() {
+      if (this.zipCurrentLevel === 'daily') {
+        return this.getZipDaily();
+      }
+      const lvl = parseInt(this.zipCurrentLevel, 10);
+      return this.zipData[lvl - 1] || this.zipData[0];
+    }
+
+    initZip() {
+      if (this.dom.zipLevelSelect && this.dom.zipLevelSelect.options.length <= 1) {
+        this.zipData.forEach((z, i) => {
+          const opt = document.createElement('option');
+          opt.value = String(i + 1);
+          opt.textContent = `Zip Pfad #${i + 1} (5×5)`;
+          this.dom.zipLevelSelect.appendChild(opt);
+        });
+      }
+      this.resetZip();
+    }
+
+    resetZip() {
+      const puzzle = this.getActiveZip();
+      // Find start checkpoint (1)
+      let startR = 0, startC = 0;
+      for (const [coord, num] of Object.entries(puzzle.checkpoints)) {
+        if (num === 1) {
+          const [r, c] = coord.split(',').map(Number);
+          startR = r;
+          startC = c;
+          break;
+        }
+      }
+      this.zipPath = [{ r: startR, c: startC }];
+      if (this.dom.zipFeedback) {
+        this.dom.zipFeedback.className = 'game-inline-feedback';
+        this.dom.zipFeedback.textContent = '';
+      }
+      this.renderZip();
+    }
+
+    undoZipStep() {
+      if (this.zipPath.length > 1) {
+        this.zipPath.pop();
+        this.suite.sound.playClick();
+        this.renderZip();
+      }
+    }
+
+    handleZipCellClick(r, c) {
+      const path = this.zipPath;
+      const last = path[path.length - 1];
+
+      // If clicked on previous cell, undo to it
+      if (path.length > 1 && path[path.length - 2].r === r && path[path.length - 2].c === c) {
+        this.undoZipStep();
+        return;
+      }
+
+      // Check if already in path
+      const alreadyVisited = path.some(p => p.r === r && p.c === c);
+      if (alreadyVisited) return;
+
+      // Must be adjacent (orthogonal) to last tip
+      const isAdj = (Math.abs(last.r - r) + Math.abs(last.c - c)) === 1;
+      if (!isAdj) return;
+
+      // Check checkpoint rule: if this cell has a checkpoint, it must match path.length + 1
+      const puzzle = this.getActiveZip();
+      const cpVal = puzzle.checkpoints[`${r},${c}`];
+      const nextStep = path.length + 1;
+
+      if (cpVal !== undefined && cpVal !== nextStep) {
+        this.suite.sound.playError();
+        if (this.dom.zipFeedback) {
+          this.dom.zipFeedback.className = 'game-inline-feedback error show';
+          this.dom.zipFeedback.textContent = `Checkpoint ${cpVal} erfordert genau Schritt ${cpVal} (du bist bei Schritt ${nextStep})!`;
+        }
+        return;
+      }
+
+      // Valid step!
+      this.zipPath.push({ r, c });
+      this.suite.sound.playClick();
+
+      if (this.dom.zipFeedback) {
+        this.dom.zipFeedback.className = 'game-inline-feedback';
+        this.dom.zipFeedback.textContent = '';
+      }
+
+      this.renderZip();
+      this.checkZipStatus();
+    }
+
+    checkZipStatus() {
+      const puzzle = this.getActiveZip();
+      const totalCells = puzzle.size * puzzle.size;
+
+      if (this.zipPath.length === totalCells) {
+        // Complete!
+        this.suite.sound.playSuccess();
+        this.suite.confetti.fire();
+
+        const cycle = this.getGermanDailyCycle();
+        if (this.zipCurrentLevel === 'daily') {
+          const solvedSet = new Set(JSON.parse(localStorage.getItem('orbitsuite_zip_daily_solved') || '[]'));
+          solvedSet.add(cycle.cycleKey);
+          localStorage.setItem('orbitsuite_zip_daily_solved', JSON.stringify(Array.from(solvedSet)));
+        }
+
+        if (this.dom.zipFeedback) {
+          this.dom.zipFeedback.className = 'game-inline-feedback success show';
+          this.dom.zipFeedback.textContent = '⚡ Genial gelöst! Der Pfad verbindet alle 25 Felder lückenlos!';
+        }
+
+        this.suite.showToast('⚡ Zip Pfad erfolgreich vervollständigt!');
+        this.renderZipBanner();
+      }
+    }
+
+    renderZipBanner() {
+      const cycle = this.getGermanDailyCycle();
+      const solvedSet = new Set(JSON.parse(localStorage.getItem('orbitsuite_zip_daily_solved') || '[]'));
+      const isDailySolved = solvedSet.has(cycle.cycleKey);
+
+      if (this.dom.zipDateTitle) {
+        this.dom.zipDateTitle.textContent = `⚡ Zip Tages-Pfad für ${cycle.displayDate}`;
+      }
+      if (this.dom.zipStatusPill) {
+        this.dom.zipStatusPill.textContent = isDailySolved ? 'Gelöst ✓' : 'Offen ⏳';
+        this.dom.zipStatusPill.classList.toggle('solved', isDailySolved);
+      }
+      if (this.dom.zipCountdown) {
+        this.dom.zipCountdown.textContent = cycle.formattedCountdown;
+      }
+    }
+
+    renderZip() {
+      this.renderZipBanner();
+      if (!this.dom.zipGrid) return;
+
+      const puzzle = this.getActiveZip();
+      const size = puzzle.size;
+      const gridEl = this.dom.zipGrid;
+      gridEl.innerHTML = '';
+      gridEl.style.gridTemplateColumns = `repeat(${size}, 62px)`;
+      gridEl.style.gridTemplateRows = `repeat(${size}, 62px)`;
+
+      const pathMap = new Map();
+      this.zipPath.forEach((p, idx) => {
+        pathMap.set(`${p.r},${p.c}`, idx + 1);
+      });
+      const tip = this.zipPath[this.zipPath.length - 1];
+
+      for (let r = 0; r < size; r++) {
+        for (let c = 0; c < size; c++) {
+          const cell = document.createElement('div');
+          const isTip = tip.r === r && tip.c === c;
+          const stepNum = pathMap.get(`${r},${c}`);
+          const isVisited = stepNum !== undefined;
+          const cp = puzzle.checkpoints[`${r},${c}`];
+
+          cell.className = `zip-cell ${isVisited ? 'visited' : ''} ${isTip ? 'current-tip' : ''} ${cp ? 'checkpoint' : ''}`;
+          cell.textContent = isVisited ? stepNum : (cp || '');
+
+          cell.addEventListener('click', () => this.handleZipCellClick(r, c));
+          gridEl.appendChild(cell);
+        }
+      }
+
+      if (this.dom.zipProgressBadge) {
+        this.dom.zipProgressBadge.textContent = `Pfad: ${this.zipPath.length}/25 Felder`;
+      }
+    }
+
+    // ==========================================
+    // 6. MINI SUDOKU LOGIC ENGINE (6x6)
+    // ==========================================
+    getSudokuDaily() {
+      const cycle = this.getGermanDailyCycle();
+      const parts = cycle.cycleKey.split('-').map(Number);
+      const epoch = Date.UTC(2026, 0, 1);
+      const cycleUtc = Date.UTC(parts[0], parts[1] - 1, parts[2]);
+      const dayDiff = Math.max(0, Math.floor((cycleUtc - epoch) / 86400000));
+      const idx = (dayDiff * 5 + 2) % this.sudokuData.length;
+      return this.sudokuData[idx];
+    }
+
+    getActiveSudoku() {
+      if (this.sudokuCurrentLevel === 'daily') {
+        return this.getSudokuDaily();
+      }
+      const lvl = parseInt(this.sudokuCurrentLevel, 10);
+      return this.sudokuData[lvl - 1] || this.sudokuData[0];
+    }
+
+    initSudoku() {
+      if (this.dom.sudokuLevelSelect && this.dom.sudokuLevelSelect.options.length <= 1) {
+        this.sudokuData.forEach((s, i) => {
+          const opt = document.createElement('option');
+          opt.value = String(i + 1);
+          opt.textContent = `Mini Sudoku #${i + 1} (6×6)`;
+          this.dom.sudokuLevelSelect.appendChild(opt);
+        });
+      }
+      this.resetSudoku();
+      this.startSudokuTimer();
+    }
+
+    startSudokuTimer() {
+      if (this.sudokuTimerInterval) clearInterval(this.sudokuTimerInterval);
+      this.sudokuTime = 0;
+      this.sudokuTimerInterval = setInterval(() => {
+        this.sudokuTime += 1;
+        if (this.dom.sudokuTimerBadge) {
+          const m = String(Math.floor(this.sudokuTime / 60)).padStart(2, '0');
+          const s = String(this.sudokuTime % 60).padStart(2, '0');
+          this.dom.sudokuTimerBadge.textContent = `⏱️ ${m}:${s}`;
+        }
+      }, 1000);
+    }
+
+    resetSudoku() {
+      const puzzle = this.getActiveSudoku();
+      this.sudokuUserGrid = Array(6).fill(0).map((_, r) =>
+        Array(6).fill(0).map((_, c) => puzzle.givens[r][c])
+      );
+      this.sudokuSelectedCell = null;
+      if (this.dom.sudokuFeedback) {
+        this.dom.sudokuFeedback.className = 'game-inline-feedback';
+        this.dom.sudokuFeedback.textContent = '';
+      }
+      this.renderSudoku();
+    }
+
+    selectSudokuCell(r, c) {
+      this.sudokuSelectedCell = { r, c };
+      this.suite.sound.playClick();
+      this.renderSudoku();
+    }
+
+    inputSudokuNumber(num) {
+      if (!this.sudokuSelectedCell) return;
+      const { r, c } = this.sudokuSelectedCell;
+      const puzzle = this.getActiveSudoku();
+      if (puzzle.givens[r][c] !== 0) return; // Given cell is locked
+
+      this.sudokuUserGrid[r][c] = num;
+      this.suite.sound.playPop();
+      this.renderSudoku();
+      this.checkSudokuStatus();
+    }
+
+    getSudokuErrors() {
+      const grid = this.sudokuUserGrid;
+      const errors = new Set();
+
+      // Check rows
+      for (let r = 0; r < 6; r++) {
+        const seen = new Map();
+        for (let c = 0; c < 6; c++) {
+          const val = grid[r][c];
+          if (val !== 0) {
+            if (seen.has(val)) {
+              errors.add(`${r},${c}`);
+              errors.add(`${r},${seen.get(val)}`);
+            } else {
+              seen.set(val, c);
+            }
+          }
+        }
+      }
+
+      // Check cols
+      for (let c = 0; c < 6; c++) {
+        const seen = new Map();
+        for (let r = 0; r < 6; r++) {
+          const val = grid[r][c];
+          if (val !== 0) {
+            if (seen.has(val)) {
+              errors.add(`${r},${c}`);
+              errors.add(`${seen.get(val)},${c}`);
+            } else {
+              seen.set(val, r);
+            }
+          }
+        }
+      }
+
+      // Check 2x3 blocks
+      for (let br = 0; br < 6; br += 2) {
+        for (let bc = 0; bc < 6; bc += 3) {
+          const seen = new Map();
+          for (let dr = 0; dr < 2; dr++) {
+            for (let dc = 0; dc < 3; dc++) {
+              const r = br + dr;
+              const c = bc + dc;
+              const val = grid[r][c];
+              if (val !== 0) {
+                if (seen.has(val)) {
+                  errors.add(`${r},${c}`);
+                  errors.add(seen.get(val));
+                } else {
+                  seen.set(val, `${r},${c}`);
+                }
+              }
+            }
+          }
+        }
+      }
+
+      return errors;
+    }
+
+    checkSudokuStatus() {
+      const grid = this.sudokuUserGrid;
+      const errors = this.getSudokuErrors();
+
+      let filledCount = 0;
+      for (let r = 0; r < 6; r++) {
+        for (let c = 0; c < 6; c++) {
+          if (grid[r][c] !== 0) filledCount++;
+        }
+      }
+
+      if (errors.size > 0) {
+        if (this.dom.sudokuFeedback) {
+          this.dom.sudokuFeedback.className = 'game-inline-feedback error show';
+          this.dom.sudokuFeedback.textContent = '⚠️ Duplikat gefunden in Zeile, Spalte oder 2×3-Block!';
+        }
+        return;
+      }
+
+      if (filledCount === 36 && errors.size === 0) {
+        if (this.sudokuTimerInterval) clearInterval(this.sudokuTimerInterval);
+        this.suite.sound.playSuccess();
+        this.suite.confetti.fire();
+
+        const cycle = this.getGermanDailyCycle();
+        if (this.sudokuCurrentLevel === 'daily') {
+          const solvedSet = new Set(JSON.parse(localStorage.getItem('orbitsuite_sudoku_daily_solved') || '[]'));
+          solvedSet.add(cycle.cycleKey);
+          localStorage.setItem('orbitsuite_sudoku_daily_solved', JSON.stringify(Array.from(solvedSet)));
+        }
+
+        if (this.dom.sudokuFeedback) {
+          const m = Math.floor(this.sudokuTime / 60);
+          const s = this.sudokuTime % 60;
+          this.dom.sudokuFeedback.className = 'game-inline-feedback success show';
+          this.dom.sudokuFeedback.textContent = `🔢 Mini Sudoku bravourös gelöst (${m}m ${s}s)!`;
+        }
+
+        this.suite.showToast('🎉 Mini Sudoku komplett fehlerfrei gelöst!');
+        this.renderSudokuBanner();
+      } else {
+        if (this.dom.sudokuFeedback) {
+          this.dom.sudokuFeedback.className = 'game-inline-feedback';
+          this.dom.sudokuFeedback.textContent = '';
+        }
+      }
+    }
+
+    renderSudokuBanner() {
+      const cycle = this.getGermanDailyCycle();
+      const solvedSet = new Set(JSON.parse(localStorage.getItem('orbitsuite_sudoku_daily_solved') || '[]'));
+      const isDailySolved = solvedSet.has(cycle.cycleKey);
+
+      if (this.dom.sudokuDateTitle) {
+        this.dom.sudokuDateTitle.textContent = `🔢 Mini Sudoku Tages-Rätsel für ${cycle.displayDate}`;
+      }
+      if (this.dom.sudokuStatusPill) {
+        this.dom.sudokuStatusPill.textContent = isDailySolved ? 'Gelöst ✓' : 'Offen ⏳';
+        this.dom.sudokuStatusPill.classList.toggle('solved', isDailySolved);
+      }
+      if (this.dom.sudokuCountdown) {
+        this.dom.sudokuCountdown.textContent = cycle.formattedCountdown;
+      }
+    }
+
+    renderSudoku() {
+      this.renderSudokuBanner();
+      if (!this.dom.sudokuGrid) return;
+
+      const puzzle = this.getActiveSudoku();
+      const gridEl = this.dom.sudokuGrid;
+      const errors = this.getSudokuErrors();
+      gridEl.innerHTML = '';
+
+      const selVal = this.sudokuSelectedCell
+        ? this.sudokuUserGrid[this.sudokuSelectedCell.r][this.sudokuSelectedCell.c]
+        : null;
+
+      for (let r = 0; r < 6; r++) {
+        for (let c = 0; c < 6; c++) {
+          const cell = document.createElement('div');
+          const isGiven = puzzle.givens[r][c] !== 0;
+          const val = this.sudokuUserGrid[r][c];
+          const isSel = this.sudokuSelectedCell && this.sudokuSelectedCell.r === r && this.sudokuSelectedCell.c === c;
+          const isSameNum = selVal && selVal !== 0 && val === selVal;
+          const isErr = errors.has(`${r},${c}`);
+
+          cell.className = `sudoku-cell ${isGiven ? 'given' : ''} ${isSel ? 'selected' : ''} ${isSameNum ? 'same-num' : ''} ${isErr ? 'error' : ''}`;
+
+          // Block borders (2 rows x 3 cols)
+          if (r === 1 || r === 3) cell.classList.add('block-border-bottom');
+          if (c === 2) cell.classList.add('block-border-right');
+
+          cell.textContent = val !== 0 ? val : '';
+          cell.addEventListener('click', () => this.selectSudokuCell(r, c));
+          gridEl.appendChild(cell);
+        }
+      }
+    }
+init() {
+
+      this.bindEvents();
+
+      this.renderDailyBanner();
+
+      this.startDailyTimer();
+
+      this.switchGameMode('queens');
+
+      this.render();
+
+    }
+
+
+
+    bindEvents() {
+
+            // LinkedIn Games Tab Switcher
+
+      if (this.dom.gamesNavBtns) {
+
+        this.dom.gamesNavBtns.forEach(btn => {
+
+          btn.addEventListener('click', () => {
+
+            this.switchGameMode(btn.dataset.gameMode);
+
+          });
+
+        });
+
+      }
+
+
+
+      // Queens Bindings
+
+      if (this.dom.queensLevelSelect) {
+
+        this.dom.queensLevelSelect.addEventListener('change', (e) => {
+
+          this.queensCurrentLevel = e.target.value;
+
+          this.resetQueensBoard(true);
+
+          this.startQueensTimer();
+
+        });
+
+      }
+
+      if (this.dom.btnQueensAutoX) {
+
+        this.dom.btnQueensAutoX.addEventListener('click', () => this.autoXQueens());
+
+      }
+
+      if (this.dom.btnQueensUndo) {
+
+        this.dom.btnQueensUndo.addEventListener('click', () => this.undoQueensMove());
+
+      }
+
+      if (this.dom.btnQueensReset) {
+
+        this.dom.btnQueensReset.addEventListener('click', () => {
+
+          this.resetQueensBoard(true);
+
+          this.startQueensTimer();
+
+        });
+
+      }
+
+
+
+      // Tango Bindings
+
+      if (this.dom.tangoLevelSelect) {
+
+        this.dom.tangoLevelSelect.addEventListener('change', (e) => {
+
+          this.tangoCurrentLevel = e.target.value;
+
+          this.resetTangoBoard();
+
+          this.startTangoTimer();
+
+        });
+
+      }
+
+      if (this.dom.btnTangoReset) {
+
+        this.dom.btnTangoReset.addEventListener('click', () => {
+
+          this.resetTangoBoard();
+
+          this.startTangoTimer();
+
+        });
+
+      }
+
+
+
+      // Pinpoint Bindings
+
+      if (this.dom.pinpointLevelSelect) {
+
+        this.dom.pinpointLevelSelect.addEventListener('change', (e) => {
+
+          this.pinpointCurrentLevel = e.target.value;
+
+          this.resetPinpoint();
+
+        });
+
+      }
+
+      if (this.dom.btnPinpointSubmit) {
+
+        this.dom.btnPinpointSubmit.addEventListener('click', () => this.submitPinpointGuess());
+
+      }
+
+      if (this.dom.pinpointGuessInput) {
+
+        this.dom.pinpointGuessInput.addEventListener('keydown', (e) => {
+
+          if (e.key === 'Enter') this.submitPinpointGuess();
+
+        });
+
+      }
+
+      if (this.dom.btnPinpointRevealClue) {
+
+        this.dom.btnPinpointRevealClue.addEventListener('click', () => this.revealNextPinpointClue());
+
+      }
+
+      if (this.dom.btnPinpointReset) {
+
+        this.dom.btnPinpointReset.addEventListener('click', () => this.resetPinpoint());
+
+      }
+
+      // Crossclimb Bindings
+      if (this.dom.crossclimbLevelSelect) {
+        this.dom.crossclimbLevelSelect.addEventListener('change', (e) => {
+          this.crossclimbCurrentLevel = e.target.value;
+          this.resetCrossclimb();
+        });
+      }
+      if (this.dom.btnCrossclimbCheck) {
+        this.dom.btnCrossclimbCheck.addEventListener('click', () => this.checkCrossclimb());
+      }
+      if (this.dom.btnCrossclimbReset) {
+        this.dom.btnCrossclimbReset.addEventListener('click', () => this.resetCrossclimb());
+      }
+
+      // Zip Bindings
+      if (this.dom.zipLevelSelect) {
+        this.dom.zipLevelSelect.addEventListener('change', (e) => {
+          this.zipCurrentLevel = e.target.value;
+          this.resetZip();
+        });
+      }
+      if (this.dom.btnZipUndo) {
+        this.dom.btnZipUndo.addEventListener('click', () => this.undoZipStep());
+      }
+      if (this.dom.btnZipReset) {
+        this.dom.btnZipReset.addEventListener('click', () => this.resetZip());
+      }
+
+      // Sudoku Bindings
+      if (this.dom.sudokuLevelSelect) {
+        this.dom.sudokuLevelSelect.addEventListener('change', (e) => {
+          this.sudokuCurrentLevel = e.target.value;
+          this.resetSudoku();
+          this.startSudokuTimer();
+        });
+      }
+      if (this.dom.btnSudokuReset) {
+        this.dom.btnSudokuReset.addEventListener('click', () => {
+          this.resetSudoku();
+          this.startSudokuTimer();
+        });
+      }
+      if (this.dom.sudokuNumpad) {
+        this.dom.sudokuNumpad.querySelectorAll('.numpad-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const num = parseInt(btn.dataset.num, 10);
+            this.inputSudokuNumber(num);
+          });
+        });
+      }
+      window.addEventListener('keydown', (e) => {
+        if (this.activeGameMode === 'sudoku' && this.sudokuSelectedCell) {
+          if (e.key >= '1' && e.key <= '6') {
+            this.inputSudokuNumber(parseInt(e.key, 10));
+          } else if (e.key === 'Backspace' || e.key === 'Delete' || e.key === '0') {
+            this.inputSudokuNumber(0);
+          }
+        }
+      });
+// Category filter chips
+
+      this.dom.filterChips.forEach(chip => {
+
+        chip.addEventListener('click', () => {
+
+          this.dom.filterChips.forEach(c => c.classList.remove('active'));
+
+          chip.classList.add('active');
+
+          this.filterCategory = chip.dataset.category;
+
+          this.currentIndex = 0;
+
+          this.render();
+
+        });
+
+      });
+
+
+
+      // Quick Switch to Daily Riddle
+
+      if (this.dom.btnSwitchDaily) {
+
+        this.dom.btnSwitchDaily.addEventListener('click', () => {
+
+          this.dom.filterChips.forEach(c => {
+
+            c.classList.toggle('active', c.dataset.category === 'daily');
+
+          });
+
+          this.filterCategory = 'daily';
+
+          this.currentIndex = 0;
+
+          this.render();
+
+          this.suite.sound.playPop();
+
+          const arena = document.querySelector('.riddle-arena-card');
+
+          if (arena) arena.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        });
+
+      }
+
+
+
+      // Difficulty dropdown filter
+
+      if (this.dom.diffSelect) {
+
+        this.dom.diffSelect.addEventListener('change', () => {
+
+          this.filterDifficulty = this.dom.diffSelect.value;
+
+          this.currentIndex = 0;
+
+          this.render();
+
+        });
+
+      }
+
+
+
+      // Check Answer Submit
+
+      if (this.dom.btnSubmit) {
+
+        this.dom.btnSubmit.addEventListener('click', () => this.checkAnswer());
+
+      }
+
+      if (this.dom.answerInput) {
+
+        this.dom.answerInput.addEventListener('keydown', (e) => {
+
+          if (e.key === 'Enter') {
+
+            e.preventDefault();
+
+            this.checkAnswer();
+
+          }
+
+        });
+
+      }
+
+
+
+      // Hint Toggle
+
+      if (this.dom.btnHint) {
+
+        this.dom.btnHint.addEventListener('click', () => this.toggleHint());
+
+      }
+
+
+
+      // Reveal Solution Toggle & Unblur
+
+      if (this.dom.btnReveal) {
+
+        this.dom.btnReveal.addEventListener('click', () => this.toggleSolution());
+
+      }
+
+      if (this.dom.solutionContent) {
+
+        this.dom.solutionContent.addEventListener('click', () => {
+
+          if (this.dom.solutionContent.classList.contains('blurred')) {
+
+            this.dom.solutionContent.classList.remove('blurred');
+
+            this.dom.solutionContent.classList.add('revealed');
+
+          }
+
+        });
+
+      }
+
+
+
+      // Navigation Buttons
+
+      if (this.dom.btnPrev) {
+
+        this.dom.btnPrev.addEventListener('click', () => this.navigate(-1));
+
+      }
+
+      if (this.dom.btnNext) {
+
+        this.dom.btnNext.addEventListener('click', () => this.navigate(1));
+
+      }
+
+      if (this.dom.btnShuffle) {
+
+        this.dom.btnShuffle.addEventListener('click', () => this.shuffleRiddle());
+
+      }
+
+      if (this.dom.btnRandom) {
+
+        this.dom.btnRandom.addEventListener('click', () => this.shuffleRiddle());
+
+      }
+
+
+
+      // Modal open / close
+
+      if (this.dom.btnCreate) {
+
+        this.dom.btnCreate.addEventListener('click', () => this.openCreateModal());
+
+      }
+
+      if (this.dom.modalClose) {
+
+        this.dom.modalClose.addEventListener('click', () => this.closeCreateModal());
+
+      }
+
+      if (this.dom.btnModalCancel) {
+
+        this.dom.btnModalCancel.addEventListener('click', () => this.closeCreateModal());
+
+      }
+
+
+
+      // Form submit for custom riddle
+
+      if (this.dom.form) {
+
+        this.dom.form.addEventListener('submit', (e) => {
+
+          e.preventDefault();
+
+          this.saveNewRiddle();
+
+        });
+
+      }
+
+    }
+
+
+
+    render() {
+
+      // 1. Update Header Badges & Daily Banner
+
+      this.renderDailyBanner();
+
+      if (this.dom.badgeScore) {
+
+        this.dom.badgeScore.textContent = `🏆 ${this.solvedRiddles.size} Gelöst`;
+
+      }
+
+      if (this.dom.badgeStreak) {
+
+        this.dom.badgeStreak.textContent = `🔥 ${this.streak}er Streak`;
+
+      }
+
+      if (this.dom.badgeDailyStreak) {
+
+        this.dom.badgeDailyStreak.textContent = `⭐ ${this.dailyStreak} Tage Daily`;
+
+      }
+
+
+
+      const riddle = this.currentRiddle;
+
+      const list = this.filteredRiddles;
+
+
+
+      if (!riddle) {
+
+        if (this.dom.questionText) this.dom.questionText.textContent = 'Keine Rätsel mit diesem Filter gefunden.';
+
+        if (this.dom.countLabel) this.dom.countLabel.textContent = '0 / 0';
+
+        if (this.dom.cardsGrid) this.dom.cardsGrid.innerHTML = '<p style="color:var(--text-muted); padding:20px;">Keine Einträge vorhanden.</p>';
+
+        return;
+
+      }
+
+
+
+      const isSolved = this.solvedRiddles.has(riddle.id);
+
+
+
+      // 2. Active Riddle Meta Tags
+
+      if (this.dom.catPill) {
+
+        const catIcons = { Muster: '🧩 Muster', Geometrie: '📐 Geometrie', Gleichung: '⚖️ Gleichung', Illusion: '👁️ Illusion', Streichholz: '🪵 Streichholz', Raumdenken: '🎲 3D-Raum' };
+
+        this.dom.catPill.textContent = catIcons[riddle.category] || riddle.category;
+
+      }
+
+      if (this.dom.diffPill) {
+
+        this.dom.diffPill.textContent = riddle.difficulty;
+
+        this.dom.diffPill.className = `riddle-diff-pill diff-${riddle.difficulty.toLowerCase()}`;
+
+      }
+
+      if (this.dom.countLabel) {
+
+        this.dom.countLabel.textContent = `Rätsel #${this.currentIndex + 1} von ${list.length}`;
+
+      }
+
+
+
+      // 3. Status Indicator
+
+      if (this.dom.statusIndicator) {
+
+        this.dom.statusIndicator.classList.toggle('solved', isSolved);
+
+        if (this.dom.statusText) {
+
+          this.dom.statusText.textContent = isSolved ? 'Gelöst ✓' : 'Offen';
+
+        }
+
+      }
+
+
+
+      // 4. Visual Graphic & Question Text
+
+      if (this.dom.visualBox) {
+
+        this.dom.visualBox.innerHTML = riddle.visualSvg || '';
+
+      }
+
+      if (this.dom.questionText) {
+
+        this.dom.questionText.textContent = riddle.question;
+
+      }
+
+
+
+      // 5. Reset inputs and feedback
+
+      if (this.dom.answerInput) {
+
+        this.dom.answerInput.value = '';
+
+      }
+
+      if (this.dom.feedbackBox) {
+
+        this.dom.feedbackBox.className = 'riddle-feedback-box hidden';
+
+        this.dom.feedbackBox.innerHTML = '';
+
+      }
+
+
+
+      // 6. Reset hint
+
+      if (this.dom.hintBox) {
+
+        this.dom.hintBox.classList.add('hidden');
+
+      }
+
+      if (this.dom.hintText) {
+
+        this.dom.hintText.textContent = riddle.hint || 'Denke über ungewöhnliche Blickwinkel nach!';
+
+      }
+
+      if (this.dom.btnHint) {
+
+        this.dom.btnHint.innerHTML = '<span>💡 Hinweis anzeigen</span>';
+
+      }
+
+
+
+      // 7. Reset solution
+
+      if (this.dom.solutionBox) {
+
+        this.dom.solutionBox.classList.add('hidden');
+
+      }
+
+      if (this.dom.solutionContent) {
+
+        this.dom.solutionContent.className = 'solution-content blurred';
+
+      }
+
+      if (this.dom.solutionTitle) {
+
+        this.dom.solutionTitle.textContent = riddle.solutionTitle || 'Offizielle Lösung';
+
+      }
+
+      if (this.dom.solutionExplanation) {
+
+        this.dom.solutionExplanation.textContent = riddle.solutionExplanation || '';
+
+      }
+
+      if (this.dom.btnReveal) {
+
+        this.dom.btnReveal.innerHTML = '<span>👁️ Lösung aufdecken</span>';
+
+      }
+
+
+
+      // 8. Render Collection Cards Grid
+
+      this.renderCollectionGrid();
+
+
+
+      // 9. Synchronize Hub stats if hub is loaded
+
+      if (this.suite.hubApp) {
+
+        this.suite.hubApp.render();
+
+      }
+
+    }
+
+
+
+    renderCollectionGrid() {
+
+      if (!this.dom.cardsGrid) return;
+
+      const list = this.filteredRiddles;
+
+      const catIcons = { Muster: '🧩 Muster', Geometrie: '📐 Geometrie', Gleichung: '⚖️ Gleichung', Illusion: '👁️ Illusion', Streichholz: '🪵 Streichholz', Raumdenken: '🎲 3D-Raum' };
+
+
+
+      this.dom.cardsGrid.innerHTML = list.map((r, idx) => {
+
+        const isSolved = this.solvedRiddles.has(r.id);
+
+        const isActive = idx === this.currentIndex;
+
+        const cycle = this.getGermanDailyCycle();
+
+        const dailyRiddle = this.getDailyRiddleForCycle(cycle.cycleKey);
+
+        const isDailyRiddle = dailyRiddle && dailyRiddle.id === r.id;
+
+
+
+        return `
+
+          <div class="riddle-mini-card ${isActive ? 'active' : ''} ${isSolved ? 'solved-card' : ''} ${isDailyRiddle ? 'daily-featured-card' : ''}" data-index="${idx}">
+
+            <div class="riddle-mini-top">
+
+              <span class="riddle-cat-pill">${catIcons[r.category] || escapeHtml(r.category)}</span>
+
+              ${isDailyRiddle ? '<span class="riddle-cat-pill" style="background:rgba(245,158,11,0.2);color:#fbbf24;border:1px solid rgba(245,158,11,0.4)">⭐ TAGESRÄTSEL</span>' : ''}
+
+              <span class="riddle-diff-pill diff-${r.difficulty.toLowerCase()}">${r.difficulty}</span>
+
+            </div>
+
+            <h4 class="riddle-mini-title">${escapeHtml(r.title || r.question.substring(0, 60) + '...')}</h4>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; color:var(--text-muted); margin-top:auto;">
+
+              <span>#${idx + 1}</span>
+
+              <span>${isSolved ? '✅ Gelöst' : '⏳ Offen'}</span>
+
+            </div>
+
+          </div>
+
+        `;
+
+      }).join('');
+
+
+
+      this.dom.cardsGrid.querySelectorAll('.riddle-mini-card').forEach(card => {
+
+        card.addEventListener('click', () => {
+
+          this.currentIndex = parseInt(card.dataset.index, 10);
+
+          this.render();
+
+          this.suite.sound.playPop();
+
+          // Scroll arena card into view smoothly
+
+          const arena = document.querySelector('.riddle-arena-card');
+
+          if (arena) arena.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+        });
+
+      });
+
+    }
+
+
+
+    checkAnswer() {
+
+      const riddle = this.currentRiddle;
+
+      if (!riddle || !this.dom.answerInput) return;
+
+
+
+      const inputRaw = this.dom.answerInput.value.trim().toLowerCase();
+
+      if (!inputRaw) {
+
+        this.showFeedback('Bitte gib zuerst eine Antwort ein!', false);
+
+        return;
+
+      }
+
+
+
+      // Keyword normalization
+
+      const cleanInput = inputRaw
+
+        .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+
+        .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '');
+
+
+
+      const isMatch = riddle.keywords.some(kw => {
+
+        const cleanKw = kw.toLowerCase()
+
+          .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+
+          .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '');
+
+        return cleanInput.includes(cleanKw) || (cleanInput.length >= 3 && cleanKw.includes(cleanInput));
+
+      });
+
+
+
+      if (isMatch) {
+
+        // Correct answer!
+
+        this.solvedRiddles.add(riddle.id);
+
+        this.streak += 1;
+
+        this.saveSolved();
+
+
+
+        // Check if this riddle is the active 07:00 Daily Riddle
+
+        const cycle = this.getGermanDailyCycle();
+
+        const dailyRiddle = this.getDailyRiddleForCycle(cycle.cycleKey);
+
+        let dailyJustSolved = false;
+
+
+
+        if (dailyRiddle && riddle.id === dailyRiddle.id && !this.dailySolvedDates.has(cycle.cycleKey)) {
+
+          this.dailySolvedDates.add(cycle.cycleKey);
+
+          
+
+          // Calculate consecutive daily streak
+
+          const yesterdayObj = new Date(Date.now() - 86400000);
+
+          const yesterdayCycle = this.getGermanDailyCycle(yesterdayObj);
+
+          if (this.dailySolvedDates.has(yesterdayCycle.cycleKey)) {
+
+            this.dailyStreak += 1;
+
+          } else {
+
+            this.dailyStreak = 1;
+
+          }
+
+          this.saveDailySolved();
+
+          this.renderDailyBanner();
+
+          dailyJustSolved = true;
+
+        }
+
+
+
+        this.suite.sound.playSuccess();
+
+        this.suite.confetti.fire();
+
+
+
+        if (dailyJustSolved) {
+
+          this.showFeedback(`🌟 Großartig! Du hast das Tagesrätsel gemeistert! Dein Tages-Streak: ${this.dailyStreak} Tage!`, true);
+
+          this.suite.showToast(`⭐ Tagesrätsel gelöst! ${this.dailyStreak} Tage Daily-Streak!`);
+
+        } else {
+
+          this.showFeedback('🎉 Exzellent! Deine Lösung ist goldrichtig!', true);
+
+        }
+
+
+
+        // Auto reveal solution without blur
+
+        if (this.dom.solutionBox) this.dom.solutionBox.classList.remove('hidden');
+
+        if (this.dom.solutionContent) {
+
+          this.dom.solutionContent.classList.remove('blurred');
+
+          this.dom.solutionContent.classList.add('revealed');
+
+        }
+
+
+
+        // Update score & badges
+
+        if (this.dom.badgeScore) this.dom.badgeScore.textContent = `🏆 ${this.solvedRiddles.size} Gelöst`;
+
+        if (this.dom.badgeStreak) this.dom.badgeStreak.textContent = `🔥 ${this.streak}er Streak`;
+
+        if (this.dom.statusIndicator) this.dom.statusIndicator.classList.add('solved');
+
+        if (this.dom.statusText) this.dom.statusText.textContent = 'Gelöst ✓';
+
+
+
+        this.renderCollectionGrid();
+
+      } else {
+
+        // Wrong answer
+
+        this.streak = 0;
+
+        this.saveSolved();
+
+        this.suite.sound.playPop();
+
+
+
+        this.showFeedback('🤔 Noch nicht ganz... Nutze den Tipp oder versuche eine andere Formulierung!', false);
+
+        if (this.dom.badgeStreak) this.dom.badgeStreak.textContent = `🔥 0er Streak`;
+
+      }
+
+    }
+
+
+
+    showFeedback(message, isCorrect) {
+
+      if (!this.dom.feedbackBox) return;
+
+      this.dom.feedbackBox.className = `riddle-feedback-box ${isCorrect ? 'correct' : 'wrong'}`;
+
+      this.dom.feedbackBox.innerHTML = `<span>${escapeHtml(message)}</span>`;
+
+      this.dom.feedbackBox.classList.remove('hidden');
+
+    }
+
+
+
+    toggleHint() {
+
+      if (!this.dom.hintBox) return;
+
+      const isHidden = this.dom.hintBox.classList.contains('hidden');
+
+      this.dom.hintBox.classList.toggle('hidden', !isHidden);
+
+      if (this.dom.btnHint) {
+
+        this.dom.btnHint.innerHTML = isHidden ? '<span>🙈 Hinweis verbergen</span>' : '<span>💡 Hinweis anzeigen</span>';
+
+      }
+
+      this.suite.sound.playPop();
+
+    }
+
+
+
+    toggleSolution() {
+
+      if (!this.dom.solutionBox) return;
+
+      const isHidden = this.dom.solutionBox.classList.contains('hidden');
+
+      this.dom.solutionBox.classList.toggle('hidden', !isHidden);
+
+      if (isHidden && this.dom.solutionContent) {
+
+        this.dom.solutionContent.classList.remove('blurred');
+
+        this.dom.solutionContent.classList.add('revealed');
+
+      }
+
+      if (this.dom.btnReveal) {
+
+        this.dom.btnReveal.innerHTML = isHidden ? '<span>🙈 Lösung schließen</span>' : '<span>👁️ Lösung aufdecken</span>';
+
+      }
+
+      this.suite.sound.playPop();
+
+    }
+
+
+
+    navigate(dir) {
+
+      const list = this.filteredRiddles;
+
+      if (!list.length) return;
+
+      this.currentIndex = (this.currentIndex + dir + list.length) % list.length;
+
+      this.suite.sound.playPop();
+
+      this.render();
+
+    }
+
+
+
+    shuffleRiddle() {
+
+      const list = this.filteredRiddles;
+
+      if (list.length <= 1) return;
+
+      let nextIdx;
+
+      do {
+
+        nextIdx = Math.floor(Math.random() * list.length);
+
+      } while (nextIdx === this.currentIndex);
+
+      this.currentIndex = nextIdx;
+
+      this.suite.sound.playPop();
+
+      this.render();
+
+    }
+
+
+
+    openCreateModal() {
+
+      if (this.dom.modal) {
+
+        this.dom.modal.classList.remove('hidden');
+
+        if (this.dom.form) this.dom.form.reset();
+
+        this.suite.sound.playPop();
+
+      }
+
+    }
+
+
+
+    closeCreateModal() {
+
+      if (this.dom.modal) {
+
+        this.dom.modal.classList.add('hidden');
+
+      }
+
+    }
+
+
+
+    saveNewRiddle() {
+
+      const question = this.dom.newQuestion ? this.dom.newQuestion.value.trim() : '';
+
+      const category = this.dom.newCat ? this.dom.newCat.value : 'Logik';
+
+      const difficulty = this.dom.newDiff ? this.dom.newDiff.value : 'Mittel';
+
+      const answersRaw = this.dom.newAnswer ? this.dom.newAnswer.value.trim() : '';
+
+      const hint = this.dom.newHint ? this.dom.newHint.value.trim() : '';
+
+      const explanation = this.dom.newExplanation ? this.dom.newExplanation.value.trim() : '';
+
+
+
+      if (!question || !answersRaw) {
+
+        alert('Bitte gib mindestens eine Rätselfrage und eine Lösung an.');
+
+        return;
+
+      }
+
+
+
+      const keywords = answersRaw.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+
+
+
+      const newRiddle = {
+
+        id: `riddle-custom-${Date.now()}`,
+
+        title: question.length > 50 ? question.substring(0, 50) + '...' : question,
+
+        category,
+
+        difficulty,
+
+        question,
+
+        hint: hint || 'Überlege gründlich!',
+
+        solutionTitle: answersRaw,
+
+        solutionExplanation: explanation || `Offizielle Lösung: ${answersRaw}`,
+
+        keywords: keywords.length ? keywords : [answersRaw.toLowerCase()],
+
+        isCustom: true
+
+      };
+
+
+
+      this.customRiddles.unshift(newRiddle);
+
+      this.saveCustomRiddles();
+
+
+
+      this.closeCreateModal();
+
+      this.suite.sound.playSuccess();
+
+      this.suite.showToast('Neues Rätsel erfolgreich hinzugefügt! 🧩');
+
+
+
+      // Reset filters and display the newly created riddle
+
+      this.filterCategory = 'all';
+
+      this.filterDifficulty = 'all';
+
+      this.dom.filterChips.forEach(c => c.classList.toggle('active', c.dataset.category === 'all'));
+
+      if (this.dom.diffSelect) this.dom.diffSelect.value = 'all';
+
+      this.currentIndex = 0;
+
+      this.render();
+
+    }
+
+  }
+
+
+
+  // ==========================================================================
+
+  // 0. ORBITHUB MODULE (STARTSEITE / APP SELECTOR & DASHBOARD)
+
+  // ==========================================================================
+
+  class OrbitHubApp {
+
+    constructor(suite) {
+
+      this.suite = suite;
+
+
+
+      this.dom = {
+
+        greeting: document.getElementById('hub-greeting'),
+
+        statTasks: document.getElementById('hub-stat-tasks'),
+
+        statNotes: document.getElementById('hub-stat-notes'),
+
+        statFocus: document.getElementById('hub-stat-focus'),
+
+        statHabits: document.getElementById('hub-stat-habits'),
+
+        statRiddles: document.getElementById('hub-stat-riddles'),
+
+        cardTaskSummary: document.getElementById('hub-card-task-summary'),
+
+        cardNotesSummary: document.getElementById('hub-card-notes-summary'),
+
+        cardFocusSummary: document.getElementById('hub-card-focus-summary'),
+
+        cardHabitsSummary: document.getElementById('hub-card-habits-summary'),
+
+        cardRiddleSummary: document.getElementById('hub-card-riddle-summary'),
+
+        taskPreviewList: document.getElementById('hub-task-preview-list'),
+
+        habitPreviewList: document.getElementById('hub-habit-preview-list'),
+
+        notesPreviewList: document.getElementById('hub-notes-preview-list'),
+
+        // Quick Action triggers
+
+        btnAddTask: document.getElementById('hub-action-add-task'),
+
+        btnAddNote: document.getElementById('hub-action-add-note'),
+
+        btnStartFocus: document.getElementById('hub-action-start-focus'),
+
+        btnCheckHabits: document.getElementById('hub-action-check-habits'),
+
+        btnSolveRiddle: document.getElementById('hub-action-solve-riddle')
+
+      };
+
+
+
+      this.init();
+
+    }
+
+
+
+    init() {
+
+      this.bindEvents();
+
+      this.render();
+
+    }
+
+
+
+    bindEvents() {
+
+      // Launch app from App Cards
+
+      document.querySelectorAll('[data-launch]').forEach(elem => {
+
+        elem.addEventListener('click', (e) => {
+
+          const appId = elem.dataset.launch;
+
+          this.suite.switchApp(appId);
+
+        });
+
+      });
+
+
+
+      // Quick Launch Bar
+
+      if (this.dom.btnAddTask) {
+
+        this.dom.btnAddTask.addEventListener('click', () => {
+
+          this.suite.switchApp('tasks');
+
+          setTimeout(() => this.suite.taskApp.openCreateModal(), 150);
+
+        });
+
+      }
+
+
+
+      if (this.dom.btnAddNote) {
+
+        this.dom.btnAddNote.addEventListener('click', () => {
+
+          this.suite.switchApp('notes');
+
+          setTimeout(() => this.suite.notesApp.openCreateModal(), 150);
+
+        });
+
+      }
+
+
+
+      if (this.dom.btnStartFocus) {
+
+        this.dom.btnStartFocus.addEventListener('click', () => {
+
+          this.suite.switchApp('focus');
+
+          setTimeout(() => this.suite.focusApp.start(), 150);
+
+        });
+
+      }
+
+
+
+      if (this.dom.btnCheckHabits) {
+
+        this.dom.btnCheckHabits.addEventListener('click', () => {
+
+          this.suite.switchApp('habits');
+
+        });
+
+      }
+
+
+
+      if (this.dom.btnSolveRiddle) {
+
+        this.dom.btnSolveRiddle.addEventListener('click', () => {
+
+          this.suite.switchApp('riddle');
+
+        });
+
+      }
+
+    }
+
+
+
+    updateGreeting() {
+
+      if (!this.dom.greeting) return;
+
+      const hour = new Date().getHours();
+
+      let greeting = 'Willkommen im ';
+
+      if (hour < 11) greeting = 'Guten Morgen! Willkommen im ';
+
+      else if (hour < 18) greeting = 'Guten Tag! Willkommen im ';
+
+      else greeting = 'Guten Abend! Willkommen im ';
+
+
+
+      this.dom.greeting.innerHTML = `${greeting}<span class="gradient-text">Orbit Workspace</span>`;
+
+    }
+
+
+
+    render() {
+
+      this.updateGreeting();
+
+
+
+      // Aggregate Stats from apps
+
+      const tasks = this.suite.taskApp ? this.suite.taskApp.tasks : [];
+
+      const notes = this.suite.notesApp ? this.suite.notesApp.notes : [];
+
+      const habits = this.suite.habitsApp ? this.suite.habitsApp.habits : [];
+
+      const focus = this.suite.focusApp;
+
+      const riddle = this.suite.riddleApp;
+
+
+
+      const openTasks = tasks.filter(t => t.status !== 'done').length;
+
+      const completedTasks = tasks.filter(t => t.status === 'done').length;
+
+      const todayStr = getTodayString(0);
+
+      const overdueTasks = tasks.filter(t => t.dueDate && t.dueDate < todayStr && t.status !== 'done').length;
+
+
+
+      // KPI Strip
+
+      if (this.dom.statTasks) this.dom.statTasks.textContent = `${openTasks} offene Tasks`;
+
+      if (this.dom.statNotes) this.dom.statNotes.textContent = `${notes.length} Notizen`;
+
+      if (this.dom.statFocus) {
+
+        this.dom.statFocus.textContent = focus ? `${focus.completedSessions} Sessions (${focus.totalMinutes}m)` : '25:00 min';
+
+      }
+
+      if (this.dom.statHabits) {
+
+        const todayDone = habits.filter(h => h.checks[(new Date().getDay() + 6) % 7]).length;
+
+        this.dom.statHabits.textContent = `${todayDone}/${habits.length} heute erledigt`;
+
+      }
+
+      if (this.dom.statRiddles) {
+
+        const solved = riddle ? riddle.solvedRiddles.size : 0;
+
+        const total = riddle ? riddle.allRiddles.length : 28;
+
+        const dailyDone = riddle ? riddle.isTodayDailySolved() : false;
+
+        this.dom.statRiddles.textContent = `${solved}/${total} Gelöst • ⭐ Daily: ${dailyDone ? 'Gelöst' : 'Offen'}`;
+
+      }
+
+
+
+      // App Card summaries
+
+      if (this.dom.cardTaskSummary) {
+
+        this.dom.cardTaskSummary.textContent = `${openTasks} Tasks offen • ${completedTasks} erledigt`;
+
+      }
+
+      if (this.dom.cardNotesSummary) {
+
+        this.dom.cardNotesSummary.textContent = `${notes.length} Notizen (${notes.filter(n=>n.pinned).length} gepinnt)`;
+
+      }
+
+      if (this.dom.cardFocusSummary) {
+
+        this.dom.cardFocusSummary.textContent = `${focus ? focus.completedSessions : 0} Pomodoros heute`;
+
+      }
+
+      if (this.dom.cardHabitsSummary) {
+
+        this.dom.cardHabitsSummary.textContent = `${habits.length} Gewohnheiten aktiv`;
+
+      }
+
+      if (this.dom.cardRiddleSummary) {
+
+        const solved = riddle ? riddle.solvedRiddles.size : 0;
+
+        const streak = riddle ? riddle.streak : 0;
+
+        const dailyDone = riddle ? riddle.isTodayDailySolved() : false;
+
+        const cycle = riddle ? riddle.getGermanDailyCycle() : null;
+
+        const dropText = cycle ? `07:00 Drop in ${cycle.hours}h ${cycle.minutes}m` : 'Täglich um 07:00 Uhr';
+
+        this.dom.cardRiddleSummary.textContent = `⭐ Daily: ${dailyDone ? 'Gelöst ✓' : 'Offen ⏳'} • ${dropText}`;
+
+      }
+
+
+
+      // Live Activity Lists
+
+      this.renderTasksPreview(tasks);
+
+      this.renderHabitsPreview(habits);
+
+      this.renderNotesPreview(notes);
+
+    }
+
+
+
+    renderTasksPreview(tasks) {
+
+      if (!this.dom.taskPreviewList) return;
+
+      const todayStr = getTodayString(0);
+
+
+
+      // Prioritize overdue and today's tasks
+
+      const focusTasks = tasks.filter(t => t.status !== 'done')
+
+        .sort((a, b) => {
+
+          if (a.priority === 'urgent' && b.priority !== 'urgent') return -1;
+
+          if (b.priority === 'urgent' && a.priority !== 'urgent') return 1;
+
+          return (a.dueDate || '9999').localeCompare(b.dueDate || '9999');
+
+        })
+
+        .slice(0, 4);
+
+
+
+      if (!focusTasks.length) {
+
+        this.dom.taskPreviewList.innerHTML = `
+
+          <div style="font-size:0.82rem; color:var(--text-dim); padding:10px 0;">
+
+            Alle dringenden Aufgaben erledigt! 🎉
+
+          </div>
+
+        `;
+
+        return;
+
+      }
+
+
+
+      this.dom.taskPreviewList.innerHTML = focusTasks.map(t => {
+
+        const isOverdue = t.dueDate && t.dueDate < todayStr;
+
+        const badgeColor = isOverdue ? '#f43f5e' : (t.priority === 'urgent' ? '#f43f5e' : '#f59e0b');
+
+        return `
+
+          <div class="hub-preview-item" data-task-id="${t.id}">
+
+            <div class="hub-preview-left">
+
+              <span style="color:${badgeColor};">●</span>
+
+              <span class="hub-preview-title">${escapeHtml(t.title)}</span>
+
+            </div>
+
+            <span class="hub-preview-badge">${t.dueDate || t.priority}</span>
+
+          </div>
+
+        `;
+
+      }).join('');
+
+
+
+      this.dom.taskPreviewList.querySelectorAll('.hub-preview-item').forEach(item => {
+
+        item.addEventListener('click', () => {
+
+          this.suite.switchApp('tasks');
+
+          setTimeout(() => this.suite.taskApp.openEditModal(item.dataset.taskId), 150);
+
+        });
+
+      });
+
+    }
+
+
+
+    renderHabitsPreview(habits) {
+
+      if (!this.dom.habitPreviewList) return;
+
+      const todayIdx = (new Date().getDay() + 6) % 7;
+
+
+
+      if (!habits.length) {
+
+        this.dom.habitPreviewList.innerHTML = `<div style="font-size:0.82rem; color:var(--text-dim);">Keine Habits eingerichtet.</div>`;
+
+        return;
+
+      }
+
+
+
+      this.dom.habitPreviewList.innerHTML = habits.slice(0, 4).map(h => {
+
+        const isDone = h.checks[todayIdx];
+
+        return `
+
+          <div class="hub-preview-item">
+
+            <div class="hub-preview-left">
+
+              <button class="day-check-btn ${isDone ? 'checked' : ''}" style="width:22px; height:22px; font-size:0.7rem; margin-right:6px;" data-hub-habit="${h.id}">
+
+                ${isDone ? '✓' : ''}
+
+              </button>
+
+              <span class="hub-preview-title ${isDone ? 'done' : ''}">${escapeHtml(h.name)}</span>
+
+            </div>
+
+            <span class="hub-preview-badge">🔥 ${h.streak}d</span>
+
+          </div>
+
+        `;
+
+      }).join('');
+
+
+
+      this.dom.habitPreviewList.querySelectorAll('[data-hub-habit]').forEach(btn => {
+
+        btn.addEventListener('click', (e) => {
+
+          e.stopPropagation();
+
+          const habitId = btn.dataset.hubHabit;
+
+          this.suite.habitsApp.toggleDayCheck(habitId, todayIdx);
+
+          this.render();
+
+        });
+
+      });
+
+    }
+
+
+
+    renderNotesPreview(notes) {
+
+      if (!this.dom.notesPreviewList) return;
+
+      const pinned = notes.filter(n => n.pinned).slice(0, 3);
+
+      const displayNotes = pinned.length > 0 ? pinned : notes.slice(0, 3);
+
+
+
+      if (!displayNotes.length) {
+
+        this.dom.notesPreviewList.innerHTML = `<div style="font-size:0.82rem; color:var(--text-dim);">Keine Notizen angelegt.</div>`;
+
+        return;
+
+      }
+
+
+
+      this.dom.notesPreviewList.innerHTML = displayNotes.map(n => `
+
+        <div class="hub-preview-item" data-note-id="${n.id}">
+
+          <div class="hub-preview-left">
+
+            <span>📌</span>
+
+            <span class="hub-preview-title">${escapeHtml(n.title)}</span>
+
+          </div>
+
+          <span class="hub-preview-badge">${n.category}</span>
+
+        </div>
+
+      `).join('');
+
+
+
+      this.dom.notesPreviewList.querySelectorAll('.hub-preview-item').forEach(item => {
+
+        item.addEventListener('click', () => {
+
+          this.suite.switchApp('notes');
+
+          setTimeout(() => this.suite.notesApp.openEditModal(item.dataset.noteId), 150);
+
+        });
+
+      });
+
+    }
+
+  }
+
+
+
+  // ==========================================================================
+
+  // ORBITSUITE ROUTER & UNIFIED FRAMEWORK CONTROLLER
+
+  // ==========================================================================
+
+
+
+  // ==========================================================================
+
+  // PWA (PROGRESSIVE WEB APP) MANAGER
+
+  // ==========================================================================
+
+  class OrbitPwaManager {
+
+    constructor(suite) {
+
+      this.suite = suite;
+
+      this.deferredPrompt = null;
+
+      this.btnInstallHeader = document.getElementById('btn-pwa-install');
+
+      this.btnInstallHub = document.getElementById('btn-pwa-hub-install');
+
+      this.hubBanner = document.getElementById('hub-pwa-banner');
+
+      
+
+      this.initServiceWorker();
+
+      this.initInstallPrompt();
+
+      this.initNetworkListeners();
+
+    }
+
+
+
+    initServiceWorker() {
+
+      if ('serviceWorker' in navigator) {
+
+        window.addEventListener('load', () => {
+
+          navigator.serviceWorker.register('./sw.js')
+
+            .then(reg => {
+
+              console.log('[OrbitSuite PWA] Service Worker registered with scope:', reg.scope);
+
+              // Handle updatefound
+
+              reg.addEventListener('updatefound', () => {
+
+                const newWorker = reg.installing;
+
+                if (newWorker) {
+
+                  newWorker.addEventListener('statechange', () => {
+
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+
+                      this.suite.showToast('OrbitSuite Update verfügbar! Aktualisiere beim nächsten Start 🚀');
+
+                    }
+
+                  });
+
+                }
+
+              });
+
+            })
+
+            .catch(err => {
+
+              console.warn('[OrbitSuite PWA] Service Worker registration failed:', err);
+
+            });
+
+        });
+
+      }
+
+    }
+
+
+
+    initInstallPrompt() {
+
+      // Check if already in standalone / installed mode
+
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+      if (isStandalone) {
+
+        console.log('[OrbitSuite PWA] Running in standalone native window mode.');
+
+        return;
+
+      }
+
+
+
+      window.addEventListener('beforeinstallprompt', (e) => {
+
+        // Prevent default mini-infobar on mobile Chrome
+
+        e.preventDefault();
+
+        this.deferredPrompt = e;
+
+        console.log('[OrbitSuite PWA] beforeinstallprompt captured.');
+
+
+
+        // Show install button and Hub banner
+
+        if (this.btnInstallHeader) this.btnInstallHeader.classList.remove('hidden');
+
+        if (this.hubBanner) this.hubBanner.classList.remove('hidden');
+
+      });
+
+
+
+      // Handle install click
+
+      const handleInstall = async () => {
+
+        if (!this.deferredPrompt) {
+
+          this.suite.showToast('Installationsaufforderung steht noch nicht bereit.');
+
+          return;
+
+        }
+
+        this.deferredPrompt.prompt();
+
+        const { outcome } = await this.deferredPrompt.userChoice;
+
+        console.log('[OrbitSuite PWA] User install choice:', outcome);
+
+        if (outcome === 'accepted') {
+
+          this.suite.showToast('OrbitSuite wird als App installiert! 📲');
+
+          this.hideInstallPrompts();
+
+        }
+
+        this.deferredPrompt = null;
+
+      };
+
+
+
+      if (this.btnInstallHeader) this.btnInstallHeader.addEventListener('click', handleInstall);
+
+      if (this.btnInstallHub) this.btnInstallHub.addEventListener('click', handleInstall);
+
+
+
+      window.addEventListener('appinstalled', () => {
+
+        console.log('[OrbitSuite PWA] OrbitSuite successfully installed.');
+
+        this.suite.showToast('OrbitSuite erfolgreich installiert! 🎉');
+
+        if (this.suite.sound) this.suite.sound.playSuccess();
+
+        this.hideInstallPrompts();
+
+      });
+
+    }
+
+
+
+    hideInstallPrompts() {
+
+      if (this.btnInstallHeader) this.btnInstallHeader.classList.add('hidden');
+
+      if (this.hubBanner) this.hubBanner.classList.add('hidden');
+
+    }
+
+
+
+    initNetworkListeners() {
+
+      window.addEventListener('offline', () => {
+
+        this.suite.showToast('📴 Offline-Modus: OrbitSuite läuft lokal nahtlos weiter.');
+
+      });
+
+      window.addEventListener('online', () => {
+
+        this.suite.showToast('🌐 Wieder online: Verbindung hergestellt.');
+
+      });
+
+    }
+
+  }
+
+
+
+  class OrbitSuiteRouter {
+
+    constructor() {
+
+      this.sound = new SoundManager();
+
+      this.pwa = new OrbitPwaManager(this);
+
+      this.confetti = new ConfettiManager('confetti-canvas');
+
+      this.activeApp = 'hub'; // 'hub', 'tasks', 'notes', 'focus', 'habits', 'tools'
+
+
+
+      // DOM references for Framework
+
+      this.dom = {
+
+        suiteBrand: document.getElementById('suite-brand'),
+
+        appSelectorToggle: document.getElementById('app-selector-toggle'),
+
+        appSelectorMenu: document.getElementById('app-selector-menu'),
+
+        currentAppIndicator: document.getElementById('current-app-indicator'),
+
+        currentAppDot: document.getElementById('current-app-dot'),
+
+        currentAppName: document.getElementById('current-app-name'),
+
+        suiteNavPills: document.querySelectorAll('#suite-nav-pills .suite-pill'),
+
+        appMenuItems: document.querySelectorAll('.app-menu-item'),
+
+        appViews: {
+
+          hub: document.getElementById('app-view-hub'),
+
+          tasks: document.getElementById('app-view-tasks'),
+
+          notes: document.getElementById('app-view-notes'),
+
+          focus: document.getElementById('app-view-focus'),
+
+          habits: document.getElementById('app-view-habits'),
+
+          tools: document.getElementById('app-view-tools'),
+
+          riddle: document.getElementById('app-view-riddle')
+
+        },
+
+        clockDisplay: document.getElementById('suite-clock-display'),
+
+        soundToggleBtn: document.getElementById('btn-sound-toggle'),
+
+        btnBackup: document.getElementById('btn-suite-backup'),
+
+        backupModal: document.getElementById('backup-modal'),
+
+        backupModalClose: document.getElementById('backup-modal-close'),
+
+        btnExportBackup: document.getElementById('btn-export-suite-backup'),
+
+        inputImportBackup: document.getElementById('input-suite-import'),
+
+        btnResetAllDemo: document.getElementById('btn-reset-all-demo'),
+
+        btnShortcuts: document.getElementById('btn-suite-shortcuts'),
+
+        shortcutsModal: document.getElementById('shortcuts-modal'),
+
+        shortcutsModalClose: document.getElementById('shortcuts-modal-close'),
+
+        toastContainer: document.getElementById('toast-container')
+
+      };
+
+
+
+      // App Colors for Selector Indicator
+
+      this.appThemes = {
+
+        hub: { name: 'Startseite Hub', color: '#6366f1' },
+
+        tasks: { name: 'OrbitTask', color: '#8b5cf6' },
+
+        notes: { name: 'OrbitNotes', color: '#10b981' },
+
+        focus: { name: 'OrbitFocus', color: '#f59e0b' },
+
+        habits: { name: 'OrbitHabits', color: '#f43f5e' },
+
+        tools: { name: 'OrbitTools', color: '#0284c7' },
+
+        riddle: { name: 'OrbitRätsel', color: '#a855f7' }
+
+      };
+
+
+
+      this.init();
+
+    }
+
+
+
+    init() {
+
+      // 1. Initialize Sub-Applications
+
+      this.taskApp = new OrbitTaskApp(this);
+
+      this.notesApp = new OrbitNotesApp(this);
+
+      this.focusApp = new OrbitFocusApp(this);
+
+      this.habitsApp = new OrbitHabitsApp(this);
+
+      this.toolsApp = new OrbitToolsApp(this);
+
+      this.riddleApp = new OrbitRiddleApp(this);
+
+      this.hubApp = new OrbitHubApp(this);
+
+
+
+      // 2. Bind Framework Navigation & Controls
+
+      this.bindFrameworkEvents();
+
+
+
+      // 3. Setup Clock & Sound
+
+      this.startClock();
+
+      this.updateSoundIcon();
+
+
+
+      // 4. Initial Route from URL Hash or default to 'hub'
+
+      const initialHash = window.location.hash.replace('#', '');
+
+      if (this.dom.appViews[initialHash]) {
+
+        this.switchApp(initialHash, false);
+
+      } else {
+
+        this.switchApp('hub', false);
+
+      }
+
+    }
+
+
+
+    bindFrameworkEvents() {
+
+      // Brand click -> Startseite
+
+      if (this.dom.suiteBrand) {
+
+        this.dom.suiteBrand.addEventListener('click', () => this.switchApp('hub'));
+
+      }
+
+
+
+      // App Selector Toggle Dropdown
+
+      if (this.dom.appSelectorToggle) {
+
+        this.dom.appSelectorToggle.addEventListener('click', (e) => {
+
+          e.stopPropagation();
+
+          const isExpanded = this.dom.appSelectorToggle.getAttribute('aria-expanded') === 'true';
+
+          this.toggleAppSelector(!isExpanded);
+
+        });
+
+      }
+
+
+
+      // App Menu Items
+
+      this.dom.appMenuItems.forEach(item => {
+
+        item.addEventListener('click', () => {
+
+          const target = item.dataset.appTarget;
+
+          this.switchApp(target);
+
+          this.toggleAppSelector(false);
+
+        });
+
+      });
+
+
+
+      // Quick Nav Pills
+
+      this.dom.suiteNavPills.forEach(pill => {
+
+        pill.addEventListener('click', () => {
+
+          this.switchApp(pill.dataset.app);
+
+        });
+
+      });
+
+
+
+      // Close dropdown when clicking outside
+
+      document.addEventListener('click', (e) => {
+
+        if (!e.target.closest('.app-selector-dropdown-wrapper')) {
+
+          this.toggleAppSelector(false);
+
+        }
+
+      });
+
+
+
+      // Global Sound Toggle
+
+      if (this.dom.soundToggleBtn) {
+
+        this.dom.soundToggleBtn.addEventListener('click', () => {
+
+          this.sound.toggle();
+
+          this.updateSoundIcon();
+
+          if (this.sound.enabled) this.sound.playSuccess();
+
+        });
+
+      }
+
+
+
+      // Global Backup Modal
+
+      if (this.dom.btnBackup) {
+
+        this.dom.btnBackup.addEventListener('click', () => {
+
+          this.dom.backupModal.classList.remove('hidden');
+
+          this.sound.playPop();
+
+        });
+
+      }
+
+      if (this.dom.backupModalClose) {
+
+        this.dom.backupModalClose.addEventListener('click', () => {
+
+          this.dom.backupModal.classList.add('hidden');
+
+        });
+
+      }
+
+      if (this.dom.btnExportBackup) {
+
+        this.dom.btnExportBackup.addEventListener('click', () => this.exportAllSuiteData());
+
+      }
+
+      if (this.dom.inputImportBackup) {
+
+        this.dom.inputImportBackup.addEventListener('change', (e) => {
+
+          const file = e.target.files[0];
+
+          if (file) this.importSuiteData(file);
+
+          e.target.value = '';
+
+        });
+
+      }
+
+      if (this.dom.btnResetAllDemo) {
+
+        this.dom.btnResetAllDemo.addEventListener('click', () => {
+
+          if (confirm('Möchtest du alle Suite-Daten auf Werkseinstellungen zurücksetzen?')) {
+
+            localStorage.clear();
+
+            location.reload();
+
+          }
+
+        });
+
+      }
+
+
+
+      // Shortcuts Modal
+
+      if (this.dom.btnShortcuts) {
+
+        this.dom.btnShortcuts.addEventListener('click', () => {
+
+          this.dom.shortcutsModal.classList.remove('hidden');
+
+          this.sound.playPop();
+
+        });
+
+      }
+
+      if (this.dom.shortcutsModalClose) {
+
+        this.dom.shortcutsModalClose.addEventListener('click', () => {
+
+          this.dom.shortcutsModal.classList.add('hidden');
+
+        });
+
+      }
+
+
+
+      // Universal Keyboard Shortcuts (Alt + 0..5, Alt + K, Escape)
+
+      window.addEventListener('keydown', (e) => {
+
+        if (e.altKey && !e.ctrlKey && !e.metaKey) {
+
+          if (e.key === '0' || e.key.toLowerCase() === 'h') {
+
+            e.preventDefault();
+
+            this.switchApp('hub');
+
+          } else if (e.key === '1') {
+
+            e.preventDefault();
+
+            this.switchApp('tasks');
+
+          } else if (e.key === '2') {
+
+            e.preventDefault();
+
+            this.switchApp('notes');
+
+          } else if (e.key === '3') {
+
+            e.preventDefault();
+
+            this.switchApp('focus');
+
+          } else if (e.key === '4') {
+
+            e.preventDefault();
+
+            this.switchApp('habits');
+
+          } else if (e.key === '5') {
+
+            e.preventDefault();
+
+            this.switchApp('tools');
+
+          } else if (e.key === '6') {
+
+            e.preventDefault();
+
+            this.switchApp('riddle');
+
+          } else if (e.key.toLowerCase() === 'k') {
+
+            e.preventDefault();
+
+            this.toggleAppSelector();
+
+          }
+
+        } else if (e.key === 'Escape') {
+
+          this.toggleAppSelector(false);
+
+          if (this.dom.backupModal) this.dom.backupModal.classList.add('hidden');
+
+          if (this.dom.shortcutsModal) this.dom.shortcutsModal.classList.add('hidden');
+
+        }
+
+      });
+
+
+
+      // Browser Navigation (Hash change back/forward)
+
+      window.addEventListener('hashchange', () => {
+
+        const hash = window.location.hash.replace('#', '');
+
+        if (this.dom.appViews[hash] && hash !== this.activeApp) {
+
+          this.switchApp(hash, false);
+
+        }
+
+      });
+
+
+
+      // Data Navigation triggers with [data-app-nav]
+
+      document.querySelectorAll('[data-app-nav]').forEach(el => {
+
+        el.addEventListener('click', () => {
+
+          this.switchApp(el.dataset.appNav);
+
+        });
+
+      });
+
+    }
+
+
+
+    toggleAppSelector(forceState) {
+
+      if (!this.dom.appSelectorMenu || !this.dom.appSelectorToggle) return;
+
+      const isOpen = forceState !== undefined ? forceState : this.dom.appSelectorMenu.classList.contains('hidden');
+
+      this.dom.appSelectorMenu.classList.toggle('hidden', !isOpen);
+
+      this.dom.appSelectorToggle.setAttribute('aria-expanded', String(isOpen));
+
+      if (isOpen) this.sound.playPop();
+
+    }
+
+
+
+    switchApp(appId, updateHash = true) {
+
+      if (!this.dom.appViews[appId]) return;
+
+
+
+      this.activeApp = appId;
+
+
+
+      // 1. Switch visible view
+
+      Object.keys(this.dom.appViews).forEach(key => {
+
+        const viewEl = this.dom.appViews[key];
+
+        if (viewEl) {
+
+          viewEl.classList.toggle('active', key === appId);
+
+        }
+
+      });
+
+
+
+      // 2. Update Indicator in Header
+
+      const theme = this.appThemes[appId] || { name: appId, color: '#6366f1' };
+
+      if (this.dom.currentAppName) this.dom.currentAppName.textContent = theme.name;
+
+      if (this.dom.currentAppDot) {
+
+        this.dom.currentAppDot.style.background = theme.color;
+
+        this.dom.currentAppDot.style.boxShadow = `0 0 10px ${theme.color}`;
+
+      }
+
+
+
+      // 3. Update Suite Nav Pills
+
+      this.dom.suiteNavPills.forEach(pill => {
+
+        pill.classList.toggle('active', pill.dataset.app === appId);
+
+      });
+
+
+
+      // 4. Update Dropdown Menu Active Item
+
+      this.dom.appMenuItems.forEach(item => {
+
+        item.classList.toggle('active', item.dataset.appTarget === appId);
+
+      });
+
+
+
+      // 5. Update URL Hash
+
+      if (updateHash) {
+
+        window.location.hash = appId;
+
+      }
+
+
+
+      // 6. Sound & Refresh
+
+      this.sound.playPop();
+
+
+
+      // Trigger app-specific refresh
+
+      if (appId === 'hub' && this.hubApp) {
+
+        this.hubApp.render();
+
+      } else if (appId === 'tasks' && this.taskApp) {
+
+        this.taskApp.render();
+
+      } else if (appId === 'notes' && this.notesApp) {
+
+        this.notesApp.render();
+
+      } else if (appId === 'habits' && this.habitsApp) {
+
+        this.habitsApp.render();
+
+      } else if (appId === 'riddle' && this.riddleApp) {
+
+        this.riddleApp.render();
+
+      }
+
+
+
+      // Scroll to top
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    }
+
+
+
+    startClock() {
+
+      const update = () => {
+
+        if (!this.dom.clockDisplay) return;
+
+        const now = new Date();
+
+        const hrs = String(now.getHours()).padStart(2, '0');
+
+        const mins = String(now.getMinutes()).padStart(2, '0');
+
+        this.dom.clockDisplay.innerHTML = `<span class="clock-time">${hrs}:${mins}</span>`;
+
+      };
+
+      update();
+
+      setInterval(update, 1000);
+
+    }
+
+
+
+    updateSoundIcon() {
+
+      if (!this.dom.soundToggleBtn) return;
+
+      if (this.sound.enabled) {
+
+        this.dom.soundToggleBtn.classList.remove('muted');
+
+        this.dom.soundToggleBtn.title = 'Sound-Synthesizer: Aktiviert';
+
+        this.dom.soundToggleBtn.style.opacity = '1';
+
+      } else {
+
+        this.dom.soundToggleBtn.classList.add('muted');
+
+        this.dom.soundToggleBtn.title = 'Sound-Synthesizer: Stumm';
+
+        this.dom.soundToggleBtn.style.opacity = '0.5';
+
+      }
+
+    }
+
+
+
+    showToast(message, type = 'info') {
+
+      if (!this.dom.toastContainer) return;
+
+      const toast = document.createElement('div');
+
+      toast.className = 'toast';
+
+      toast.innerHTML = `<span>${escapeHtml(message)}</span>`;
+
+      this.dom.toastContainer.appendChild(toast);
+
+
+
+      setTimeout(() => {
+
+        toast.classList.add('toast-exit');
+
+        setTimeout(() => toast.remove(), 250);
+
+      }, 4000);
+
+    }
+
+
+
+    // --- Global Suite Backup ---
+
+    exportAllSuiteData() {
+
+      const suiteBackup = {
+
+        version: '3.0',
+
+        exportedAt: new Date().toISOString(),
+
+        tasks: this.taskApp ? this.taskApp.tasks : [],
+
+        notes: this.notesApp ? this.notesApp.notes : [],
+
+        habits: this.habitsApp ? this.habitsApp.habits : [],
+
+        focus: {
+
+          sessions: parseInt(localStorage.getItem('orbitsuite_focus_sessions') || '0', 10),
+
+          minutes: parseInt(localStorage.getItem('orbitsuite_focus_minutes') || '0', 10)
+
+        },
+
+        riddles: {
+
+          solved: Array.from(this.riddleApp ? this.riddleApp.solvedRiddles : []),
+
+          streak: this.riddleApp ? this.riddleApp.streak : 0,
+
+          custom: this.riddleApp ? this.riddleApp.customRiddles : []
+
+        }
+
+      };
+
+
+
+      const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(suiteBackup, null, 2));
+
+      const anchor = document.createElement('a');
+
+      anchor.setAttribute('href', dataStr);
+
+      anchor.setAttribute('download', `orbitsuite-backup-${getTodayString(0)}.json`);
+
+      document.body.appendChild(anchor);
+
+      anchor.click();
+
+      anchor.remove();
+
+
+
+      this.showToast('Vollständiges OrbitSuite-Backup exportiert! 📦');
+
+      this.sound.playSuccess();
+
+    }
+
+
+
+    importSuiteData(file) {
+
+      const reader = new FileReader();
+
+      reader.onload = (e) => {
+
+        try {
+
+          const data = JSON.parse(e.target.result);
+
+          if (data && (data.tasks || Array.isArray(data))) {
+
+            if (Array.isArray(data.tasks)) {
+
+              this.taskApp.tasks = data.tasks;
+
+              this.taskApp.saveTasks();
+
+            } else if (Array.isArray(data)) {
+
+              this.taskApp.tasks = data;
+
+              this.taskApp.saveTasks();
+
+            }
+
+
+
+            if (Array.isArray(data.notes)) {
+
+              this.notesApp.notes = data.notes;
+
+              this.notesApp.saveNotes();
+
+            }
+
+
+
+            if (Array.isArray(data.habits)) {
+
+              this.habitsApp.habits = data.habits;
+
+              this.habitsApp.saveHabits();
+
+            }
+
+
+
+            if (data.focus) {
+
+              localStorage.setItem('orbitsuite_focus_sessions', data.focus.sessions || 0);
+
+              localStorage.setItem('orbitsuite_focus_minutes', data.focus.minutes || 0);
+
+            }
+
+
+
+            if (data.riddles && this.riddleApp) {
+
+              if (Array.isArray(data.riddles.solved)) {
+
+                this.riddleApp.solvedRiddles = new Set(data.riddles.solved);
+
+                this.riddleApp.saveSolved();
+
+              }
+
+              if (typeof data.riddles.streak === 'number') {
+
+                this.riddleApp.streak = data.riddles.streak;
+
+                localStorage.setItem('orbitsuite_riddle_streak', String(this.riddleApp.streak));
+
+              }
+
+              if (Array.isArray(data.riddles.custom)) {
+
+                this.riddleApp.customRiddles = data.riddles.custom;
+
+                this.riddleApp.saveCustomRiddles();
+
+              }
+
+              this.riddleApp.render();
+
+            }
+
+
+
+            this.showToast('OrbitSuite Backup erfolgreich eingespielt! 🎉');
+
+            this.sound.playSuccess();
+
+            this.dom.backupModal.classList.add('hidden');
+
+            this.switchApp('hub');
+
+          } else {
+
+            alert('Ungültiges Backup-Format.');
+
+          }
+
+        } catch (err) {
+
+          alert('Fehler beim Importieren: ' + err.message);
+
+        }
+
+      };
+
+      reader.readAsText(file);
+
+    }
+
+  }
+
+
+
+  // Launch when DOM is ready
+
+  if (document.readyState === 'loading') {
+
+    document.addEventListener('DOMContentLoaded', () => {
+
+      window.orbitSuite = new OrbitSuiteRouter();
+
+    });
+
+  } else {
+
+    window.orbitSuite = new OrbitSuiteRouter();
+
+  }
+
+})();
+

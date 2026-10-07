@@ -1375,13 +1375,64 @@
           </div>
         </header>
         <!-- LinkedIn Daily Games Mode Selector Bar -->
-        <div class="riddle-games-nav" id="riddle-games-nav">
+                <div class="riddle-games-nav" id="riddle-games-nav">
           <button class="game-nav-btn active" data-game-mode="queens">
             <span class="game-nav-icon">👑</span>
             <div class="game-nav-label">
               <span class="game-nav-title">Queens</span>
               <span class="game-nav-sub">Kronen-Logik</span>
             </div>
+            <span class="game-nav-badge">Daily</span>
+          </button>
+          <button class="game-nav-btn" data-game-mode="tango">
+            <span class="game-nav-icon">☀️🌙</span>
+            <div class="game-nav-label">
+              <span class="game-nav-title">Tango</span>
+              <span class="game-nav-sub">Sonne & Mond</span>
+            </div>
+            <span class="game-nav-badge">Daily</span>
+          </button>
+          <button class="game-nav-btn" data-game-mode="crossclimb">
+            <span class="game-nav-icon">🪜</span>
+            <div class="game-nav-label">
+              <span class="game-nav-title">Crossclimb</span>
+              <span class="game-nav-sub">Wortleiter-Trivia</span>
+            </div>
+            <span class="game-nav-badge">Daily</span>
+          </button>
+          <button class="game-nav-btn" data-game-mode="pinpoint">
+            <span class="game-nav-icon">🎯</span>
+            <div class="game-nav-label">
+              <span class="game-nav-title">Pinpoint</span>
+              <span class="game-nav-sub">5 Assoziationen</span>
+            </div>
+            <span class="game-nav-badge">Daily</span>
+          </button>
+          <button class="game-nav-btn" data-game-mode="zip">
+            <span class="game-nav-icon">⚡</span>
+            <div class="game-nav-label">
+              <span class="game-nav-title">Zip</span>
+              <span class="game-nav-sub">Pfad-Verbindung</span>
+            </div>
+            <span class="game-nav-badge">Daily</span>
+          </button>
+          <button class="game-nav-btn" data-game-mode="sudoku">
+            <span class="game-nav-icon">🔢</span>
+            <div class="game-nav-label">
+              <span class="game-nav-title">Mini Sudoku</span>
+              <span class="game-nav-sub">6×6 Zahlenlogik</span>
+            </div>
+            <span class="game-nav-badge">Daily</span>
+          </button>
+          <button class="game-nav-btn" data-game-mode="optical">
+            <span class="game-nav-icon">👁️</span>
+            <div class="game-nav-label">
+              <span class="game-nav-title">Optisch</span>
+              <span class="game-nav-sub">28 Denkaufgaben</span>
+            </div>
+            <span class="game-nav-badge">Archiv</span>
+          </button>
+        </div>
             <span class="game-nav-badge">Daily</span>
           </button>
           <button class="game-nav-btn" data-game-mode="tango">
@@ -1605,7 +1656,192 @@
         </div>
 
         <!-- Panel 4: Optical Riddles (28 Visual Puzzles Archive) -->
-        <div class="game-mode-panel hidden" id="panel-game-optical">
+                <!-- Panel 4: Crossclimb (LinkedIn Word Ladder & Trivia) -->
+        <div class="game-mode-panel hidden" id="panel-game-crossclimb">
+          <div class="riddle-daily-banner">
+            <div class="daily-banner-glow"></div>
+            <div class="daily-banner-left">
+              <div class="daily-badge-row">
+                <span class="daily-pulse-tag"><span class="pulse-indicator"></span> 07:00 UHR TAGES-LEITER</span>
+                <span class="daily-status-pill" id="crossclimb-status-pill">Offen ⏳</span>
+              </div>
+              <h3 class="daily-banner-title" id="crossclimb-daily-date-title">🪜 Crossclimb: Die Wortleiter</h3>
+              <p class="daily-banner-subtitle">Löse die 5 Trivia-Hinweise und ordne die Wörter so an, dass sich benachbarte Sprossen um genau 1 Buchstaben unterscheiden!</p>
+            </div>
+            <div class="daily-banner-right">
+              <div class="daily-countdown-card">
+                <span class="countdown-eyebrow">NÄCHSTE TAGES-LEITER IN</span>
+                <div class="countdown-clock" id="crossclimb-daily-countdown">--:--:--</div>
+                <span class="countdown-target">Drop täglich um 07:00:00 Uhr</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="game-arena-card">
+            <div class="game-arena-toolbar">
+              <div class="toolbar-left">
+                <label for="crossclimb-level-select" class="toolbar-label">Leiter:</label>
+                <select id="crossclimb-level-select" class="select-input select-level">
+                  <option value="daily">⭐ Heutige Tages-Leiter (07:00 Drop)</option>
+                </select>
+                <span class="game-pill-badge" id="crossclimb-status-badge">Sprossen: 0/5 gelöst</span>
+              </div>
+              <div class="toolbar-right">
+                <button class="btn-secondary" id="btn-crossclimb-check">
+                  <span>✨ Leiter prüfen</span>
+                </button>
+                <button class="btn-secondary" id="btn-crossclimb-reset">
+                  <span>🔄 Neustart</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="crossclimb-interactive-layout">
+              <div class="crossclimb-ladder" id="crossclimb-ladder-list">
+                <!-- 5 Ladder Rungs rendered dynamically -->
+              </div>
+              <div class="game-guide-box">
+                <h4 class="guide-title">💡 So funktioniert Crossclimb</h4>
+                <ul class="guide-list">
+                  <li><strong>1. Wörter erraten:</strong> Trage zu jedem Hinweis das passende 4-Buchstaben-Wort ein.</li>
+                  <li><strong>2. Leiter anordnen:</strong> Nutze die <code>▲</code> / <code>▼</code> Tasten, um die Sprossen zu sortieren.</li>
+                  <li><strong>3. Ein-Buchstaben-Regel:</strong> Jedes benachbarte Wortpaar darf sich um <em>exakt einen Buchstaben</em> unterscheiden (z.B. KALT ➔ WALT ➔ WALD ➔ WILD ➔ BILD).</li>
+                  <li>Klicke auf <strong>Leiter prüfen</strong>, um die Vollendung zu feiern!</li>
+                </ul>
+                <div class="game-inline-feedback" id="crossclimb-feedback"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 5: Zip (LinkedIn Number-Tracing Path Game) -->
+        <div class="game-mode-panel hidden" id="panel-game-zip">
+          <div class="riddle-daily-banner">
+            <div class="daily-banner-glow"></div>
+            <div class="daily-banner-left">
+              <div class="daily-badge-row">
+                <span class="daily-pulse-tag"><span class="pulse-indicator"></span> 07:00 UHR TAGES-PFAD</span>
+                <span class="daily-status-pill" id="zip-status-pill">Offen ⏳</span>
+              </div>
+              <h3 class="daily-banner-title" id="zip-daily-date-title">⚡ Zip: Der lückenlose Pfad</h3>
+              <p class="daily-banner-subtitle">Verbinde alle 25 Felder in einem einzigen kontinuierlichen Pfad von Checkpoint 1 bis 25 ohne Überschneidung!</p>
+            </div>
+            <div class="daily-banner-right">
+              <div class="daily-countdown-card">
+                <span class="countdown-eyebrow">NÄCHSTER TAGES-PFAD IN</span>
+                <div class="countdown-clock" id="zip-daily-countdown">--:--:--</div>
+                <span class="countdown-target">Drop täglich um 07:00:00 Uhr</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="game-arena-card">
+            <div class="game-arena-toolbar">
+              <div class="toolbar-left">
+                <label for="zip-level-select" class="toolbar-label">Pfad:</label>
+                <select id="zip-level-select" class="select-input select-level">
+                  <option value="daily">⭐ Heutiger Tages-Pfad (07:00 Drop)</option>
+                </select>
+                <span class="game-pill-badge" id="zip-progress-badge">Pfad: 1/25 Felder</span>
+              </div>
+              <div class="toolbar-right">
+                <button class="btn-secondary" id="btn-zip-undo" title="Letzten Schritt zurücknehmen">
+                  <span>↩ Schritt zurück</span>
+                </button>
+                <button class="btn-secondary" id="btn-zip-reset" title="Pfad neu starten">
+                  <span>🔄 Reset</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="zip-interactive-layout">
+              <div class="zip-grid-container">
+                <div class="zip-grid" id="zip-grid">
+                  <!-- 5x5 Grid cells rendered dynamically -->
+                </div>
+              </div>
+              <div class="game-guide-box">
+                <h4 class="guide-title">💡 So funktioniert Zip</h4>
+                <ul class="guide-list">
+                  <li>Starte bei Checkpoint <strong>1</strong>.</li>
+                  <li>Klicke auf benachbarte freie Felder (oben, unten, links, rechts), um den Pfad schrittweise zu ziehen.</li>
+                  <li>Passiere alle nummerierten Checkpoints in aufsteigender Reihenfolge (1 ➔ 5 ➔ 9 ... ➔ 25).</li>
+                  <li><strong>Ziel:</strong> Alle 25 Felder des Gitters müssen lückenlos abgedeckt sein!</li>
+                </ul>
+                <div class="game-inline-feedback" id="zip-feedback"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 6: Mini Sudoku (LinkedIn 6x6 Sudoku) -->
+        <div class="game-mode-panel hidden" id="panel-game-sudoku">
+          <div class="riddle-daily-banner">
+            <div class="daily-banner-glow"></div>
+            <div class="daily-banner-left">
+              <div class="daily-badge-row">
+                <span class="daily-pulse-tag"><span class="pulse-indicator"></span> 07:00 UHR TAGES-SUDOKU</span>
+                <span class="daily-status-pill" id="sudoku-status-pill">Offen ⏳</span>
+              </div>
+              <h3 class="daily-banner-title" id="sudoku-daily-date-title">🔢 Mini Sudoku: 6×6 Zahlenrätsel</h3>
+              <p class="daily-banner-subtitle">Trage die Ziffern 1 bis 6 so ein, dass jede Zeile, jede Spalte und jeder 2×3-Block jede Ziffer genau einmal enthält!</p>
+            </div>
+            <div class="daily-banner-right">
+              <div class="daily-countdown-card">
+                <span class="countdown-eyebrow">NÄCHSTES TAGES-SUDOKU IN</span>
+                <div class="countdown-clock" id="sudoku-daily-countdown">--:--:--</div>
+                <span class="countdown-target">Drop täglich um 07:00:00 Uhr</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="game-arena-card">
+            <div class="game-arena-toolbar">
+              <div class="toolbar-left">
+                <label for="sudoku-level-select" class="toolbar-label">Sudoku:</label>
+                <select id="sudoku-level-select" class="select-input select-level">
+                  <option value="daily">⭐ Heutiges Tages-Sudoku (07:00 Drop)</option>
+                </select>
+                <span class="game-pill-badge" id="sudoku-timer-badge">⏱️ 00:00</span>
+              </div>
+              <div class="toolbar-right">
+                <button class="btn-secondary" id="btn-sudoku-reset" title="Sudoku zurücksetzen">
+                  <span>🔄 Reset</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="sudoku-interactive-layout">
+              <div class="sudoku-board-column">
+                <div class="sudoku-grid" id="sudoku-grid">
+                  <!-- 6x6 Sudoku cells rendered dynamically -->
+                </div>
+                <!-- Number Pad Controls -->
+                <div class="sudoku-numpad" id="sudoku-numpad">
+                  <button class="numpad-btn" data-num="1">1</button>
+                  <button class="numpad-btn" data-num="2">2</button>
+                  <button class="numpad-btn" data-num="3">3</button>
+                  <button class="numpad-btn" data-num="4">4</button>
+                  <button class="numpad-btn" data-num="5">5</button>
+                  <button class="numpad-btn" data-num="6">6</button>
+                  <button class="numpad-btn clear" data-num="0">⌫</button>
+                </div>
+              </div>
+              <div class="game-guide-box">
+                <h4 class="guide-title">💡 So funktioniert Mini Sudoku</h4>
+                <ul class="guide-list">
+                  <li>Klicke auf ein leeres Feld und tippe eine Ziffer (1–6) über den Nummernblock oder deine Tastatur ein.</li>
+                  <li>Jede <strong>Zeile</strong> muss 1 bis 6 ohne Duplikate enthalten.</li>
+                  <li>Jede <strong>Spalte</strong> muss 1 bis 6 ohne Duplikate enthalten.</li>
+                  <li>Jeder <strong>2×3 Block</strong> (durch dicke Linien markiert) muss 1 bis 6 enthalten.</li>
+                  <li>Konflikte werden dir sofort in Rot angezeigt.</li>
+                </ul>
+                <div class="game-inline-feedback" id="sudoku-feedback"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+<div class="game-mode-panel hidden" id="panel-game-optical">
 <!-- Riddle Category Filters -->
         <section class="controls-strip">
           <div class="filter-group">
