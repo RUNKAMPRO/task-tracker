@@ -4298,6 +4298,10 @@ body {
   background: rgba(56, 189, 248, 0.08);
 }
 
+#btn-pwa-install.hidden {
+  display: none !important;
+}
+
 #btn-pwa-install:hover {
   background: rgba(56, 189, 248, 0.2);
   border-color: #38bdf8;
