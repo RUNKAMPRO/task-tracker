@@ -279,7 +279,7 @@
           <div class="hub-kpi-card" data-app-nav="riddle">
             <div class="kpi-icon riddle">🧩</div>
             <div class="kpi-data">
-              <span class="kpi-value" id="hub-stat-riddles">18 Rätsel</span>
+              <span class="kpi-value" id="hub-stat-riddles">18 Optische Rätsel</span>
               <span class="kpi-label">Denksport & Quiz</span>
             </div>
             <span class="kpi-arrow">→</span>
@@ -452,7 +452,7 @@
               <div class="app-card-meta">
                 <div class="meta-pill">
                   <span class="dot purple"></span>
-                  <span id="hub-card-riddle-summary">18 Denk-Rätsel</span>
+                  <span id="hub-card-riddle-summary">18 Optische Rätsel</span>
                 </div>
                 <button class="app-launch-btn riddle-btn" data-launch="riddle">
                   <span>App öffnen</span>
@@ -1346,11 +1346,12 @@
           <div class="filter-group">
             <span class="filter-title">Kategorie:</span>
             <button class="filter-chip active riddle-filter-chip" data-category="all">Alle</button>
-            <button class="filter-chip riddle-filter-chip" data-category="Logik">💡 Logik</button>
-            <button class="filter-chip riddle-filter-chip" data-category="Zahlen">🔢 Zahlen & Mathe</button>
-            <button class="filter-chip riddle-filter-chip" data-category="Tech">💻 Coder & Tech</button>
-            <button class="filter-chip riddle-filter-chip" data-category="Detektiv">🕵️ Detektiv</button>
-            <button class="filter-chip riddle-filter-chip" data-category="Querdenker">🧠 Querdenker</button>
+            <button class="filter-chip riddle-filter-chip" data-category="Muster">🧩 Muster</button>
+            <button class="filter-chip riddle-filter-chip" data-category="Geometrie">📐 Geometrie</button>
+            <button class="filter-chip riddle-filter-chip" data-category="Gleichung">⚖️ Gleichung</button>
+            <button class="filter-chip riddle-filter-chip" data-category="Illusion">👁️ Illusion</button>
+            <button class="filter-chip riddle-filter-chip" data-category="Streichholz">🪵 Streichholz</button>
+            <button class="filter-chip riddle-filter-chip" data-category="Raumdenken">🎲 3D-Raum</button>
           </div>
           <div class="sort-container">
             <label for="riddle-difficulty-select" class="sort-label">Stufe:</label>
@@ -1381,6 +1382,7 @@
 
             <!-- Puzzle Question Box -->
             <div class="riddle-question-wrapper">
+              <div class="riddle-visual-box" id="riddle-visual-box"></div>
               <h2 class="riddle-question-text" id="riddle-question-text">Lädt Rätsel...</h2>
             </div>
 
@@ -1652,11 +1654,12 @@
           <div class="form-group col-half">
             <label for="riddle-new-cat" class="form-label">Kategorie</label>
             <select id="riddle-new-cat" class="form-select">
-              <option value="Logik">💡 Logik</option>
-              <option value="Zahlen">🔢 Zahlen & Mathe</option>
-              <option value="Tech">💻 Coder & Tech</option>
-              <option value="Detektiv">🕵️ Detektiv</option>
-              <option value="Querdenker">🧠 Querdenker</option>
+              <option value="Muster">🧩 Muster & Matrizen</option>
+              <option value="Geometrie">📐 Geometrie & Zählen</option>
+              <option value="Gleichung">⚖️ Symbol-Gleichung</option>
+              <option value="Illusion">👁️ Optische Illusion</option>
+              <option value="Streichholz">🪵 Streichholz</option>
+              <option value="Raumdenken">🎲 3D & Raumdenken</option>
             </select>
           </div>
 
