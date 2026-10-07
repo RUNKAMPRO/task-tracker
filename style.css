@@ -1836,6 +1836,12 @@ body {
   min-height: 100vh;
 }
 
+@media (min-width: 1900px) {
+  .suite-layout {
+    max-width: 96vw;
+  }
+}
+
 .suite-app-view {
   display: none;
   animation: fadeInSuiteView 0.25s cubic-bezier(0.16, 1, 0.3, 1);
@@ -4888,6 +4894,10 @@ body {
 .reg-3 { background-color: #6b21a8; } /* Royal Purple */
 .reg-4 { background-color: #9f1239; } /* Ruby Rose */
 .reg-5 { background-color: #0e7490; } /* Ocean Cyan */
+.reg-6 { background-color: #475569; } /* Slate */
+.reg-7 { background-color: #854d0e; } /* Bronze Amber */
+.reg-8 { background-color: #4338ca; } /* Deep Indigo */
+.reg-9 { background-color: #0f766e; } /* Forest Teal */
 
 .queens-cell {
   border: 1px solid rgba(255, 255, 255, 0.12) !important;
@@ -6237,6 +6247,7 @@ body {
 .linear-trail-track {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 0;
   min-width: 100%;
   width: max-content;
@@ -6249,8 +6260,36 @@ body {
 }
 
 .linear-trail-track .trail-connector {
-  flex: 1 0 14px;
+  flex: 1 1 14px;
   min-width: 14px;
+}
+
+.diff-card-header .diff-title-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.diff-size-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--accent);
+  background: rgba(99, 102, 241, 0.16);
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  border-radius: var(--radius-sm);
+  padding: 2px 8px;
+  width: fit-content;
+}
+
+.diff-size-subtitle {
+  font-size: 0.84rem;
+  color: #94a3b8;
+  font-weight: 600;
+  margin-top: -2px;
+  margin-bottom: 8px;
 }
 
 .trail-scroll-btn {

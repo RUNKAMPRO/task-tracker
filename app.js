@@ -4647,10 +4647,10 @@ class OrbitRiddleGenerator {
   }
 
   // 1. QUEENS GENERATOR: 6x6 grid, 6 queens, 6 contiguous color regions
-  static generateQueens(level, customSeed = null) {
+  static generateQueens(level, customSeed = null, customSize = null) {
     const seed = customSeed || `queens_level_${level}`;
     const rng = this.createPrng(seed);
-    const size = 6;
+    const size = customSize || (level <= 5 ? 6 : (level <= 10 ? 8 : 10));
 
     let queens = null;
     for (let attempt = 0; attempt < 1000; attempt++) {
@@ -4724,8 +4724,8 @@ class OrbitRiddleGenerator {
 
     return {
       id: `queens-gen-${level}`,
-      title: `👑 Queens: Board #${level} (6×6)`,
-      size: 6,
+      title: `👑 Queens: Board #${level} (${size}×${size})`,
+      size: size,
       regions: grid,
       solution: queens
     };
@@ -4894,11 +4894,11 @@ class OrbitRiddleGenerator {
   }
 
   // 4. ZIP GENERATOR: 5x5 grid, Hamiltonian path, 7 ordered checkpoints
-  static generateZip(level, customSeed = null) {
+  static generateZip(level, customSeed = null, customSize = null) {
     const seed = customSeed || `zip_level_${level}`;
     const rng = this.createPrng(seed);
-    const size = 5;
-    const total = 25;
+    const size = customSize || (level <= 5 ? 5 : (level <= 10 ? 6 : 7));
+    const total = size * size;
 
     let path = null;
     for (let attempt = 0; attempt < 500; attempt++) {
@@ -4943,20 +4943,25 @@ class OrbitRiddleGenerator {
 
     if (!path) {
       path = [];
-      for (let r = 0; r < 5; r++) {
+      for (let r = 0; r < size; r++) {
         if (r % 2 === 0) {
-          for (let c = 0; c < 5; c++) path.push({ r, c });
+          for (let c = 0; c < size; c++) path.push({ r, c });
         } else {
-          for (let c = 4; c >= 0; c--) path.push({ r, c });
+          for (let c = size - 1; c >= 0; c--) path.push({ r, c });
         }
       }
     }
 
     const checkpoints = {};
     const diffTier = level <= 5 ? 'easy' : (level <= 10 ? 'medium' : 'hard');
-    const steps = diffTier === 'easy'
-      ? [0, 3, 6, 9, 12, 15, 18, 21, 24]
-      : (diffTier === 'medium' ? [0, 4, 8, 12, 16, 20, 24] : [0, 6, 12, 18, 24]);
+    const countPoints = size === 5 ? 9 : (size === 6 ? 8 : 10);
+    const stepSize = Math.floor((total - 1) / (countPoints - 1));
+    const steps = [];
+    for (let i = 0; i < countPoints - 1; i++) {
+      steps.push(i * stepSize);
+    }
+    steps.push(total - 1);
+
     steps.forEach((stepIdx, numIdx) => {
       const cell = path[stepIdx];
       checkpoints[`${cell.r},${cell.c}`] = {
@@ -4967,8 +4972,8 @@ class OrbitRiddleGenerator {
 
     return {
       id: `zip-gen-${level}`,
-      title: `⚡ Zip: Pfad #${level} (5×5)`,
-      size: 5,
+      title: `⚡ Zip: Pfad #${level} (${size}×${size})`,
+      size: size,
       checkpoints,
       solution: path
     };
@@ -5883,16 +5888,16 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
       let puzzle = null;
       if (game === 'queens') {
-        if (level <= this.queensData.length) puzzle = this.queensData[level - 1];
+        if (level <= 5 && level <= this.queensData.length) puzzle = this.queensData[level - 1];
         else puzzle = OrbitRiddleGenerator.generateQueens(level);
       } else if (game === 'tango') {
-        if (level <= this.tangoData.length) puzzle = this.tangoData[level - 1];
+        if (level <= 5 && level <= this.tangoData.length) puzzle = this.tangoData[level - 1];
         else puzzle = OrbitRiddleGenerator.generateTango(level);
       } else if (game === 'sudoku') {
-        if (level <= this.sudokuData.length) puzzle = this.sudokuData[level - 1];
+        if (level <= 5 && level <= this.sudokuData.length) puzzle = this.sudokuData[level - 1];
         else puzzle = OrbitRiddleGenerator.generateSudoku(level);
       } else if (game === 'zip') {
-        if (level <= this.zipData.length) puzzle = this.zipData[level - 1];
+        if (level <= 5 && level <= this.zipData.length) puzzle = this.zipData[level - 1];
         else puzzle = OrbitRiddleGenerator.generateZip(level);
       } else if (game === 'crossclimb') {
         puzzle = OrbitRiddleGenerator.generateCrossclimb(level, this.crossclimbData);
@@ -5973,37 +5978,32 @@ btnRandom: document.getElementById('btn-riddle-random'),
     }
 
     getScreenFitLevelCount(game) {
-      // 1. Genaue Messung der tatsächlichen Container-Breite im DOM
+      const w = window.innerWidth || document.documentElement.clientWidth || 1024;
+
+      // Direkte Messung der Container-Breite falls vorhanden
       let containerWidth = 0;
       if (game) {
         const c = document.querySelector(`#${game}-level-hub .linear-trail-container`);
-        if (c && c.clientWidth > 80) {
-          containerWidth = c.clientWidth;
-        }
+        if (c && c.clientWidth > 80) containerWidth = c.clientWidth;
       }
       if (!containerWidth) {
         const anyC = document.querySelector('.linear-trail-container');
-        if (anyC && anyC.clientWidth > 80) {
-          containerWidth = anyC.clientWidth;
-        }
+        if (anyC && anyC.clientWidth > 80) containerWidth = anyC.clientWidth;
       }
-
-      const w = window.innerWidth || document.documentElement.clientWidth || 1024;
       if (!containerWidth) {
-        // Fallback: Volle Bildschirmbreite abzüglich Seitenränder und Buttons (~100px)
-        const wrapperPadding = w < 640 ? 40 : 100;
-        containerWidth = Math.max(280, w - wrapperPadding);
+        containerWidth = Math.max(300, w - (w < 640 ? 40 : 100));
       }
 
-      // Node-Abstand: Node-Breite + Connector
-      // Mobile: 38px + 14px = 52px
-      // Tablet: 42px + 18px = 60px
-      // Desktop: 44px + 14px = 58px
-      const pitch = w < 640 ? 52 : (w <= 1024 ? 60 : 58);
+      const pitch = w < 640 ? 48 : 52;
+      let targetCount = Math.ceil(containerWidth / pitch) + 2;
 
-      // Berechne exakt, wie viele Nodes benötigt werden, um das GANZE Feld lückenlos zu füllen
-      const count = Math.ceil((containerWidth - 28) / pitch);
-      return Math.max(8, count);
+      // Garantierte Mindestanzahl für 1440p (2560px), 1080p und Desktop, damit das Feld komplett gefüllt ist
+      if (w >= 2400) targetCount = Math.max(targetCount, 48);
+      else if (w >= 1800) targetCount = Math.max(targetCount, 34);
+      else if (w >= 1200) targetCount = Math.max(targetCount, 24);
+      else targetCount = Math.max(targetCount, 14);
+
+      return targetCount;
     }
 
     getPathLength(game) {
@@ -6151,7 +6151,41 @@ btnRandom: document.getElementById('btn-riddle-random'),
           </div>
         `;
       } else {
-        // VIEW 2: SCHWIERIGKEITS-MODUS
+        // VIEW 2: SCHWIERIGKEITS- & SPIELFELDGRÖSSEN-MODUS (FREIES SPIEL)
+        const tierSizeDefs = {
+          queens: {
+            easy: { badge: '6×6 Board', sub: '6 Kronen • 6 Regionen', desc: 'Kompaktes Spielfeld, sanfter Einstieg & Grundlagen.' },
+            medium: { badge: '8×8 Board', sub: '8 Kronen • 8 Regionen', desc: 'Erweitertes Spielfeld mit anspruchsvollen Farbzonen & tiefen Ausschlüssen.' },
+            hard: { badge: '10×10 Board', sub: '10 Kronen • 10 Regionen', desc: 'Großmeister-Spielfeld für maximale strategische Denkarbeit.' }
+          },
+          tango: {
+            easy: { badge: '6×6 Board', sub: '3 Sonnen & 3 Monde', desc: 'Kompaktes Spielfeld mit vielen Hilfsmarkierungen (= und ×).' },
+            medium: { badge: '6×6 (Taktisch)', sub: '3 Sonnen & 3 Monde', desc: 'Erweitertes Spielfeld mit verzweigten Kettenreaktionen.' },
+            hard: { badge: '6×6 (Experte)', sub: '3 Sonnen & 3 Monde', desc: 'Großes Spielfeld mit tiefen Ausschlusskombinationen.' }
+          },
+          zip: {
+            easy: { badge: '5×5 Pfad', sub: '25 Felder • 9 Checkpoints', desc: 'Kompaktes Spielfeld für flüssigen Linienzug.' },
+            medium: { badge: '6×6 Pfad', sub: '36 Felder • 8 Checkpoints', desc: 'Erweitertes Spielfeld mit kurvenreichen Windungen.' },
+            hard: { badge: '7×7 Pfad', sub: '49 Felder • 10 Checkpoints', desc: 'Großes Spielfeld über das gesamte Raster.' }
+          },
+          sudoku: {
+            easy: { badge: '6×6 (Leicht)', sub: 'Viele Startzahlen', desc: 'Kompaktes 6×6 Board mit großzügigen Hilfszahlen.' },
+            medium: { badge: '6×6 (Mittel)', sub: 'Taktische Lücken', desc: 'Ausgewogenes 6×6 Board für fortgeschrittene Logik.' },
+            hard: { badge: '6×6 (Schwer)', sub: 'Minimale Vorgaben', desc: 'Meister-Board mit minimalen Zahlenvorgaben.' }
+          },
+          crossclimb: {
+            easy: { badge: '4 Sprossen', sub: 'Kompakte Leiter', desc: '4-Buchstaben-Wörter mit direkten Hinweisen.' },
+            medium: { badge: '5 Sprossen', sub: 'Mittlere Leiter', desc: 'Mehr Sprossen zum Sortieren & Kombinieren.' },
+            hard: { badge: '6 Sprossen', sub: 'Lange Meisterleiter', desc: 'Anspruchsvolle Wortstufen mit kniffligen Clues.' }
+          },
+          pinpoint: {
+            easy: { badge: '5 Hinweise', sub: 'Viele Assoziationen', desc: 'Mehr Spielraum zum Erraten des geheimen Begriffs.' },
+            medium: { badge: '4 Hinweise', sub: 'Gezielte Clues', desc: 'Engere Begriffs-Eingrenzung mit weniger Fehlversuchen.' },
+            hard: { badge: '3 Hinweise', sub: 'Experten-Clues', desc: 'Nur 3 kryptische Hinweise für echte Assoziations-Profis.' }
+          }
+        };
+
+        const activeSizeDef = tierSizeDefs[game] || tierSizeDefs.queens;
         const easyLevels = allLevels.filter(l => l <= 5);
         const medLevels = allLevels.filter(l => l > 5 && l <= 10);
         const hardLevels = allLevels.filter(l => l > 10);
@@ -6167,23 +6201,14 @@ btnRandom: document.getElementById('btn-riddle-random'),
             const isUnlocked = this.isLevelUnlocked(game, lvl);
             const isActive = lvl === cur;
 
-            if (isUnlocked) {
-              return `
-                <button class="diff-chip ${isSolved ? 'solved' : ''} ${isActive ? 'active' : ''}"
-                        data-select-level="${lvl}"
-                        title="Level #${lvl} (${this.getLevelDifficulty(lvl).label})">
-                  Lvl ${lvl} ${isSolved ? '✓' : ''}
-                </button>
-              `;
-            } else {
-              return `
-                <button class="diff-chip locked"
-                        data-locked-level="${lvl}"
-                        title="Level #${lvl} • 🔒 Gesperrt (Schließe Level #${lvl - 1} ab)">
-                  <span class="chip-lock-icon">🔒</span>
-                </button>
-              `;
-            }
+            // Im Freien Spiel kann jedes Level direkt gespielt werden
+            return `
+              <button class="diff-chip ${isSolved ? 'solved' : ''} ${isActive ? 'active' : ''}"
+                      data-select-level="${lvl}"
+                      title="Level #${lvl} (${this.getLevelDifficulty(lvl).label})">
+                Lvl ${lvl} ${isSolved ? '✓' : ''}
+              </button>
+            `;
           }).join('');
         };
 
@@ -6194,9 +6219,9 @@ btnRandom: document.getElementById('btn-riddle-random'),
           return anyUnlocked || null;
         };
 
-        const easyTarget = getFirstPlayableInTier(easyLevels);
-        const medTarget = getFirstPlayableInTier(medLevels);
-        const hardTarget = getFirstPlayableInTier(hardLevels);
+        const easyTarget = getFirstPlayableInTier(easyLevels) || 1;
+        const medTarget = getFirstPlayableInTier(medLevels) || 6;
+        const hardTarget = getFirstPlayableInTier(hardLevels) || 11;
 
         html += `
           <div class="level-difficulty-view">
@@ -6204,58 +6229,58 @@ btnRandom: document.getElementById('btn-riddle-random'),
               <!-- Leicht Card -->
               <div class="difficulty-card tier-easy">
                 <div class="diff-card-header">
-                  <span class="diff-card-title">🟢 Leicht</span>
+                  <div class="diff-title-col">
+                    <span class="diff-card-title">🟢 Leicht</span>
+                    <span class="diff-size-pill">📐 ${activeSizeDef.easy.badge}</span>
+                  </div>
                   <span class="tier-badge easy">${easySolved}/${easyLevels.length} Gelöst</span>
                 </div>
-                <p class="diff-desc">Sanfter Einstieg & Grundlagen. Ideal zum Aufwärmen und Verstehen der Spielregeln.</p>
+                <div class="diff-size-subtitle">${activeSizeDef.easy.sub}</div>
+                <p class="diff-desc">${activeSizeDef.easy.desc}</p>
                 <div class="diff-chips-row">
                   ${renderChips(easyLevels)}
                 </div>
-                <button class="btn-diff-play" data-select-level="${easyTarget}" title="Spiele ein leichtes Board">
-                  <span>▶ Leichtes Level spielen (Lvl #${easyTarget})</span>
+                <button class="btn-diff-play" data-select-level="${easyTarget}" title="Spiele ${activeSizeDef.easy.badge}">
+                  <span>▶ ${activeSizeDef.easy.badge} spielen (Lvl #${easyTarget})</span>
                 </button>
               </div>
 
               <!-- Mittel Card -->
-              <div class="difficulty-card tier-medium ${medTarget ? '' : 'card-locked'}">
+              <div class="difficulty-card tier-medium">
                 <div class="diff-card-header">
-                  <span class="diff-card-title">🟡 Mittel${medTarget ? '' : ' • 🔒'}</span>
+                  <div class="diff-title-col">
+                    <span class="diff-card-title">🟡 Mittel</span>
+                    <span class="diff-size-pill">📐 ${activeSizeDef.medium.badge}</span>
+                  </div>
                   <span class="tier-badge medium">${medSolved}/${medLevels.length} Gelöst</span>
                 </div>
-                <p class="diff-desc">Taktische Züge, tiefere Ausschlusslogik und kniffligere Verzweigungen.</p>
+                <div class="diff-size-subtitle">${activeSizeDef.medium.sub}</div>
+                <p class="diff-desc">${activeSizeDef.medium.desc}</p>
                 <div class="diff-chips-row">
                   ${renderChips(medLevels)}
                 </div>
-                ${medTarget ? `
-                  <button class="btn-diff-play" data-select-level="${medTarget}" title="Spiele ein mittleres Board">
-                    <span>▶ Mittleres Level spielen (Lvl #${medTarget})</span>
-                  </button>
-                ` : `
-                  <button class="btn-diff-play locked" data-locked-level="${medLevels[0]}" title="Stufe Mittel gesperrt">
-                    <span>🔒 Freischalten ab Level #${medLevels[0]}</span>
-                  </button>
-                `}
+                <button class="btn-diff-play" data-select-level="${medTarget}" title="Spiele ${activeSizeDef.medium.badge}">
+                  <span>▶ ${activeSizeDef.medium.badge} spielen (Lvl #${medTarget})</span>
+                </button>
               </div>
 
               <!-- Schwer Card -->
-              <div class="difficulty-card tier-hard ${hardTarget ? '' : 'card-locked'}">
+              <div class="difficulty-card tier-hard">
                 <div class="diff-card-header">
-                  <span class="diff-card-title">🔴 Schwer${hardTarget ? '' : ' • 🔒'}</span>
+                  <div class="diff-title-col">
+                    <span class="diff-card-title">🔴 Schwer</span>
+                    <span class="diff-size-pill">📐 ${activeSizeDef.hard.badge}</span>
+                  </div>
                   <span class="tier-badge hard">${hardSolved}/${hardLevels.length} Gelöst</span>
                 </div>
-                <p class="diff-desc">Meister-Herausforderung: Höchste Komplexität für echte Knobel-Profis.</p>
+                <div class="diff-size-subtitle">${activeSizeDef.hard.sub}</div>
+                <p class="diff-desc">${activeSizeDef.hard.desc}</p>
                 <div class="diff-chips-row">
                   ${renderChips(hardLevels)}
                 </div>
-                ${hardTarget ? `
-                  <button class="btn-diff-play" data-select-level="${hardTarget}" title="Spiele ein schweres Board">
-                    <span>▶ Schweres Level spielen (Lvl #${hardTarget})</span>
-                  </button>
-                ` : `
-                  <button class="btn-diff-play locked" data-locked-level="${hardLevels[0]}" title="Stufe Schwer gesperrt">
-                    <span>🔒 Freischalten ab Level #${hardLevels[0]}</span>
-                  </button>
-                `}
+                <button class="btn-diff-play" data-select-level="${hardTarget}" title="Spiele ${activeSizeDef.hard.badge}">
+                  <span>▶ ${activeSizeDef.hard.badge} spielen (Lvl #${hardTarget})</span>
+                </button>
               </div>
             </div>
           </div>
@@ -6268,19 +6293,24 @@ btnRandom: document.getElementById('btn-riddle-random'),
       setTimeout(() => {
         const trailContainer = container.querySelector('.linear-trail-container');
         const trailTrack = container.querySelector('.linear-trail-track');
-        if (trailContainer && trailTrack && trailContainer.clientWidth > 80) {
-          const innerWidth = trailContainer.clientWidth - 28;
-          if (trailTrack.scrollWidth < innerWidth) {
-            const pitch = window.innerWidth < 640 ? 52 : (window.innerWidth <= 1024 ? 60 : 58);
-            const missing = Math.ceil((innerWidth - trailTrack.scrollWidth) / pitch);
-            if (missing > 0) {
-              const currentLen = this.getPathLength(game);
-              localStorage.setItem(`orbitsuite_${game}_path_length`, String(currentLen + missing));
-              this.renderLevelHub(game);
+        if (trailContainer && trailTrack) {
+          const nodes = trailTrack.querySelectorAll('.trail-node');
+          const lastNode = nodes[nodes.length - 1];
+          if (lastNode) {
+            const trackRight = lastNode.getBoundingClientRect().right;
+            const containerRight = trailContainer.getBoundingClientRect().right - 14;
+            if (trackRight < containerRight) {
+              const diffPx = containerRight - trackRight;
+              const missing = Math.ceil(diffPx / 50) + 1;
+              if (missing > 0) {
+                const currentLen = this.getPathLength(game);
+                localStorage.setItem(`orbitsuite_${game}_path_length`, String(currentLen + missing));
+                this.renderLevelHub(game);
+              }
             }
           }
         }
-      }, 20);
+      }, 30);
 
       // Auto-scroll linear trail to active node
       setTimeout(() => {
@@ -6380,9 +6410,10 @@ btnRandom: document.getElementById('btn-riddle-random'),
       return val;
     }
 
-    setGameLevel(game, lvl) {
+    setGameLevel(game, lvl, force = false) {
       const target = Math.max(1, parseInt(lvl, 10) || 1);
-      if (!this.isLevelUnlocked(game, target)) {
+      const viewMode = localStorage.getItem('orbitsuite_level_selector_mode') || 'path';
+      if (!force && viewMode !== 'difficulty' && !this.isLevelUnlocked(game, target)) {
         this.suite.showToast(`🔒 Level #${target} ist noch nicht freigeschaltet! Schließe zuerst Level #${target - 1} ab.`, 'warning');
         return;
       }
@@ -6669,7 +6700,9 @@ btnRandom: document.getElementById('btn-riddle-random'),
     }
 
     resetQueensBoard(clearHistory = true) {
-      this.queensUserGrid = Array(6).fill(null).map(() => Array(6).fill(null));
+      const board = this.getActiveQueensBoard();
+      const size = board ? board.size : 6;
+      this.queensUserGrid = Array(size).fill(null).map(() => Array(size).fill(null));
       this.queensManualX = new Set();
       if (clearHistory) {
         this.queensHistory = [];
@@ -8341,8 +8374,8 @@ btnRandom: document.getElementById('btn-riddle-random'),
       const size = puzzle.size;
       const gridEl = this.dom.zipGrid;
       gridEl.innerHTML = '';
-      const cellSize = 62;
-      const gap = 8;
+      const cellSize = size === 5 ? 62 : (size === 6 ? 52 : 44);
+      const gap = size === 5 ? 8 : (size === 6 ? 7 : 6);
       gridEl.style.gridTemplateColumns = `repeat(${size}, ${cellSize}px)`;
       gridEl.style.gridTemplateRows = `repeat(${size}, ${cellSize}px)`;
 
