@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json.schemastore.org/web-manifest-combined.json",
+  "id": "orbitsuite-app-workspace",
+  "name": "OrbitSuite - Productivity Workspace",
+  "short_name": "OrbitSuite",
+  "description": "All-in-One Dark Glassmorphism Workspace mit OrbitTask, OrbitNotes, OrbitFocus, OrbitHabits, OrbitTools & OrbitRätsel.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "background_color": "#0b0f19",
+  "theme_color": "#6366f1",
+  "orientation": "any",
+  "lang": "de-DE",
+  "dir": "ltr",
+  "categories": ["productivity", "utilities", "lifestyle"],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "orbitsuite_icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "OrbitTask",
+      "short_name": "Tasks",
+      "url": "./index.html#tasks",
+      "description": "Kanban Board & Aufgabenverwaltung",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "OrbitNotes",
+      "short_name": "Notes",
+      "url": "./index.html#notes",
+      "description": "Schnellnotizen & Markdown Studio",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "OrbitFocus",
+      "short_name": "Focus",
+      "url": "./index.html#focus",
+      "description": "Deep Work Timer & Ambient Sounds",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "OrbitHabits",
+      "short_name": "Habits",
+      "url": "./index.html#habits",
+      "description": "Gewohnheiten & Daily Streaks",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "OrbitRätsel",
+      "short_name": "Rätsel",
+      "url": "./index.html#riddle",
+      "description": "Optische Rätsel & Denksport",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

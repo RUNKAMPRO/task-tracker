@@ -3891,9 +3891,113 @@
   // ==========================================================================
   // ORBITSUITE ROUTER & UNIFIED FRAMEWORK CONTROLLER
   // ==========================================================================
+
+  // ==========================================================================
+  // PWA (PROGRESSIVE WEB APP) MANAGER
+  // ==========================================================================
+  class OrbitPwaManager {
+    constructor(suite) {
+      this.suite = suite;
+      this.deferredPrompt = null;
+      this.btnInstallHeader = document.getElementById('btn-pwa-install');
+      this.btnInstallHub = document.getElementById('btn-pwa-hub-install');
+      this.hubBanner = document.getElementById('hub-pwa-banner');
+      
+      this.initServiceWorker();
+      this.initInstallPrompt();
+      this.initNetworkListeners();
+    }
+
+    initServiceWorker() {
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js')
+            .then(reg => {
+              console.log('[OrbitSuite PWA] Service Worker registered with scope:', reg.scope);
+              // Handle updatefound
+              reg.addEventListener('updatefound', () => {
+                const newWorker = reg.installing;
+                if (newWorker) {
+                  newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                      this.suite.showToast('OrbitSuite Update verfügbar! Aktualisiere beim nächsten Start 🚀');
+                    }
+                  });
+                }
+              });
+            })
+            .catch(err => {
+              console.warn('[OrbitSuite PWA] Service Worker registration failed:', err);
+            });
+        });
+      }
+    }
+
+    initInstallPrompt() {
+      // Check if already in standalone / installed mode
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+      if (isStandalone) {
+        console.log('[OrbitSuite PWA] Running in standalone native window mode.');
+        return;
+      }
+
+      window.addEventListener('beforeinstallprompt', (e) => {
+        // Prevent default mini-infobar on mobile Chrome
+        e.preventDefault();
+        this.deferredPrompt = e;
+        console.log('[OrbitSuite PWA] beforeinstallprompt captured.');
+
+        // Show install button and Hub banner
+        if (this.btnInstallHeader) this.btnInstallHeader.classList.remove('hidden');
+        if (this.hubBanner) this.hubBanner.classList.remove('hidden');
+      });
+
+      // Handle install click
+      const handleInstall = async () => {
+        if (!this.deferredPrompt) {
+          this.suite.showToast('Installationsaufforderung steht noch nicht bereit.');
+          return;
+        }
+        this.deferredPrompt.prompt();
+        const { outcome } = await this.deferredPrompt.userChoice;
+        console.log('[OrbitSuite PWA] User install choice:', outcome);
+        if (outcome === 'accepted') {
+          this.suite.showToast('OrbitSuite wird als App installiert! 📲');
+          this.hideInstallPrompts();
+        }
+        this.deferredPrompt = null;
+      };
+
+      if (this.btnInstallHeader) this.btnInstallHeader.addEventListener('click', handleInstall);
+      if (this.btnInstallHub) this.btnInstallHub.addEventListener('click', handleInstall);
+
+      window.addEventListener('appinstalled', () => {
+        console.log('[OrbitSuite PWA] OrbitSuite successfully installed.');
+        this.suite.showToast('OrbitSuite erfolgreich installiert! 🎉');
+        if (this.suite.sound) this.suite.sound.playSuccess();
+        this.hideInstallPrompts();
+      });
+    }
+
+    hideInstallPrompts() {
+      if (this.btnInstallHeader) this.btnInstallHeader.classList.add('hidden');
+      if (this.hubBanner) this.hubBanner.classList.add('hidden');
+    }
+
+    initNetworkListeners() {
+      window.addEventListener('offline', () => {
+        this.suite.showToast('📴 Offline-Modus: OrbitSuite läuft lokal nahtlos weiter.');
+      });
+      window.addEventListener('online', () => {
+        this.suite.showToast('🌐 Wieder online: Verbindung hergestellt.');
+      });
+    }
+  }
+
   class OrbitSuiteRouter {
     constructor() {
       this.sound = new SoundManager();
+      this.pwa = new OrbitPwaManager(this);
       this.confetti = new ConfettiManager('confetti-canvas');
       this.activeApp = 'hub'; // 'hub', 'tasks', 'notes', 'focus', 'habits', 'tools'
 
