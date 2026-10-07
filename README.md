@@ -6,12 +6,33 @@ Eine hochmoderne, modulare All-in-One Produktivitäts- und Workflow-Suite im ele
 
 ---
 
-## 🖥️ 1-Klick Desktop-Starter & App-Icon
+## 🌐 Zugriff von außerhalb des Laptops (Handy, Tablet & Unterwegs)
 
-OrbitSuite kann direkt und komfortabel vom Desktop aus gestartet werden:
+OrbitSuite ist auf allen Geräten erreichbar:
 
-- **Desktop-Shortcut (`OrbitSuite.lnk`)**: Befindet sich direkt auf deinem Desktop mit eigenem hochauflösenden Orbit-Icon (`orbitsuite.ico` / 256×256 Multi-Layer).
-- **Batch-Launcher (`Start_OrbitSuite.bat` / `OrbitSuite.bat`)**: Startet im Hintergrund den lokalen HTTP-Server (Port 8080) und öffnet die Suite sofort im Standardbrowser.
+### 1. Im selben WLAN / Heimnetzwerk (Smartphone, Tablet, Zweit-PC)
+- Der Server lauscht auf allen Schnittstellen (`0.0.0.0:8080`).
+- **Aufruf am Smartphone / Tablet**: Einfach die im Launcher angezeigte WLAN-Adresse eingeben:
+  ```text
+  http://<DEINE-WLAN-IP>:8080/#hub
+  (z. B. http://10.60.8.189:8080/#hub)
+  ```
+- **Firewall-Freigabe**: Falls Windows externe Verbindungen blockiert, einmalig die Datei **`Freigabe_Netzwerk_Firewall.bat`** als Administrator ausführen.
+
+### 2. Weltweit von unterwegs über das Internet
+- **Option A – 1-Klick Online-Tunnel (`Start_Online_Tunnel.bat`)**:
+  Startet einen verschlüsselten SSH-Tunnel zu deinem Laptop. Du erhältst sofort eine öffentliche HTTPS-URL, die du unterwegs auf deinem Smartphone aufrufen kannst.
+- **Option B – GitHub Pages (24/7 Cloud-Hosting)**:
+  Da OrbitSuite eine reine clientseitige Web-App ist, kann sie kostenlos in deinem GitHub-Repository (`RUNKAMPRO/task-tracker`) unter **Settings > Pages** (Source: *Deploy from a branch*, Branch: *main*) aktiviert werden und ist dann weltweit unter `https://runkampro.github.io/task-tracker/` erreichbar – auch wenn der Laptop ausgeschaltet ist.
+
+---
+
+## 🖥️ 1-Klick Desktop-Starter, Ghosted Background Hosting & App-Icon
+
+- **Dauerhafter Ghosted-Server (Windows-Autostart)**: Ein Autostart-Eintrag (`OrbitSuite-BackgroundServer.lnk`) im Windows-Startup-Ordner startet den lokalen Server unsichtbar im Hintergrund (`Start_OrbitSuite_Silent.vbs`), sobald der PC hochgefahren wird.
+- **Desktop-Shortcut (`OrbitSuite.lnk`)**: Befindet sich direkt auf deinem Desktop mit eigenem hochauflösenden Orbit-Icon (`orbitsuite.ico`). Prüft den Serverstatus und öffnet OrbitSuite sofort im Browser.
+- **Web-Adresse**: Unter `http://localhost:8080/#hub` (oder `http://127.0.0.1:8080/#hub`) jederzeit im Browser erreichbar.
+- **Server beenden (`Stop_OrbitSuite.bat`)**: Beendet den Hintergrunddienst auf Port 8080 mit einem Klick.
 - **Web-Favicon & Touch-Icon**: `favicon.ico` und `orbitsuite_icon.png` (512×512) für Browser-Tabs und Lesezeichen.
 
 ---
@@ -48,95 +69,26 @@ Das responsive Layout wurde optimiert, um visuelle Bugs bei jeglichen Fenstergr�
 - **Analytics Dashboard**: SVG-Radialdiagramm für Gesamterledigung, horizontale Statusverteilung, Prioritätsmatrix und Kategorie-Aufschlüsselung.
 - **Subtasks & Details**: Teilaufgaben mit Zähler, Notizen, Tags und Fälligkeitsdaten.
 
-### 📝 2. OrbitNotes • Markdown & Quick-Notes Studio
-- **Markdown-Unterstützung**: Überschriften, Listen, fette/kursive Formatierung und Code-Blöcke.
-- **Farbkategorien & Filter**: Filterung nach *Ideen*, *Arbeit*, *Code*, *Wichtig* und *Privat*.
-- **Pinning & Suche**: Wichtige Notizen oben anheften (werden auch auf der Startseite gespiegelt) und Sofortsuche.
-- **Zwischenablage**: 1-Klick-Kopieren von Notizen mit Bestätigungs-Toast.
+### 📝 2. OrbitNotes • Quick Notes & Docs
+- **Kategorien & Farb-Markierungen**: Organisation nach Ideen, To-Dos, Arbeit und Persönlich.
+- **Live-Markdown-Unterstützung**: Schnelles Formatieren und Durchsuchen aller Notizen.
+- **Pin & Archiv**: Wichtige Notizen anheften, damit sie auch im Workspace-Hub präsent sind.
 
-### ⏱️ 3. OrbitFocus • Pomodoro & Ambient Soundscape
-- **Pomodoro-Zyklen**: *Fokus* (25 Min.), *Kurze Pause* (5 Min.), *Lange Pause* (15 Min.).
-- **Animierter Countdown-Ring**: SVG-Kreisanzeige mit Farbanpassung je nach Modus.
-- **Web Audio Ambient-Synthesizer**:
-  - 🌧️ *Sanfter Regen* (prozedurales Rauschen mit Tiefpass-Filter)
-  - 🧘 *Zen Meditation* (432Hz Sinus/Dreieck-Klang)
-  - 📻 *Weißes Rauschen* (reines statisches Signal)
-  - Stufenloser Lautstärkeregler & Stummschaltung
-- **Session-Tracking**: Anzeige abgeschlossener Pomodoro-Zyklen und fokussierter Gesamtminuten.
+### ⏱️ 3. OrbitFocus • Pomodoro & Focus Timer
+- **Konfigurierbare Intervalle**: Arbeitsphasen (25 Min.), kurze Pausen (5 Min.) und lange Pausen (15 Min.).
+- **Visualisierter Fortschrittsring**: Flüssig animierter Ring-Indikator mit akustischem Signalton.
+- **Session-Counter & Task-Verknüpfung**: Fokus-Sessions direkt bestimmten Aufgaben zuordnen.
 
-### 🎯 4. OrbitHabits • Daily Habit & Streak Tracker
-- **Wöchentliche Matrix**: Montag bis Sonntag mit visueller Hervorhebung des heutigen Tages.
-- **Streak-Counter**: Automatische Berechnung aufeinanderfolgender Tage (🔥 *X Tage*).
-- **Fortschrittsbalken & Feuerwerk**: Erledigungsquote für heute und Konfetti-Belohnung beim Abschluss aller Tagesziele.
+### 🔄 4. OrbitHabits • Habit & Routine Tracker
+- **7-Tage-Übersicht**: Direkte Visualisierung der aktuellen Woche mit 1-Klick-Checkboxen.
+- **Streak-Counter & Statistiken**: Motivierende Serie-Zähler und wöchentliche Erfolgsquoten.
 
-### 🛠️ 5. OrbitTools • Smart Utilities & Dev-Tools
-- **{ } JSON Studio**: Formatieren (2 Leerzeichen), Minifizieren, Live-Validierung mit Syntaxfehlern und 1-Klick-Kopieren.
-- **Aa Text Converter**: Konvertierung in *UPPERCASE*, *lowercase*, *Title Case*, *camelCase*, *kebab-case* und *snake_case*.
-- **📊 Text Inspektor**: Live-Zählung von Wörtern, Zeichen, Sätzen, Absätzen und geschätzter Lesezeit (~200 WpM).
-- **🔑 UUID & Timestamp**: Generierung von UUID v4, Unix-Zeitstempeln (Sekunden/Millisekunden) und ISO 8601 Strings.
+### 🛠️ 5. OrbitTools • Developer & Productivity Utilities
+- **JSON Formatter & Validator**: Syntax-Highlighting, Fehleranzeige und Minify/Prettify.
+- **Base64 Encoder/Decoder**: Text- und URL-sichere Enkodierung.
+- **RegEx Tester & Quick Reference**: Regex-Muster in Echtzeit mit Flags und Match-Hervorhebung prüfen.
+- **Hash & UUID Generator**: MD5, SHA-256 und v4 UUIDs auf Knopfdruck erzeugen.
 
-### 🧩 6. OrbitRätsel • Brain Teaser & Puzzle Studio
-- **18 Vorinstallierte Denksport-Aufgaben**:
-  - 💡 **Logik**: Die zwei Wächter, Die 3 Lichtschalter im Keller, Das 45-Minuten-Seil, Wolf/Ziege/Kohlkopf.
-  - 🔢 **Zahlen & Mathe**: Der Schläger und der Ball (5 Cent!), Der Seerosenteich, 8 Achten = 1000.
-  - 💻 **Coder & Tech**: Warum Coder Halloween an Weihnachten feiern (OCT 31 = DEC 25), Zaunpfahlfehler (Off-by-One), Deadlock-Problem, Rekursion & Stack Overflow.
-  - 🕵️ **Detektiv**: Romeo & Julia im Scherbenmeer, Der Zeuge im Fahrstuhl, Der geschmolzene Schneemann.
-  - 🧠 **Querdenker**: Das nasse Handtuch, Die Flasche mit Hals ohne Kopf, Erkältung fangen, Das wachsende Loch.
-- **Interaktive Antwortprüfung**: Intelligente Keyword-Validierung mit Umlaut- und Sonderzeichen-Normalisierung.
-- **Belohnungssystem**: Konfetti-Explosion, Sound-Feedback und dynamischer Streak-Zähler (🔥 *X-er Streak*).
-- **Denkanstöße & Weichzeichner-Auflösung**: Zuklappbare Hinweise und per CSS-Blur verdeckte Lösungstexte (1-Klick-Enthüllung).
-- **Sammlungs-Übersicht**: Interaktive Kachelübersicht mit Filter nach Kategorie und Schwierigkeitsgrad (*Einfach*, *Mittel*, *Schwer*).
-- **Eigenes Rätsel erstellen**: Integriertes Dialogfenster zur Erstellung und lokalen Speicherung individueller Denksport-Aufgaben.
-
----
-
-## ⌨️ Tastaturkürzel (Shortcuts)
-
-| Shortcut | Aktion |
-|---|---|
-| <kbd>Alt</kbd> + <kbd>0</kbd> | Startseite (Hub) aufrufen |
-| <kbd>Alt</kbd> + <kbd>1</kbd> | OrbitTask öffnen |
-| <kbd>Alt</kbd> + <kbd>2</kbd> | OrbitNotes öffnen |
-| <kbd>Alt</kbd> + <kbd>3</kbd> | OrbitFocus öffnen |
-| <kbd>Alt</kbd> + <kbd>4</kbd> | OrbitHabits öffnen |
-| <kbd>Alt</kbd> + <kbd>5</kbd> | OrbitTools öffnen |
-| <kbd>Alt</kbd> + <kbd>6</kbd> | OrbitRätsel öffnen |
-| <kbd>Alt</kbd> + <kbd>K</kbd> | App-Selector Dropdown öffnen |
-| <kbd>Strg</kbd> + <kbd>K</kbd> | Globale Suche in OrbitTask fokussieren |
-| <kbd>Leertaste</kbd> | Timer in OrbitFocus starten / pausieren |
-| <kbd>Escape</kbd> | Geöffnetes Modalfenster / Menü schließen |
-
----
-
-## 💾 Gesamtsicherung & Datenmanagement
-
-- **Lokale Persistenz**: Alle Daten werden isoliert und sicher im Browser-`localStorage` gespeichert.
-- **Suite-Gesamt-Backup**: Export aller Module (Aufgaben, Notizen, Gewohnheiten, Fokus-Historie und gelöste/eigene Rätsel) in einer einzigen `.json`-Datei.
-- **Wiederherstellung**: Einfacher Import vorhandener JSON-Backups oder Wiederherstellung der Beispieldaten auf Knopfdruck.
-
----
-
-## 🛠️ Technologie-Stack
-- **Struktur**: Semantisches HTML5
-- **Styling**: Modernes Vanilla CSS (Dark Glassmorphism, CSS Grid, Flexbox, Keyframe-Animationen)
-- **Logik**: Modernes ES6+ JavaScript
-- **Audio**: Web Audio API Sound-Synthesizer & Ambient-Noise-Generator
-- **Visuals**: HTML5 Canvas Partikel-Engine
-- **Keine externen Abhängigkeiten / Node-Module nötig** – 100% autark und offlinefähig.
-
----
-
-## 🚀 Ausführung
-
-### Option A: Vom Desktop (Empfohlen)
-Doppelklick auf das **OrbitSuite**-Icon auf deinem Desktop (`OrbitSuite.lnk` bzw. `OrbitSuite.bat`).
-
-### Option B: Per Terminal
-```bash
-python -m http.server 8080
-```
-Und im Browser aufrufen:
-```
-http://127.0.0.1:8080/
-```
-
+### 🧩 6. OrbitPlay • Rätsel & Gehirnjogging
+- **Tägliche Denksportaufgaben**: Logik- und Worträtsel für fokussierte Denkpausen.
+- **Highscore & Streak**: Tägliche Lösungsreihenfolge und Belohnungssystem.

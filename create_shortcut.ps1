@@ -1,10 +1,15 @@
 $desktop = [Environment]::GetFolderPath('Desktop')
-$project = 'c:\Users\RUKAMPRO\.gemini\antigravity-ide\scratch\task-tracker'
+$startup = [Environment]::GetFolderPath('Startup')
+$project = $PSScriptRoot
+if (-not $project) { $project = 'C:\Users\RUKAMPRO\OneDrive\task-tracker' }
+
 $bat = Join-Path $project 'Start_OrbitSuite.bat'
+$vbs = Join-Path $project 'Start_OrbitSuite_Silent.vbs'
 $ico = Join-Path $project 'orbitsuite.ico'
 
-# Create Desktop Shortcut (.lnk)
 $wsh = New-Object -ComObject WScript.Shell
+
+# 1. Desktop Shortcut (.lnk)
 $lnkPath = Join-Path $desktop 'OrbitSuite.lnk'
 $shortcut = $wsh.CreateShortcut($lnkPath)
 $shortcut.TargetPath = $bat
@@ -13,9 +18,21 @@ $shortcut.IconLocation = "$ico,0"
 $shortcut.Description = 'OrbitSuite • Productivity Workspace'
 $shortcut.Save()
 
-# Create direct Desktop Batch file (.bat)
+# 2. Desktop Batch file (.bat forwarder)
 $desktopBat = Join-Path $desktop 'OrbitSuite.bat'
-Copy-Item $bat $desktopBat -Force
+$batForwarder = "@echo off`r`ncd /d `"$project`"`r`ncall `"$bat`"`r`n"
+Set-Content -Path $desktopBat -Value $batForwarder -Encoding ASCII
 
-Write-Host "Created LNK: $lnkPath (Exists: $(Test-Path $lnkPath))"
-Write-Host "Created BAT: $desktopBat (Exists: $(Test-Path $desktopBat))"
+# 3. Windows Autostart (Startup) - Startet den Server unsichtbar beim PC-Start
+$autostartLnk = Join-Path $startup 'OrbitSuite-BackgroundServer.lnk'
+$autoShortcut = $wsh.CreateShortcut($autostartLnk)
+$autoShortcut.TargetPath = 'wscript.exe'
+$autoShortcut.Arguments = "`"$vbs`""
+$autoShortcut.WorkingDirectory = $project
+$autoShortcut.IconLocation = "$ico,0"
+$autoShortcut.Description = 'OrbitSuite Ghosted Background Server'
+$autoShortcut.Save()
+
+Write-Host "Created Desktop LNK: $lnkPath (Exists: $(Test-Path $lnkPath))"
+Write-Host "Created Desktop BAT: $desktopBat (Exists: $(Test-Path $desktopBat))"
+Write-Host "Created Autostart LNK: $autostartLnk (Exists: $(Test-Path $autostartLnk))"

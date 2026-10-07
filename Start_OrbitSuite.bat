@@ -1,27 +1,53 @@
 @echo off
 title OrbitSuite Launcher
-chcp 65001 >nul
 echo ========================================================
-echo   🪐 OrbitSuite • Integrated Workspace
+echo   OrbitSuite - Integrated Workspace
 echo ========================================================
 echo.
 
 cd /d "%~dp0"
 
-:: Pruefen, ob der Server bereits auf Port 8080 aktiv ist
-netstat -ano | findstr /R /C:":8080 .*LISTENING" >nul
-if %errorlevel% equ 0 (
-    echo [OK] OrbitSuite Server läuft bereits auf Port 8080.
-) else (
-    echo [INFO] Starte lokalen Server auf Port 8080...
-    start /b python -m http.server 8080 --bind 127.0.0.1 >nul 2>&1
-    timeout /t 1 /nobreak >nul
+:: Python-Befehl ermitteln (python oder py)
+set "PY_CMD=python"
+where python >nul 2>&1
+if %errorlevel% neq 0 (
+    where py >nul 2>&1
+    if %errorlevel% equ 0 (
+        set "PY_CMD=py"
+    ) else (
+        echo [FEHLER] Python wurde nicht gefunden! Bitte installieren Sie Python.
+        pause
+        exit /b 1
+    )
 )
 
-echo [INFO] Öffne OrbitSuite im Browser...
+:: Pruefen, ob ein Server auf Port 8080 lauscht
+powershell -NoProfile -Command "if (Get-NetTCPConnection -LocalPort 8080 -State Listen -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }"
+if %errorlevel% equ 0 (
+    echo [OK] OrbitSuite Server laeuft bereits auf Port 8080.
+) else (
+    echo [INFO] Starte lokalen Server fuer Netzwerk auf Port 8080...
+    powershell -NoProfile -WindowStyle Hidden -Command "Start-Process %PY_CMD% -ArgumentList '-m http.server 8080 --bind 0.0.0.0' -WorkingDirectory '%~dp0' -WindowStyle Hidden"
+    ping 127.0.0.1 -n 2 >nul
+)
+
+echo.
+echo --------------------------------------------------------
+echo Zugriffs-Adressen:
+echo [LOKAL]      http://localhost:8080/#hub
+for /f "tokens=*" %%a in ('powershell -NoProfile -Command "(Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias 'Wi-Fi*','WLAN*').IPAddress"') do (
+    echo [WLAN/HANDY] http://%%a:8080/#hub
+)
+for /f "tokens=*" %%a in ('powershell -NoProfile -Command "(Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias 'Ethernet*').IPAddress"') do (
+    echo [LAN/KABEL]  http://%%a:8080/#hub
+)
+echo --------------------------------------------------------
+echo.
+
+echo [INFO] Oeffne OrbitSuite im Browser...
 start http://127.0.0.1:8080/#hub
 
 echo.
-echo [ERFOLG] OrbitSuite wurde gestartet!
-timeout /t 3 /nobreak >nul
+echo [ERFOLG] OrbitSuite ist aktiv!
+ping 127.0.0.1 -n 4 >nul
 exit
