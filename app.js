@@ -5952,6 +5952,21 @@ btnRandom: document.getElementById('btn-riddle-random'),
       };
     }
 
+    getHighestUnlockedLevel(game) {
+      const solvedSet = this.getSolvedSet(game);
+      if (solvedSet.size === 0) return 1;
+      const maxSolved = Math.max(...Array.from(solvedSet));
+      return Math.max(1, maxSolved + 1);
+    }
+
+    isLevelUnlocked(game, lvl) {
+      const l = Math.max(1, parseInt(lvl, 10) || 1);
+      if (l === 1) return true;
+      if (this.isLevelSolved(game, l)) return true;
+      if (this.isLevelSolved(game, l - 1)) return true;
+      return l <= this.getHighestUnlockedLevel(game);
+    }
+
     renderLevelHub(game) {
       const container = document.getElementById(`${game}-level-hub`);
       if (!container) return;
@@ -5960,6 +5975,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
       const solvedSet = this.getSolvedSet(game);
       const viewMode = localStorage.getItem('orbitsuite_level_selector_mode') || 'path';
       const diffInfo = this.getLevelDifficulty(cur);
+      const highestUnlocked = this.getHighestUnlockedLevel(game);
 
       // Update toolbar level badge
       const tbBadge = document.getElementById(`${game}-toolbar-level-badge`);
@@ -5971,28 +5987,30 @@ btnRandom: document.getElementById('btn-riddle-random'),
       const easyLevels = [1, 2, 3, 4, 5];
       const medLevels = [6, 7, 8, 9, 10];
       const hardLevels = [11, 12, 13, 14, 15];
-      if (cur > 15) {
-        for (let i = 16; i <= cur; i++) {
+      if (cur > 15 || highestUnlocked > 15) {
+        const topLimit = Math.max(cur, highestUnlocked);
+        for (let i = 16; i <= topLimit; i++) {
           hardLevels.push(i);
         }
       }
 
       const countSolved = arr => arr.filter(lvl => solvedSet.has(lvl)).length;
+      const countUnlocked = arr => arr.filter(lvl => this.isLevelUnlocked(game, lvl)).length;
       const easySolved = countSolved(easyLevels);
       const medSolved = countSolved(medLevels);
       const hardSolved = countSolved(hardLevels);
       const totalLevels = easyLevels.length + medLevels.length + hardLevels.length;
       const totalSolved = solvedSet.size;
 
-      // Find next unsolved level for 'Weiter auf dem Pfad'
-      let nextUnsolved = null;
+      // Find next unlocked unsolved level for 'Weiter auf dem Pfad'
+      let nextPlayLevel = null;
       for (let i = 1; i <= totalLevels; i++) {
-        if (!solvedSet.has(i)) {
-          nextUnsolved = i;
+        if (this.isLevelUnlocked(game, i) && !solvedSet.has(i)) {
+          nextPlayLevel = i;
           break;
         }
       }
-      if (!nextUnsolved) nextUnsolved = cur + 1;
+      if (!nextPlayLevel) nextPlayLevel = highestUnlocked;
 
       // Render HTML
       let html = `
@@ -6019,26 +6037,45 @@ btnRandom: document.getElementById('btn-riddle-random'),
         const renderTrackNodes = (levels, tier) => {
           return levels.map((lvl, idx) => {
             const isSolved = solvedSet.has(lvl);
+            const isUnlocked = this.isLevelUnlocked(game, lvl);
             const isActive = lvl === cur;
+            const nextLvl = levels[idx + 1];
+            const nextUnlocked = nextLvl ? this.isLevelUnlocked(game, nextLvl) : false;
             const connector = idx < levels.length - 1
-              ? `<div class="trail-connector ${isSolved ? 'solved' : ''}"></div>`
+              ? `<div class="trail-connector ${isSolved ? 'solved' : (nextUnlocked ? 'unlocked' : 'locked')}"></div>`
               : '';
-            return `
-              <button class="trail-node ${isSolved ? 'solved' : ''} ${isActive ? 'active' : ''} tier-${tier}"
-                      data-select-level="${lvl}"
-                      title="Level ${lvl} (${this.getLevelDifficulty(lvl).label}) ${isSolved ? '• Gelöst ✓' : '• Offen'}">
-                <span class="node-number">${lvl}</span>
-                ${isSolved ? '<span class="node-status-badge">✓</span>' : (isActive ? '<span class="node-status-badge active-dot">👑</span>' : '')}
-              </button>
-              ${connector}
-            `;
+
+            if (isUnlocked) {
+              return `
+                <button class="trail-node ${isSolved ? 'solved' : ''} ${isActive ? 'active' : 'unlocked'} tier-${tier}"
+                        data-select-level="${lvl}"
+                        title="Level ${lvl} (${this.getLevelDifficulty(lvl).label}) ${isSolved ? '• Gelöst ✓' : '• Freigeschaltet'}">
+                  <span class="node-number">${lvl}</span>
+                  ${isSolved ? '<span class="node-status-badge">✓</span>' : (isActive ? '<span class="node-status-badge active-dot">👑</span>' : '')}
+                </button>
+                ${connector}
+              `;
+            } else {
+              // NICHT FREIGESCHALTET: ZAHL DURCH SCHLOSS ERSETZEN!
+              return `
+                <button class="trail-node locked tier-${tier}"
+                        data-locked-level="${lvl}"
+                        title="Level ${lvl} (${this.getLevelDifficulty(lvl).label}) • 🔒 Gesperrt (Schließe Level ${lvl - 1} ab)">
+                  <span class="node-lock" aria-label="Gesperrt">🔒</span>
+                </button>
+                ${connector}
+              `;
+            }
           }).join('');
         };
+
+        const medTierUnlocked = countUnlocked(medLevels) > 0;
+        const hardTierUnlocked = countUnlocked(hardLevels) > 0;
 
         html += `
           <div class="level-path-view">
             <div class="path-header-row">
-              <span class="path-subtitle">🏆 <strong>Level-Pfad:</strong> Die Rätsel werden mit jedem Level schrittweise kniffliger!</span>
+              <span class="path-subtitle">🏆 <strong>Level-Pfad:</strong> Die Rätsel werden mit jedem Level schrittweise kniffliger! Schließe Level ab, um die nächsten freizuschalten.</span>
               <span class="path-progress-pill">Gesamt: ${totalSolved}/${totalLevels} Gelöst</span>
             </div>
 
@@ -6054,12 +6091,12 @@ btnRandom: document.getElementById('btn-riddle-random'),
                 </div>
               </div>
 
-              <div class="trail-section-arrow">➔</div>
+              <div class="trail-section-arrow ${medTierUnlocked ? 'unlocked' : 'locked'}">➔</div>
 
               <!-- Tier 2: Mittel -->
-              <div class="trail-tier-section tier-medium">
+              <div class="trail-tier-section tier-medium ${medTierUnlocked ? '' : 'tier-locked'}">
                 <div class="trail-tier-header">
-                  <span class="tier-badge medium">🟡 Mittel (6–10)</span>
+                  <span class="tier-badge medium">🟡 Mittel (6–10)${medTierUnlocked ? '' : ' • 🔒'}</span>
                   <span class="tier-solved-fraction">${medSolved}/${medLevels.length} ✓</span>
                 </div>
                 <div class="trail-nodes-flow">
@@ -6067,12 +6104,12 @@ btnRandom: document.getElementById('btn-riddle-random'),
                 </div>
               </div>
 
-              <div class="trail-section-arrow">➔</div>
+              <div class="trail-section-arrow ${hardTierUnlocked ? 'unlocked' : 'locked'}">➔</div>
 
               <!-- Tier 3: Schwer -->
-              <div class="trail-tier-section tier-hard">
+              <div class="trail-tier-section tier-hard ${hardTierUnlocked ? '' : 'tier-locked'}">
                 <div class="trail-tier-header">
-                  <span class="tier-badge hard">🔴 Schwer (11–15+)</span>
+                  <span class="tier-badge hard">🔴 Schwer (11–15+)${hardTierUnlocked ? '' : ' • 🔒'}</span>
                   <span class="tier-solved-fraction">${hardSolved}/${hardLevels.length} ✓</span>
                 </div>
                 <div class="trail-nodes-flow">
@@ -6082,12 +6119,12 @@ btnRandom: document.getElementById('btn-riddle-random'),
             </div>
 
             <div class="trail-action-bar">
-              <button class="btn-path-next" data-select-level="${nextUnsolved}" title="Gehe zum nächsten offenen Level auf dem Pfad">
-                <span>▶ Weiter auf dem Pfad (Level #${nextUnsolved})</span>
+              <button class="btn-path-next" data-select-level="${nextPlayLevel}" title="Gehe zum nächsten offenen Level auf dem Pfad">
+                <span>▶ Weiter auf dem Pfad (Level #${nextPlayLevel})</span>
               </button>
               <div style="display: flex; gap: 8px;">
-                <button class="btn-secondary" data-action="random-level" title="Zufälliges Level spielen">
-                  <span>🎲 Zufall</span>
+                <button class="btn-secondary" data-action="random-level" title="Zufälliges freigeschaltetes Level spielen">
+                  <span>🎲 Zufall (Freigeschaltet)</span>
                 </button>
                 <button class="btn-secondary" data-action="generate-level" title="Neues Level generieren">
                   <span>⚡ Neu generieren</span>
@@ -6101,21 +6138,40 @@ btnRandom: document.getElementById('btn-riddle-random'),
         const renderChips = (levels) => {
           return levels.map(lvl => {
             const isSolved = solvedSet.has(lvl);
+            const isUnlocked = this.isLevelUnlocked(game, lvl);
             const isActive = lvl === cur;
-            return `
-              <button class="diff-chip ${isSolved ? 'solved' : ''} ${isActive ? 'active' : ''}"
-                      data-select-level="${lvl}"
-                      title="Level #${lvl}">
-                Lvl ${lvl} ${isSolved ? '✓' : ''}
-              </button>
-            `;
+
+            if (isUnlocked) {
+              return `
+                <button class="diff-chip ${isSolved ? 'solved' : ''} ${isActive ? 'active' : ''}"
+                        data-select-level="${lvl}"
+                        title="Level #${lvl} (${this.getLevelDifficulty(lvl).label})">
+                  Lvl ${lvl} ${isSolved ? '✓' : ''}
+                </button>
+              `;
+            } else {
+              // NICHT FREIGESCHALTET: ZAHL DURCH SCHLOSS ERSETZEN!
+              return `
+                <button class="diff-chip locked"
+                        data-locked-level="${lvl}"
+                        title="Level #${lvl} • 🔒 Gesperrt (Schließe Level ${lvl - 1} ab)">
+                  <span class="chip-lock-icon">🔒</span>
+                </button>
+              `;
+            }
           }).join('');
         };
 
-        const getFirstUnsolvedInTier = (levels) => {
-          const first = levels.find(l => !solvedSet.has(l));
-          return first || levels[0];
+        const getFirstPlayableInTier = (levels) => {
+          const unlockedUnsolved = levels.find(l => this.isLevelUnlocked(game, l) && !solvedSet.has(l));
+          if (unlockedUnsolved) return unlockedUnsolved;
+          const anyUnlocked = levels.find(l => this.isLevelUnlocked(game, l));
+          return anyUnlocked || null;
         };
+
+        const easyTarget = getFirstPlayableInTier(easyLevels);
+        const medTarget = getFirstPlayableInTier(medLevels);
+        const hardTarget = getFirstPlayableInTier(hardLevels);
 
         html += `
           <div class="level-difficulty-view">
@@ -6130,39 +6186,51 @@ btnRandom: document.getElementById('btn-riddle-random'),
                 <div class="diff-chips-row">
                   ${renderChips(easyLevels)}
                 </div>
-                <button class="btn-diff-play" data-select-level="${getFirstUnsolvedInTier(easyLevels)}" title="Spiele ein leichtes Board">
-                  <span>▶ Leichtes Level spielen (Lvl #${getFirstUnsolvedInTier(easyLevels)})</span>
+                <button class="btn-diff-play" data-select-level="${easyTarget}" title="Spiele ein leichtes Board">
+                  <span>▶ Leichtes Level spielen (Lvl #${easyTarget})</span>
                 </button>
               </div>
 
               <!-- Mittel Card -->
-              <div class="difficulty-card tier-medium">
+              <div class="difficulty-card tier-medium ${medTarget ? '' : 'card-locked'}">
                 <div class="diff-card-header">
-                  <span class="diff-card-title">🟡 Mittel</span>
+                  <span class="diff-card-title">🟡 Mittel${medTarget ? '' : ' • 🔒'}</span>
                   <span class="tier-badge medium">${medSolved}/${medLevels.length} Gelöst</span>
                 </div>
                 <p class="diff-desc">Taktische Züge, tiefere Ausschlusslogik und kniffligere Verzweigungen.</p>
                 <div class="diff-chips-row">
                   ${renderChips(medLevels)}
                 </div>
-                <button class="btn-diff-play" data-select-level="${getFirstUnsolvedInTier(medLevels)}" title="Spiele ein mittleres Board">
-                  <span>▶ Mittleres Level spielen (Lvl #${getFirstUnsolvedInTier(medLevels)})</span>
-                </button>
+                ${medTarget ? `
+                  <button class="btn-diff-play" data-select-level="${medTarget}" title="Spiele ein mittleres Board">
+                    <span>▶ Mittleres Level spielen (Lvl #${medTarget})</span>
+                  </button>
+                ` : `
+                  <button class="btn-diff-play locked" data-locked-level="${medLevels[0]}" title="Stufe Mittel gesperrt">
+                    <span>🔒 Freischalten ab Level #${medLevels[0]}</span>
+                  </button>
+                `}
               </div>
 
               <!-- Schwer Card -->
-              <div class="difficulty-card tier-hard">
+              <div class="difficulty-card tier-hard ${hardTarget ? '' : 'card-locked'}">
                 <div class="diff-card-header">
-                  <span class="diff-card-title">🔴 Schwer</span>
+                  <span class="diff-card-title">🔴 Schwer${hardTarget ? '' : ' • 🔒'}</span>
                   <span class="tier-badge hard">${hardSolved}/${hardLevels.length} Gelöst</span>
                 </div>
                 <p class="diff-desc">Meister-Herausforderung: Höchste Komplexität für echte Knobel-Profis.</p>
                 <div class="diff-chips-row">
                   ${renderChips(hardLevels)}
                 </div>
-                <button class="btn-diff-play" data-select-level="${getFirstUnsolvedInTier(hardLevels)}" title="Spiele ein schweres Board">
-                  <span>▶ Schweres Level spielen (Lvl #${getFirstUnsolvedInTier(hardLevels)})</span>
-                </button>
+                ${hardTarget ? `
+                  <button class="btn-diff-play" data-select-level="${hardTarget}" title="Spiele ein schweres Board">
+                    <span>▶ Schweres Level spielen (Lvl #${hardTarget})</span>
+                  </button>
+                ` : `
+                  <button class="btn-diff-play locked" data-locked-level="${hardLevels[0]}" title="Stufe Schwer gesperrt">
+                    <span>🔒 Freischalten ab Level #${hardLevels[0]}</span>
+                  </button>
+                `}
               </div>
             </div>
           </div>
@@ -6186,6 +6254,16 @@ btnRandom: document.getElementById('btn-riddle-random'),
           if (lvl) {
             this.setGameLevel(game, lvl);
           }
+        });
+      });
+
+      container.querySelectorAll('[data-locked-level]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const lvl = parseInt(btn.dataset.lockedLevel, 10);
+          btn.classList.add('lock-shake');
+          setTimeout(() => btn.classList.remove('lock-shake'), 400);
+          this.suite.sound.playPop();
+          this.suite.showToast(`🔒 Level #${lvl} ist noch nicht freigeschaltet! Schließe zuerst Level #${lvl - 1} ab.`, 'warning');
         });
       });
 
@@ -6245,6 +6323,10 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
     setGameLevel(game, lvl) {
       const target = Math.max(1, parseInt(lvl, 10) || 1);
+      if (!this.isLevelUnlocked(game, target)) {
+        this.suite.showToast(`🔒 Level #${target} ist noch nicht freigeschaltet! Schließe zuerst Level #${target - 1} ab.`, 'warning');
+        return;
+      }
       this[`${game}CurrentLevel`] = String(target);
       localStorage.setItem(`orbitsuite_${game}_current_level`, String(target));
 
@@ -6279,6 +6361,10 @@ btnRandom: document.getElementById('btn-riddle-random'),
     nextGameLevel(game) {
       const cur = this.getCurrentLevel(game);
       const next = cur + 1;
+      if (!this.isLevelUnlocked(game, next)) {
+        this.suite.showToast(`🔒 Level #${next} ist noch nicht freigeschaltet! Schließe zuerst Level #${cur} ab.`, 'warning');
+        return;
+      }
       const prevDiff = this.getLevelDifficulty(cur);
       const nextDiff = this.getLevelDifficulty(next);
       this.setGameLevel(game, next);
@@ -6301,8 +6387,12 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
     randomGameLevel(game) {
       const cur = this.getCurrentLevel(game);
-      let target = Math.floor(Math.random() * 30) + 1;
-      if (target === cur) target = cur + 1;
+      const highest = this.getHighestUnlockedLevel(game);
+      const pool = [];
+      for (let i = 1; i <= highest; i++) {
+        if (i !== cur) pool.push(i);
+      }
+      const target = pool.length > 0 ? pool[Math.floor(Math.random() * pool.length)] : 1;
       this.setGameLevel(game, target);
       this.suite.showToast(`Zufalls-Level #${target} aktiviert! 🎲`);
     }
@@ -6311,25 +6401,31 @@ btnRandom: document.getElementById('btn-riddle-random'),
       const selectEl = this.dom[`${game}LevelSelect`];
       if (!selectEl) return;
       const cur = this.getCurrentLevel(game);
-      const totalOptions = Math.max(30, cur + 5);
+      const highest = this.getHighestUnlockedLevel(game);
+      const totalOptions = Math.max(30, Math.max(cur, highest) + 5);
       selectEl.innerHTML = '';
       for (let i = 1; i <= totalOptions; i++) {
         const opt = document.createElement('option');
         opt.value = String(i);
         const isSolved = this.isLevelSolved(game, i);
+        const isUnlocked = this.isLevelUnlocked(game, i);
         const diff = this.getLevelDifficulty(i);
         let label = `Board #${i}`;
         if (game === 'pinpoint') label = `Rätsel #${i}`;
         if (game === 'crossclimb') label = `Leiter #${i}`;
         if (game === 'zip') label = `Pfad #${i}`;
         if (game === 'sudoku') label = `Sudoku #${i}`;
-        opt.textContent = `${label} (${diff.icon} ${diff.label})${isSolved ? ' ✓ (Gelöst)' : ''}`;
+        if (isUnlocked) {
+          opt.textContent = `${label} (${diff.icon} ${diff.label})${isSolved ? ' ✓ (Gelöst)' : ''}`;
+        } else {
+          opt.textContent = `🔒 ${label} (Gesperrt)`;
+          opt.disabled = true;
+        }
         selectEl.appendChild(opt);
       }
       selectEl.value = String(cur);
       this.renderLevelHub(game);
     }
-
     updateGameBanner(game) {
       const cur = this.getCurrentLevel(game);
       const isSolved = this.isLevelSolved(game, cur);
@@ -6436,7 +6532,6 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
       if (mode === 'queens') {
         this.initQueens();
-      this.renderLevelHub(mode);
       } else if (mode === 'tango') {
         this.initTango();
       } else if (mode === 'crossclimb') {
@@ -6448,11 +6543,10 @@ btnRandom: document.getElementById('btn-riddle-random'),
       } else if (mode === 'sudoku') {
         this.initSudoku();
       } else if (mode === 'optical') {
-
         this.render();
-
       }
 
+      this.renderLevelHub(mode);
     }
 
 
@@ -7630,7 +7724,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
           card.innerHTML = `
 
-            <div class="clue-number-pill">${idx + 1}</div>
+            <div class="clue-number-pill ${isRevealed ? '' : 'locked-pill'}">${isRevealed ? (idx + 1) : '🔒'}</div>
 
             <div class="clue-text-body">${isRevealed ? clueText : '••••••••••••'}</div>
 
