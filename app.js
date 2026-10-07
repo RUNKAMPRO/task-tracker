@@ -324,92 +324,7 @@
   // ==========================================================================
   // 1. ORBITTASK MODULE (PRO TASK & KANBAN TRACKER)
   // ==========================================================================
-  const DEFAULT_DEMO_TASKS = [
-    {
-      id: 'task-1',
-      title: 'Design-System für OrbitTask 2.0 finalisieren',
-      description: 'Farbpalette, Glassmorphism-Tokens, Typografie und Glow-Effekte im CSS dokumentieren.',
-      status: 'inprogress',
-      priority: 'urgent',
-      category: 'Design',
-      dueDate: getTodayString(0),
-      subtasks: [
-        { id: 'sub-1-1', title: 'Farb-Tokens festlegen', completed: true },
-        { id: 'sub-1-2', title: 'Glow-Effekte kalibrieren', completed: true },
-        { id: 'sub-1-3', title: 'Responsive Breakpoints testen', completed: false }
-      ],
-      createdAt: new Date(Date.now() - 86400000 * 3).toISOString()
-    },
-    {
-      id: 'task-2',
-      title: 'Kanban Drag & Drop Interaktionen optimieren',
-      description: 'Sanfte Drop-Animationen und visuelle Indikatoren für Kartenzielspalten einbauen.',
-      status: 'review',
-      priority: 'high',
-      category: 'Entwicklung',
-      dueDate: getTodayString(1),
-      subtasks: [
-        { id: 'sub-2-1', title: 'HTML5 Drag & Drop Events binden', completed: true },
-        { id: 'sub-2-2', title: 'Ghosting-Styling definieren', completed: true }
-      ],
-      createdAt: new Date(Date.now() - 86400000 * 2).toISOString()
-    },
-    {
-      id: 'task-3',
-      title: 'Web Audio Sound-Effekte Synthesizer integrieren',
-      description: 'Native Sound-Generierung ohne externe MP3-Assets für Klicks und Erfolgsfanfaren.',
-      status: 'done',
-      priority: 'medium',
-      category: 'Entwicklung',
-      dueDate: getTodayString(-1),
-      subtasks: [
-        { id: 'sub-3-1', title: 'AudioContext Singleton aufsetzen', completed: true },
-        { id: 'sub-3-2', title: 'Mute-Option in LocalStorage speichern', completed: true }
-      ],
-      createdAt: new Date(Date.now() - 86400000 * 5).toISOString()
-    },
-    {
-      id: 'task-4',
-      title: 'Analytics Dashboard Diagramme verdrahten',
-      description: 'Dynamisches SVG-Radialdiagramm und Prioritäts-Aufschlüsselung mit Live-Daten koppeln.',
-      status: 'todo',
-      priority: 'high',
-      category: 'Management',
-      dueDate: getTodayString(2),
-      subtasks: [
-        { id: 'sub-4-1', title: 'SVG-Radialfortschrittsbalken implementieren', completed: false },
-        { id: 'sub-4-2', title: 'Kategorie-Erledigungsquoten berechnen', completed: false }
-      ],
-      createdAt: new Date(Date.now() - 86400000 * 1).toISOString()
-    },
-    {
-      id: 'task-5',
-      title: 'End-to-End Datenexport als JSON testen',
-      description: 'Prüfen ob alle Aufgabenfelder fehlerfrei im JSON-Format exportiert und importiert werden.',
-      status: 'backlog',
-      priority: 'low',
-      category: 'QA',
-      dueDate: getTodayString(5),
-      subtasks: [
-        { id: 'sub-5-1', title: 'JSON Schema validieren', completed: false }
-      ],
-      createdAt: new Date(Date.now() - 86400000 * 6).toISOString()
-    },
-    {
-      id: 'task-6',
-      title: 'Steuererklärung & Quartalsbelege abheften',
-      description: 'Alle Rechnungen für Q3 zusammenstellen und an den Steuerberater senden.',
-      status: 'todo',
-      priority: 'urgent',
-      category: 'Privat',
-      dueDate: getTodayString(-2),
-      subtasks: [
-        { id: 'sub-6-1', title: 'Kontoauszüge herunterladen', completed: true },
-        { id: 'sub-6-2', title: 'PDFs in Ordner einsortieren', completed: false }
-      ],
-      createdAt: new Date(Date.now() - 86400000 * 4).toISOString()
-    }
-  ];
+  const DEFAULT_DEMO_TASKS = [];
 
   class OrbitTaskApp {
     constructor(suite) {
@@ -500,13 +415,18 @@
         const raw = localStorage.getItem(this.STORAGE_KEY);
         if (raw) {
           const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+          if (Array.isArray(parsed)) {
+            const cleaned = parsed.filter(t => !['task-1', 'task-2', 'task-3', 'task-4', 'task-5', 'task-6'].includes(t.id));
+            if (cleaned.length !== parsed.length) {
+              this.saveTasks(cleaned);
+            }
+            return cleaned;
+          }
         }
       } catch (err) {
         console.error('Error loading tasks:', err);
       }
-      this.saveTasks(DEFAULT_DEMO_TASKS);
-      return [...DEFAULT_DEMO_TASKS];
+      return [];
     }
 
     saveTasks(tasks = this.tasks) {
@@ -1377,40 +1297,7 @@
   // ==========================================================================
   // 2. ORBITNOTES MODULE (RICH QUICK-NOTES & MARKDOWN)
   // ==========================================================================
-  const DEFAULT_DEMO_NOTES = [
-    {
-      id: 'note-1',
-      title: 'Architektur-Prinzipien für OrbitSuite',
-      category: 'Arbeit',
-      pinned: true,
-      content: '# 🪐 OrbitSuite Architektur\n- **Zero External Dependencies**: Läuft 100% offline im Browser.\n- **Dark Glassmorphism**: Transparenz, Ambient Orbs & Backdrop Blur.\n- **Web Audio API**: Native Sound-Synthese ohne externe MP3s.\n\n```js\nconst app = new OrbitSuiteRouter();\napp.switchApp("tasks");\n```',
-      createdAt: new Date(Date.now() - 86400000 * 2).toISOString()
-    },
-    {
-      id: 'note-2',
-      title: 'Ideen für nächste Version v3.5',
-      category: 'Ideen',
-      pinned: true,
-      content: 'Brainstorming für kommende Features:\n- [ ] Kalenderansicht für Aufgaben & Deadlines\n- [ ] Soundeffekt-Presets (Retro 8-Bit & Zen Chill)\n- [ ] Export als Markdown-Archiv (.zip)\n- [x] Multi-App Switcher & Hub',
-      createdAt: new Date(Date.now() - 86400000 * 1).toISOString()
-    },
-    {
-      id: 'note-3',
-      title: 'Regex Cheatsheet für Form Validierung',
-      category: 'Code',
-      pinned: false,
-      content: 'Nützliche Ausdrücke:\n- E-Mail: `/^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$/`\n- UUID v4: `/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i`\n- ISO Datum: `/^\\d{4}-\\d{2}-\\d{2}$/`',
-      createdAt: new Date(Date.now() - 86400000 * 3).toISOString()
-    },
-    {
-      id: 'note-4',
-      title: 'Bücherliste & Empfehlungen',
-      category: 'Privat',
-      pinned: false,
-      content: '1. *Atomic Habits* von James Clear\n2. *Deep Work* von Cal Newport\n3. *The Design of Everyday Things* von Don Norman\n\n> "You do not rise to the level of your goals. You fall to the level of your systems."',
-      createdAt: new Date(Date.now() - 86400000 * 5).toISOString()
-    }
-  ];
+  const DEFAULT_DEMO_NOTES = [];
 
   class OrbitNotesApp {
     constructor(suite) {
@@ -1451,11 +1338,16 @@
         const raw = localStorage.getItem(this.STORAGE_KEY);
         if (raw) {
           const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+          if (Array.isArray(parsed)) {
+            const cleaned = parsed.filter(n => !['note-1', 'note-2', 'note-3', 'note-4'].includes(n.id));
+            if (cleaned.length !== parsed.length) {
+              this.saveNotes(cleaned);
+            }
+            return cleaned;
+          }
         }
       } catch (e) { console.warn(e); }
-      this.saveNotes(DEFAULT_DEMO_NOTES);
-      return [...DEFAULT_DEMO_NOTES];
+      return [];
     }
 
     saveNotes(notes = this.notes) {
@@ -1900,12 +1792,7 @@
   // ==========================================================================
   // 4. ORBITHABITS MODULE (DAILY HABIT & STREAK TRACKER)
   // ==========================================================================
-  const DEFAULT_DEMO_HABITS = [
-    { id: 'hab-1', name: '2 Liter Wasser trinken', category: 'Gesundheit', checks: [true, true, true, true, false, false, false], streak: 4 },
-    { id: 'hab-2', name: '30 Min. Sport oder Workout', category: 'Fitness', checks: [true, false, true, true, false, false, false], streak: 2 },
-    { id: 'hab-3', name: 'Fokussiertes Lesen (20 Min.)', category: 'Geist', checks: [true, true, true, false, false, false, false], streak: 3 },
-    { id: 'hab-4', name: 'Tagesreflexion & Journal', category: 'Produktivität', checks: [true, true, false, false, false, false, false], streak: 2 }
-  ];
+  const DEFAULT_DEMO_HABITS = [];
 
   class OrbitHabitsApp {
     constructor(suite) {
@@ -1942,11 +1829,16 @@
         const raw = localStorage.getItem(this.STORAGE_KEY);
         if (raw) {
           const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+          if (Array.isArray(parsed)) {
+            const cleaned = parsed.filter(h => !['hab-1', 'hab-2', 'hab-3', 'hab-4'].includes(h.id));
+            if (cleaned.length !== parsed.length) {
+              this.saveHabits(cleaned);
+            }
+            return cleaned;
+          }
         }
       } catch (e) { console.warn(e); }
-      this.saveHabits(DEFAULT_DEMO_HABITS);
-      return [...DEFAULT_DEMO_HABITS];
+      return [];
     }
 
     saveHabits(habits = this.habits) {
@@ -2064,6 +1956,15 @@
       if (this.dom.todayProgressFill) this.dom.todayProgressFill.style.width = `${pct}%`;
       if (this.dom.completionText) {
         this.dom.completionText.textContent = `${doneToday} von ${totalToday} Gewohnheiten heute erledigt`;
+      }
+
+      if (this.habits.length === 0) {
+        this.dom.listBody.innerHTML = `
+          <div style="padding: 40px; text-align: center; color: var(--text-dim);">
+            Noch keine Gewohnheiten angelegt. Klicke auf "+ Neue Gewohnheit", um deine erste Routine zu starten!
+          </div>
+        `;
+        return;
       }
 
       this.dom.listBody.innerHTML = this.habits.map(habit => {
