@@ -1424,41 +1424,6 @@
             </div>
             <span class="game-nav-badge">Daily</span>
           </button>
-          <button class="game-nav-btn" data-game-mode="optical">
-            <span class="game-nav-icon">👁️</span>
-            <div class="game-nav-label">
-              <span class="game-nav-title">Optisch</span>
-              <span class="game-nav-sub">28 Denkaufgaben</span>
-            </div>
-            <span class="game-nav-badge">Archiv</span>
-          </button>
-        </div>
-            <span class="game-nav-badge">Daily</span>
-          </button>
-          <button class="game-nav-btn" data-game-mode="tango">
-            <span class="game-nav-icon">☀️🌙</span>
-            <div class="game-nav-label">
-              <span class="game-nav-title">Tango</span>
-              <span class="game-nav-sub">Sonne & Mond</span>
-            </div>
-            <span class="game-nav-badge">Daily</span>
-          </button>
-          <button class="game-nav-btn" data-game-mode="pinpoint">
-            <span class="game-nav-icon">🎯</span>
-            <div class="game-nav-label">
-              <span class="game-nav-title">Pinpoint</span>
-              <span class="game-nav-sub">5 Assoziationen</span>
-            </div>
-            <span class="game-nav-badge">Daily</span>
-          </button>
-          <button class="game-nav-btn" data-game-mode="optical">
-            <span class="game-nav-icon">👁️</span>
-            <div class="game-nav-label">
-              <span class="game-nav-title">Optisch</span>
-              <span class="game-nav-sub">28 Denkaufgaben</span>
-            </div>
-            <span class="game-nav-badge">Archiv</span>
-          </button>
         </div>
 
 
@@ -1764,9 +1729,9 @@
                 <h4 class="guide-title">💡 So funktioniert Zip</h4>
                 <ul class="guide-list">
                   <li>Starte bei Checkpoint <strong>1</strong>.</li>
-                  <li>Klicke auf benachbarte freie Felder (oben, unten, links, rechts), um den Pfad schrittweise zu ziehen.</li>
-                  <li>Passiere alle nummerierten Checkpoints in aufsteigender Reihenfolge (1 ➔ 5 ➔ 9 ... ➔ 25).</li>
-                  <li><strong>Ziel:</strong> Alle 25 Felder des Gitters müssen lückenlos abgedeckt sein!</li>
+                  <li>Klicke auf benachbarte freie Felder, um den Pfad schrittweise zu ziehen.</li>
+                  <li>Passiere alle nummerierten Wegpunkte der Reihe nach: <strong>1 ➔ 2 ➔ 3 ➔ 4 ➔ 5 ➔ 6 ➔ 7</strong>.</li>
+                  <li><strong>Ziel:</strong> Verbinde alle 25 Felder des Gitters lückenlos in einem einzigen Zug!</li>
                 </ul>
                 <div class="game-inline-feedback" id="zip-feedback"></div>
               </div>
@@ -1841,140 +1806,7 @@
             </div>
           </div>
         </div>
-<div class="game-mode-panel hidden" id="panel-game-optical">
-<!-- Riddle Category Filters -->
-        <section class="controls-strip">
-          <div class="filter-group">
-            <span class="filter-title">Kategorie:</span>
-            <button class="filter-chip active riddle-filter-chip" data-category="all">Alle</button>
-            <button class="filter-chip riddle-filter-chip daily-chip" data-category="daily" id="chip-filter-daily">⭐ Tagesrätsel (07:00)</button>
-            <button class="filter-chip riddle-filter-chip" data-category="Muster">🧩 Muster</button>
-            <button class="filter-chip riddle-filter-chip" data-category="Geometrie">📐 Geometrie</button>
-            <button class="filter-chip riddle-filter-chip" data-category="Gleichung">⚖️ Gleichung</button>
-            <button class="filter-chip riddle-filter-chip" data-category="Illusion">👁️ Illusion</button>
-            <button class="filter-chip riddle-filter-chip" data-category="Streichholz">🪵 Streichholz</button>
-            <button class="filter-chip riddle-filter-chip" data-category="Raumdenken">🎲 3D-Raum</button>
-          </div>
-          <div class="sort-container">
-            <label for="riddle-difficulty-select" class="sort-label">Stufe:</label>
-            <select id="riddle-difficulty-select" class="select-input">
-              <option value="all">Alle Stufen</option>
-              <option value="Einfach">🌱 Einfach</option>
-              <option value="Mittel">⚡ Mittel</option>
-              <option value="Schwer">🔥 Schwer</option>
-            </select>
-          </div>
-        </section>
 
-        <!-- Main Riddle Interactive Arena -->
-        <main class="main-content">
-          <!-- Daily 07:00 German Time Riddle Banner -->
-          <div class="riddle-daily-banner" id="riddle-daily-banner">
-            <div class="daily-banner-glow"></div>
-            <div class="daily-banner-left">
-              <div class="daily-badge-row">
-                <span class="daily-pulse-tag"><span class="pulse-indicator"></span> 07:00 UHR TAGES-DROP</span>
-                <span class="daily-status-pill" id="daily-status-pill">Offen ⏳</span>
-              </div>
-              <h3 class="daily-banner-title" id="riddle-daily-date-title">Tagesrätsel des Tages</h3>
-              <p class="daily-banner-subtitle">Täglich pünktlich um 07:00 Uhr deutscher Zeit (Europe/Berlin) geht ein neues optisches Rätsel online.</p>
-            </div>
-            <div class="daily-banner-right">
-              <div class="daily-countdown-card">
-                <span class="countdown-eyebrow">NÄCHSTES RÄTSEL IN</span>
-                <div class="countdown-clock" id="riddle-daily-countdown">--:--:--</div>
-                <span class="countdown-target">Drop täglich um 07:00:00 Uhr MEZ/MESZ</span>
-              </div>
-              <button class="btn-primary btn-daily-jump" id="btn-switch-daily-riddle">
-                <span>⭐ Zum Tagesrätsel</span>
-              </button>
-            </div>
-          </div>
-
-          <div class="riddle-arena-card">
-            
-            <div class="riddle-arena-header">
-              <div class="riddle-meta-tags">
-                <span class="riddle-cat-pill" id="riddle-active-cat">💡 Logik</span>
-                <span class="riddle-diff-pill" id="riddle-active-diff">⚡ Mittel</span>
-                <span class="riddle-count-label" id="riddle-active-counter">Rätsel #1 von 18</span>
-              </div>
-              <div class="riddle-status-indicator" id="riddle-status-indicator">
-                <span class="status-dot"></span>
-                <span id="riddle-status-text">Offen</span>
-              </div>
-            </div>
-
-            <!-- Puzzle Question Box -->
-            <div class="riddle-question-wrapper">
-              <div class="riddle-visual-box" id="riddle-visual-box"></div>
-              <h2 class="riddle-question-text" id="riddle-question-text">Lädt Rätsel...</h2>
-            </div>
-
-            <!-- Interactive Answer Input -->
-            <div class="riddle-interactive-form">
-              <div class="riddle-input-group">
-                <input type="text" id="riddle-answer-input" class="form-input" placeholder="Deine Lösung hier eingeben..." autocomplete="off">
-                <button class="btn-primary" id="btn-riddle-submit">
-                  <span>Prüfen</span>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                </button>
-              </div>
-              <!-- Instant Answer Feedback Box -->
-              <div class="riddle-feedback-box hidden" id="riddle-feedback-box"></div>
-            </div>
-
-            <!-- Hints & Solution Reveal Row -->
-            <div class="riddle-assist-row">
-              <button class="btn-secondary" id="btn-riddle-hint">
-                <span>💡 Hinweis anzeigen</span>
-              </button>
-              <button class="btn-secondary" id="btn-riddle-reveal">
-                <span>👁️ Lösung aufdecken</span>
-              </button>
-            </div>
-
-            <!-- Hint Box (Hidden by default) -->
-            <div class="riddle-hint-box hidden" id="riddle-hint-box">
-              <div class="hint-header">
-                <strong>💡 Denkanstoß:</strong>
-              </div>
-              <p id="riddle-hint-text"></p>
-            </div>
-
-            <!-- Solution Box with Blur Transition -->
-            <div class="riddle-solution-box hidden" id="riddle-solution-box">
-              <div class="solution-header">
-                <strong>🎯 Offizielle Lösung:</strong>
-              </div>
-              <div class="solution-content blurred" id="riddle-solution-content">
-                <p class="solution-title" id="riddle-solution-title"></p>
-                <p class="solution-explanation" id="riddle-solution-explanation"></p>
-              </div>
-            </div>
-
-            <!-- Navigation Controls -->
-            <div class="riddle-nav-footer">
-              <button class="btn-secondary" id="btn-riddle-prev">
-                <span>← Vorheriges</span>
-              </button>
-              <button class="btn-secondary" id="btn-riddle-shuffle">
-                <span>🎲 Zufalls-Rätsel</span>
-              </button>
-              <button class="btn-secondary" id="btn-riddle-next">
-                <span>Nächstes →</span>
-              </button>
-            </div>
-
-          </div>
-
-          <!-- All Riddles Browser Grid -->
-          <div class="riddle-collection-section">
-            <h3 class="collection-title">📚 Alle Denksport-Aufgaben im Überblick</h3>
-            <div class="riddle-cards-grid" id="riddle-cards-grid"></div>
-          </div>
-
-                </div> <!-- end panel-game-optical -->
 </main>
       </div>
     </section>
