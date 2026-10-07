@@ -6188,3 +6188,93 @@ body {
   30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
   40%, 60% { transform: translate3d(4px, 0, 0); }
 }
+
+/* ==========================================================================
+   LINEAR LEVEL TRAIL (NO TIER SUBDIVISIONS, DYNAMIC EXTENSION)
+   ========================================================================== */
+
+.linear-trail-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin: 10px 0;
+}
+
+.linear-trail-container {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 16px 14px;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-lg);
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  align-items: center;
+}
+
+.linear-trail-container::-webkit-scrollbar {
+  height: 6px;
+}
+
+.linear-trail-container::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 3px;
+}
+
+.linear-trail-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 3px;
+}
+
+.linear-trail-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.32);
+}
+
+.linear-trail-track {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  min-width: max-content;
+  padding: 4px 6px;
+}
+
+.trail-scroll-btn {
+  width: 34px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  font-size: 1.5rem;
+  font-weight: 300;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.trail-scroll-btn:hover {
+  background: rgba(99, 102, 241, 0.25);
+  border-color: var(--accent);
+  color: #fff;
+  transform: scale(1.05);
+}
+
+.trail-node.diff-tint-easy {
+  border-color: rgba(34, 197, 94, 0.45);
+}
+
+.trail-node.diff-tint-medium {
+  border-color: rgba(234, 179, 8, 0.45);
+}
+
+.trail-node.diff-tint-hard {
+  border-color: rgba(239, 68, 68, 0.45);
+}
