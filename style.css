@@ -2160,6 +2160,7 @@ body:not(.orbit-os-active) .suite-app-view:not(.active) {
 .habits-icon { background: linear-gradient(135deg, #f43f5e, #ec4899); }
 .tools-icon { background: linear-gradient(135deg, #0284c7, #38bdf8); }
 .riddle-icon { background: linear-gradient(135deg, #a855f7, #ec4899); }
+.folienwerk-icon { background: linear-gradient(135deg, #e11d48, #f43f5e); }
 
 .item-info {
   flex: 1;
@@ -2531,6 +2532,7 @@ body:not(.orbit-os-active) .suite-app-view:not(.active) {
 .habits-glow { background: rgba(244, 63, 94, 0.5); }
 .tools-glow { background: rgba(2, 132, 199, 0.5); }
 .riddle-glow { background: rgba(168, 85, 247, 0.55); }
+.folienwerk-glow { background: rgba(225, 29, 72, 0.55); }
 
 .app-card-top {
   display: flex;
@@ -2555,6 +2557,7 @@ body:not(.orbit-os-active) .suite-app-view:not(.active) {
 .habits-box { background: linear-gradient(135deg, #f43f5e, #ec4899); }
 .tools-box { background: linear-gradient(135deg, #0284c7, #38bdf8); }
 .riddle-box { background: linear-gradient(135deg, #a855f7, #ec4899); }
+.folienwerk-box { background: linear-gradient(135deg, #e11d48, #f43f5e); }
 
 .app-category-badge {
   font-size: 0.68rem;
@@ -2631,6 +2634,7 @@ body:not(.orbit-os-active) .suite-app-view:not(.active) {
 .habits-btn { background: rgba(244, 63, 94, 0.25); border: 1px solid rgba(244, 63, 94, 0.5); }
 .tools-btn { background: rgba(2, 132, 199, 0.25); border: 1px solid rgba(2, 132, 199, 0.5); }
 .riddle-btn { background: rgba(168, 85, 247, 0.25); border: 1px solid rgba(168, 85, 247, 0.5); }
+.folienwerk-btn { background: rgba(225, 29, 72, 0.25); border: 1px solid rgba(225, 29, 72, 0.5); }
 
 .app-card:hover .app-launch-btn {
   transform: translateX(3px);

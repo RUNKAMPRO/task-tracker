@@ -97,6 +97,14 @@ class OrbitOS {
         defaultWidth: 320,
         defaultHeight: 440
       },
+      folienwerk: {
+        name: 'Folienwerk',
+        icon: '📑',
+        color: '#e11d48',
+        isSuiteApp: false,
+        defaultWidth: 960,
+        defaultHeight: 650
+      },
       settings: {
         name: 'OS Einstellungen',
         icon: '⚙️',
@@ -495,6 +503,8 @@ class OrbitOS {
       this.mountLinuxTerminal(bodyEl);
     } else if (appId === 'calculator') {
       this.mountCalculator(bodyEl);
+    } else if (appId === 'folienwerk') {
+      this.mountFolienwerk(bodyEl);
     } else if (appId === 'settings') {
       this.mountSettings(bodyEl);
     }
@@ -939,6 +949,7 @@ class OrbitOS {
 
   <div style="color: #a855f7; font-weight: 700; margin: 10px 0 2px;">[ 3. APPS &amp; VISUALS ]</div>
   <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+    <tr><td style="color: #f43f5e; width: 140px; font-weight: 600;">folienwerk</td><td style="color: #94a3b8;">OTTO Copilot Präsentationen: <span style="color:#e2e8f0;">open</span>, <span style="color:#e2e8f0;">status</span></td></tr>
     <tr><td style="color: #10b981; width: 140px; font-weight: 600;">spotify</td><td style="color: #94a3b8;">Spotify Player steuern: <span style="color:#e2e8f0;">status</span>, <span style="color:#e2e8f0;">play</span>, <span style="color:#e2e8f0;">pause</span>, <span style="color:#e2e8f0;">next</span></td></tr>
     <tr><td style="color: #c084fc; width: 140px; font-weight: 600;">matrix</td><td style="color: #94a3b8;">Echter Katakana Canvas Matrix Rain (Beenden mit <kbd style="color:#fff;background:rgba(255,255,255,0.15);padding:1px 4px;border-radius:3px;">q</kbd> oder <kbd style="color:#fff;background:rgba(255,255,255,0.15);padding:1px 4px;border-radius:3px;">ESC</kbd>)</td></tr>
     <tr><td style="color: #c084fc; font-weight: 600;">tasks</td><td style="color: #94a3b8;">Aufgabenliste aus der OrbitTask-Datenbank auslesen</td></tr>
@@ -1057,6 +1068,25 @@ Oct  8 10:24:15 orbit-os sudo[142]: rune : TTY=pts/0 ; PWD=/home/rune ; USER=roo
           }
         } else if (cmd === 'matrix') {
           launchInTerminalMatrix();
+        } else if (cmd === 'folienwerk') {
+          if (arg1 === 'open' || !arg1) {
+            this.openApp('folienwerk');
+            print('Folienwerk-Fenster geöffnet (Ziel: http://localhost:8765).', '#10b981');
+          } else if (arg1 === 'status') {
+            print('Prüfe Status von Folienwerk (http://localhost:8765)...', '#f59e0b');
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 1200);
+            fetch('http://localhost:8765', { mode: 'no-cors', signal: controller.signal })
+              .then(() => {
+                clearTimeout(timeout);
+                print('[ONLINE] Folienwerk läuft auf http://localhost:8765', '#10b981');
+              })
+              .catch(() => {
+                print('[OFFLINE] Server auf Port 8765 nicht erreichbar. Starte "Folienwerk starten.bat"', '#ef4444');
+              });
+          } else {
+            print('Verwendung: folienwerk [open | status]', '#94a3b8');
+          }
         } else if (cmd === 'spotify') {
           if (!this.spotify) {
             print('SpotifyService not initialized.', '#ef4444');
@@ -1541,6 +1571,106 @@ Oct  8 10:24:15 orbit-os sudo[142]: rune : TTY=pts/0 ; PWD=/home/rune ; USER=roo
         display.textContent = expr;
       });
     });
+  }
+
+
+  mountFolienwerk(container) {
+    container.innerHTML = `
+      <div class="os-folienwerk-wrap" style="display:flex; flex-direction:column; height:100%; background:#0f1117; color:#fff; overflow:hidden;">
+        <!-- Folienwerk Top Header -->
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 16px; background:#181b24; border-bottom:1px solid rgba(255,255,255,0.08); flex-shrink:0;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div style="width:28px; height:28px; border-radius:8px; background:linear-gradient(135deg, #e11d48, #f43f5e); display:flex; align-items:center; justify-content:center; font-size:16px;">📑</div>
+            <div>
+              <div style="font-weight:700; font-size:13px; letter-spacing:-0.01em;">Folienwerk <span style="font-size:10px; color:#f43f5e; font-weight:700; background:rgba(225,29,72,0.15); border:1px solid rgba(225,29,72,0.3); padding:1px 6px; border-radius:10px; margin-left:4px;">OTTO GROUP</span></div>
+              <div style="font-size:11px; color:#94a3b8;" id="os-fw-url-display">http://localhost:8765</div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="status-badge" id="os-fw-status" style="font-size:11px; padding:3px 8px; border-radius:12px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#94a3b8; display:flex; align-items:center; gap:5px;">
+              <span id="os-fw-status-dot" style="width:7px; height:7px; border-radius:50%; background:#f59e0b; display:inline-block;"></span>
+              <span id="os-fw-status-text">Prüfe Server...</span>
+            </span>
+            <button id="os-fw-btn-reload" style="padding:5px 10px; font-size:11px; border-radius:6px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); color:#fff; cursor:pointer;" title="Neu laden">🔄 Neu laden</button>
+            <button id="os-fw-btn-browser" style="padding:5px 12px; font-size:11px; border-radius:6px; background:#e11d48; color:#fff; font-weight:600; border:none; cursor:pointer;" title="Im Browser öffnen">Im Browser öffnen ↗</button>
+          </div>
+        </div>
+
+        <!-- Frame / Status View -->
+        <div style="flex:1; position:relative; overflow:hidden; background:#0b0d13;">
+          <iframe id="os-fw-iframe" src="http://localhost:8765" style="width:100%; height:100%; border:none; display:block;" allow="clipboard-read; clipboard-write"></iframe>
+          
+          <div id="os-fw-offline-card" style="display:none; position:absolute; inset:0; background:rgba(15,17,23,0.95); backdrop-filter:blur(10px); flex-direction:column; align-items:center; justify-content:center; padding:30px; text-align:center; z-index:10;">
+            <div style="width:64px; height:64px; border-radius:18px; background:linear-gradient(135deg, #e11d48, #f43f5e); display:flex; align-items:center; justify-content:center; font-size:32px; margin-bottom:16px; box-shadow:0 8px 24px rgba(225,29,72,0.35);">📑</div>
+            <h3 style="font-size:18px; font-weight:700; margin-bottom:6px; color:#fff;">Folienwerk Server starten</h3>
+            <p style="font-size:13px; color:#94a3b8; max-width:480px; line-height:1.5; margin-bottom:18px;">
+              Folienwerk läuft lokal als Server auf deinem Computer unter <code style="background:rgba(255,255,255,0.08); padding:2px 6px; border-radius:4px; color:#f43f5e; font-size:12px;">http://localhost:8765</code>.
+            </p>
+            <div style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:14px 20px; text-align:left; font-size:12px; max-width:440px; margin-bottom:20px;">
+              <div style="font-weight:600; color:#e2e8f0; margin-bottom:6px;">So startest du Folienwerk:</div>
+              <ol style="margin:0; padding-left:18px; color:#94a3b8; line-height:1.6;">
+                <li>Öffne deinen Folienwerk-Ordner und doppelklicke auf <strong style="color:#fff;">Folienwerk starten.bat</strong></li>
+                <li>Lass das Konsolenfenster während deiner Arbeit geöffnet</li>
+                <li>Klicke danach hier auf <em>Verbindung prüfen</em></li>
+              </ol>
+            </div>
+            <div style="display:flex; gap:10px;">
+              <button id="os-fw-btn-retry" style="padding:8px 18px; background:#e11d48; color:#fff; border-radius:8px; font-size:12.5px; font-weight:600; border:none; cursor:pointer;">Verbindung prüfen 🔄</button>
+              <button id="os-fw-btn-open-tab" style="padding:8px 16px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#fff; border-radius:8px; font-size:12.5px; cursor:pointer;">Im Browser öffnen ↗</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const iframe = container.querySelector('#os-fw-iframe');
+    const offlineCard = container.querySelector('#os-fw-offline-card');
+    const statusDot = container.querySelector('#os-fw-status-dot');
+    const statusText = container.querySelector('#os-fw-status-text');
+    const btnReload = container.querySelector('#os-fw-btn-reload');
+    const btnBrowser = container.querySelector('#os-fw-btn-browser');
+    const btnRetry = container.querySelector('#os-fw-btn-retry');
+    const btnOpenTab = container.querySelector('#os-fw-btn-open-tab');
+
+    const checkServer = async () => {
+      statusDot.style.background = '#f59e0b';
+      statusText.textContent = 'Prüfe...';
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 1200);
+        await fetch('http://localhost:8765', { mode: 'no-cors', signal: controller.signal });
+        clearTimeout(timeout);
+        // Server online!
+        statusDot.style.background = '#10b981';
+        statusText.textContent = 'Online (Port 8765)';
+        offlineCard.style.display = 'none';
+        iframe.style.display = 'block';
+      } catch (err) {
+        // Server offline
+        statusDot.style.background = '#ef4444';
+        statusText.textContent = 'Offline';
+        offlineCard.style.display = 'flex';
+        iframe.style.display = 'none';
+      }
+    };
+
+    const openInBrowser = () => {
+      window.open('http://localhost:8765', '_blank');
+    };
+
+    btnReload.addEventListener('click', () => {
+      checkServer();
+      iframe.src = 'http://localhost:8765';
+    });
+    btnRetry.addEventListener('click', () => {
+      checkServer();
+      iframe.src = 'http://localhost:8765';
+    });
+    btnBrowser.addEventListener('click', openInBrowser);
+    btnOpenTab.addEventListener('click', openInBrowser);
+
+    // Initial check
+    checkServer();
   }
 
   mountSettings(container) {

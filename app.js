@@ -12721,6 +12721,12 @@ END $$;`;
 
             this.switchApp('riddle');
 
+          } else if (e.key === '7') {
+
+            e.preventDefault();
+
+            this.switchApp('folienwerk');
+
           } else if (e.key.toLowerCase() === 'k') {
 
             e.preventDefault();
@@ -12794,6 +12800,16 @@ END $$;`;
 
 
     switchApp(appId, updateHash = true) {
+
+      if (appId === 'folienwerk') {
+        if (this.os) {
+          this.os.enableOSMode();
+          this.os.openApp('folienwerk');
+        } else {
+          window.open('http://localhost:8765', '_blank');
+        }
+        return;
+      }
 
       if (!this.dom.appViews[appId]) return;
 
