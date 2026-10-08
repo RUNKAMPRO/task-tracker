@@ -258,6 +258,10 @@ class OrbitOS {
 
         <div class="os-taskbar-spotify-slot" id="os-taskbar-spotify-slot"></div>
         <div class="os-taskbar-right">
+          <div class="os-tray-item os-tray-voice" id="os-tray-voice" title="OrbitVoice Sprachsteuerung (Alt + V)">
+            <span class="os-tray-voice-icon">🎙️</span>
+            <span id="os-tray-voice-text">Voice</span>
+          </div>
           <div class="os-tray-item" id="os-tray-sync" title="Supabase Sync-Status">
             <span class="sync-dot" id="os-tray-sync-dot" style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
             <span id="os-tray-sync-text">Cloud</span>
@@ -370,6 +374,14 @@ class OrbitOS {
       `;
       btnToggle.addEventListener('click', () => this.enableOSMode());
       suiteHeaderRight.insertBefore(btnToggle, suiteHeaderRight.firstChild);
+    }
+
+    // OrbitVoice Tray Toggle
+    const osTrayVoice = document.getElementById('os-tray-voice');
+    if (osTrayVoice) {
+      osTrayVoice.addEventListener('click', () => {
+        if (window.orbitVoice) window.orbitVoice.toggleListening();
+      });
     }
 
     // Switch back to Workspace
@@ -1055,6 +1067,7 @@ class OrbitOS {
     <tr><td style="color: #f43f5e; width: 140px; font-weight: 600;">folienwerk</td><td style="color: #94a3b8;">OTTO Copilot Präsentationen: <span style="color:#e2e8f0;">open</span>, <span style="color:#e2e8f0;">status</span></td></tr>
     <tr><td style="color: #10b981; width: 140px; font-weight: 600;">spotify</td><td style="color: #94a3b8;">Spotify Player steuern: <span style="color:#e2e8f0;">status</span>, <span style="color:#e2e8f0;">play</span>, <span style="color:#e2e8f0;">pause</span>, <span style="color:#e2e8f0;">next</span></td></tr>
     <tr><td style="color: #c084fc; width: 140px; font-weight: 600;">matrix</td><td style="color: #94a3b8;">Echter Katakana Canvas Matrix Rain (Beenden mit <kbd style="color:#fff;background:rgba(255,255,255,0.15);padding:1px 4px;border-radius:3px;">q</kbd> oder <kbd style="color:#fff;background:rgba(255,255,255,0.15);padding:1px 4px;border-radius:3px;">ESC</kbd>)</td></tr>
+    <tr><td style="color: #c084fc; font-weight: 600;">voice &lt;on|off|help&gt;</td><td style="color: #94a3b8;">OrbitVoice Sprachsteuerung &amp; KI-Befehlsengine</td></tr>
     <tr><td style="color: #c084fc; font-weight: 600;">tasks</td><td style="color: #94a3b8;">Aufgabenliste aus der OrbitTask-Datenbank auslesen</td></tr>
     <tr><td style="color: #c084fc; font-weight: 600;">calc &lt;math&gt;</td><td style="color: #94a3b8;">Inline-Taschenrechner (z.B. <span style="color:#e2e8f0;">calc (15 * 8) / 2</span>)</td></tr>
     <tr><td style="color: #c084fc; font-weight: 600;">wallpaper &lt;name&gt;</td><td style="color: #94a3b8;">Theme wechseln: <span style="color:#e2e8f0;">shadow-knight</span>, <span style="color:#e2e8f0;">nebula</span>, <span style="color:#e2e8f0;">cyberpunk</span>, <span style="color:#e2e8f0;">midnight</span>, <span style="color:#e2e8f0;">aurora</span></td></tr>
@@ -1258,6 +1271,22 @@ Oct  8 10:24:15 orbit-os sudo[142]: rune : TTY=pts/0 ; PWD=/home/rune ; USER=roo
             print(`[ <span class="os-term-tag-ok">OK</span> ] Wallpaper switched to: ${arg1}`, '#38bdf8');
           } else {
             print('Invalid theme. Options: shadow-knight, nebula, cyberpunk, midnight, aurora', '#ef4444');
+          }
+        } else if (cmd === 'voice') {
+          if (arg1 === 'on' || arg1 === 'start') {
+            if (window.orbitVoice) window.orbitVoice.startListening();
+            print('[ <span class="os-term-tag-ok">OK</span> ] OrbitVoice gestartet. Sprich deinen Befehl...', '#22c55e');
+          } else if (arg1 === 'off' || arg1 === 'stop') {
+            if (window.orbitVoice) window.orbitVoice.stopListening();
+            print('[ <span class="os-term-tag-ok">OK</span> ] OrbitVoice gestoppt.', '#facc15');
+          } else if (arg1 === 'help') {
+            if (window.orbitVoice) window.orbitVoice.showHelpModal();
+            print('[ <span class="os-term-tag-ok">OK</span> ] Sprachbefehle-Handbuch geöffnet.', '#38bdf8');
+          } else {
+            const isSupported = window.orbitVoice ? window.orbitVoice.isSupported : false;
+            print(`OrbitVoice AI Voice Assistant: ${isSupported ? '<span style="color:#22c55e;">Aktiv & Bereit</span>' : '<span style="color:#facc15;">Textmodus</span>'}`);
+            print('Tastaturkürzel: <kbd style="color:#fff;background:rgba(255,255,255,0.15);padding:1px 4px;border-radius:3px;">Alt + V</kbd> oder nutze das 🎙️ Tray-Icon.');
+            print('Befehle: voice on | voice off | voice help');
           }
         } else if (cmd === 'clear') {
           out.innerHTML = '';

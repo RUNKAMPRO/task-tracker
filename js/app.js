@@ -12469,6 +12469,11 @@ END $$;`;
         this.os = new OrbitOS(this);
       }
 
+      // 8. Initialize OrbitVoice AI Assistant
+      if (typeof window.OrbitVoice !== 'undefined') {
+        this.voice = new window.OrbitVoice(this);
+      }
+
     }
 
 
@@ -12760,6 +12765,16 @@ END $$;`;
             e.preventDefault();
 
             this.toggleAppSelector();
+
+          } else if (e.key.toLowerCase() === 'v') {
+
+            e.preventDefault();
+
+            if (this.voice) {
+
+              this.voice.toggleListening();
+
+            }
 
           }
 
