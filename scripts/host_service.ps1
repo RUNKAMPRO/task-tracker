@@ -1,5 +1,8 @@
-$projectDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-if (-not $projectDir) { $projectDir = 'C:\Users\RUKAMPRO\OneDrive\task-tracker' }
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$projectDir = Split-Path -Parent $scriptDir
+if (-not $projectDir -or -not (Test-Path (Join-Path $projectDir 'index.html'))) {
+    $projectDir = 'C:\Users\RUKAMPRO\OneDrive\task-tracker'
+}
 
 $listening = Get-NetTCPConnection -LocalPort 8080 -State Listen -ErrorAction SilentlyContinue
 if (-not $listening) {

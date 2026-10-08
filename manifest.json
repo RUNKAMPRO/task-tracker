@@ -35,7 +35,7 @@
       "purpose": "maskable"
     },
     {
-      "src": "orbitsuite_icon.png",
+      "src": "icons/orbitsuite_icon.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"

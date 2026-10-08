@@ -5,7 +5,8 @@ echo   OrbitSuite - Integrated Workspace
 echo ========================================================
 echo.
 
-cd /d "%~dp0"
+:: Wechseln in das Projekt-Hauptverzeichnis
+cd /d "%~dp0.."
 
 :: Python-Befehl ermitteln (python oder py)
 set "PY_CMD=python"
@@ -27,7 +28,7 @@ if %errorlevel% equ 0 (
     echo [OK] OrbitSuite Server laeuft bereits auf Port 8080.
 ) else (
     echo [INFO] Starte lokalen Server fuer Netzwerk auf Port 8080...
-    powershell -NoProfile -WindowStyle Hidden -Command "Start-Process %PY_CMD% -ArgumentList '-m http.server 8080 --bind 0.0.0.0' -WorkingDirectory '%~dp0' -WindowStyle Hidden"
+    powershell -NoProfile -WindowStyle Hidden -Command "Start-Process %PY_CMD% -ArgumentList '-m http.server 8080 --bind 0.0.0.0' -WorkingDirectory '%~dp0..' -WindowStyle Hidden"
     ping 127.0.0.1 -n 2 >nul
 )
 

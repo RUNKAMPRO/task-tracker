@@ -2,7 +2,7 @@
 // OrbitSuite Service Worker (Offline & PWA Caching Engine)
 // ==============================================================================
 
-const CACHE_VERSION = 'orbitsuite-v3.5.0';
+const CACHE_VERSION = 'orbitsuite-v3.6.0';
 const STATIC_CACHE_NAME = `orbitsuite-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE_NAME = `orbitsuite-runtime-${CACHE_VERSION}`;
 
@@ -10,16 +10,16 @@ const RUNTIME_CACHE_NAME = `orbitsuite-runtime-${CACHE_VERSION}`;
 const PRECACHE_ASSETS = [
   './',
   './index.html',
-  './style.css',
-  './app.js',
-  './config.js',
-  './orbit-os.css',
-  './orbit-os.js',
-  './spotify-service.js',
+  './css/style.css',
+  './css/orbit-os.css',
+  './js/app.js',
+  './js/config.js',
+  './js/orbit-os.js',
+  './js/spotify-service.js',
   './manifest.webmanifest',
   './manifest.json',
   './favicon.ico',
-  './orbitsuite_icon.png',
+  './icons/orbitsuite_icon.png',
   './icons/apple-touch-icon.png',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -30,107 +30,79 @@ const PRECACHE_ASSETS = [
 self.addEventListener('install', event => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(STATIC_CACHE_NAME)
-      .then(cache => {
-        // Use individual add or addAll with fallback
-        return Promise.all(
-          PRECACHE_ASSETS.map(url => {
-            return cache.add(url).catch(err => {
-              console.warn('[ServiceWorker] Failed to precache:', url, err);
-            });
-          })
-        );
-      })
+    caches.open(STATIC_CACHE_NAME).then(cache => {
+      return cache.addAll(PRECACHE_ASSETS).catch(err => {
+        console.warn('[ServiceWorker] Some assets could not be precached:', err);
+      });
+    })
   );
 });
 
-// 2. Activate Event: Clean up outdated caches
+// 2. Activate Event: Clean up legacy caches
 self.addEventListener('activate', event => {
-  const currentCaches = [STATIC_CACHE_NAME, RUNTIME_CACHE_NAME];
   event.waitUntil(
-    caches.keys()
-      .then(cacheNames => {
-        return Promise.all(
-          cacheNames.map(cacheName => {
-            if (!currentCaches.includes(cacheName)) {
-              console.log('[ServiceWorker] Purging legacy cache:', cacheName);
-              return caches.delete(cacheName);
-            }
-          })
-        );
-      })
-      .then(() => self.clients.claim())
+    caches.keys().then(keys => {
+      return Promise.all(
+        keys.map(key => {
+          if (key !== STATIC_CACHE_NAME && key !== RUNTIME_CACHE_NAME) {
+            console.log('[ServiceWorker] Purging legacy cache:', key);
+            return caches.delete(key);
+          }
+        })
+      );
+    }).then(() => self.clients.claim())
   );
 });
 
-// 3. Fetch Event: Smart Cache Strategy (Stale-While-Revalidate & Offline Fallback)
+// 3. Fetch Event: Dual Caching Strategy
 self.addEventListener('fetch', event => {
-  const { request } = event;
+  const req = event.request;
+  const url = new URL(req.url);
 
-  // Only handle GET requests with http/https schemes
-  if (request.method !== 'GET') return;
-  const url = new URL(request.url);
-  if (!url.protocol.startsWith('http')) return;
-
-  // A. Navigation requests (HTML pages)
-  if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request)
-        .then(networkResponse => {
-          if (networkResponse && networkResponse.status === 200) {
-            const responseClone = networkResponse.clone();
-            caches.open(STATIC_CACHE_NAME).then(cache => cache.put('./index.html', responseClone));
-          }
-          return networkResponse;
-        })
-        .catch(async () => {
-          const cachedResponse = await caches.match('./index.html') || await caches.match('./');
-          if (cachedResponse) return cachedResponse;
-          return new Response('OrbitSuite ist offline. Bitte verbinde dich wieder mit dem Netzwerk.', {
-            headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-          });
-        })
-    );
+  // Skip cross-origin or non-GET requests (e.g. Supabase POST/REST requests)
+  if (req.method !== 'GET' || !url.protocol.startsWith('http')) {
     return;
   }
 
-  // B. Local App Assets (style.css, app.js, icons): Network First with Cache Fallback
-  if (url.origin === self.location.origin) {
+  // Skip caching Supabase API or external auth / streaming calls
+  if (url.hostname.includes('supabase.co') || url.hostname.includes('spotify.com')) {
+    return;
+  }
+
+  // Strategy A: HTML Documents -> Network First with Stale-While-Revalidate Fallback
+  if (req.mode === 'navigate' || req.headers.get('accept')?.includes('text/html')) {
     event.respondWith(
-      fetch(request)
-        .then(networkResponse => {
-          if (networkResponse && networkResponse.status === 200) {
-            const responseClone = networkResponse.clone();
-            caches.open(STATIC_CACHE_NAME).then(cache => cache.put(request, responseClone));
+      fetch(req)
+        .then(res => {
+          if (res.ok) {
+            const clone = res.clone();
+            caches.open(RUNTIME_CACHE_NAME).then(cache => cache.put(req, clone));
           }
-          return networkResponse;
+          return res;
         })
         .catch(async () => {
-          const cached = await caches.match(request);
+          const cached = await caches.match(req);
           if (cached) return cached;
-          throw new Error('Resource unavailable offline');
+          return caches.match('./index.html');
         })
     );
     return;
   }
 
-  // C. External Resources (Google Fonts, CDN): Cache First with Background Fetch
-  if (url.hostname.includes('fonts.googleapis.com') || url.hostname.includes('fonts.gstatic.com')) {
-    event.respondWith(
-      caches.match(request).then(cachedResponse => {
-        if (cachedResponse) return cachedResponse;
-        return fetch(request).then(networkResponse => {
-          if (networkResponse && networkResponse.status === 200) {
-            const responseClone = networkResponse.clone();
-            caches.open(RUNTIME_CACHE_NAME).then(cache => cache.put(request, responseClone));
+  // Strategy B: Local App Assets (css, js, icons): Stale While Revalidate
+  event.respondWith(
+    caches.match(req).then(cachedResponse => {
+      const fetchPromise = fetch(req)
+        .then(networkResponse => {
+          if (networkResponse && networkResponse.ok) {
+            const clone = networkResponse.clone();
+            caches.open(RUNTIME_CACHE_NAME).then(cache => cache.put(req, clone));
           }
           return networkResponse;
-        });
-      })
-    );
-    return;
-  }
+        })
+        .catch(() => cachedResponse);
 
-  // Default: Network Fetch
-  event.respondWith(fetch(request));
+      return cachedResponse || fetchPromise;
+    })
+  );
 });

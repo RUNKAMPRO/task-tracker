@@ -1,11 +1,15 @@
 $desktop = [Environment]::GetFolderPath('Desktop')
 $startup = [Environment]::GetFolderPath('Startup')
-$project = $PSScriptRoot
-if (-not $project) { $project = 'C:\Users\RUKAMPRO\OneDrive\task-tracker' }
+
+# Parent directory is the project root
+$project = Split-Path -Parent $PSScriptRoot
+if (-not $project -or -not (Test-Path (Join-Path $project 'index.html'))) {
+    $project = 'C:\Users\RUKAMPRO\OneDrive\task-tracker'
+}
 
 $bat = Join-Path $project 'Start_OrbitSuite.bat'
-$vbs = Join-Path $project 'Start_OrbitSuite_Silent.vbs'
-$ico = Join-Path $project 'orbitsuite.ico'
+$vbs = Join-Path $project 'scripts\Start_OrbitSuite_Silent.vbs'
+$ico = Join-Path $project 'icons\orbitsuite.ico'
 
 $wsh = New-Object -ComObject WScript.Shell
 
@@ -14,7 +18,9 @@ $lnkPath = Join-Path $desktop 'OrbitSuite.lnk'
 $shortcut = $wsh.CreateShortcut($lnkPath)
 $shortcut.TargetPath = $bat
 $shortcut.WorkingDirectory = $project
-$shortcut.IconLocation = "$ico,0"
+if (Test-Path $ico) {
+    $shortcut.IconLocation = "$ico,0"
+}
 $shortcut.Description = 'OrbitSuite • Productivity Workspace'
 $shortcut.Save()
 
@@ -29,7 +35,9 @@ $autoShortcut = $wsh.CreateShortcut($autostartLnk)
 $autoShortcut.TargetPath = 'wscript.exe'
 $autoShortcut.Arguments = "`"$vbs`""
 $autoShortcut.WorkingDirectory = $project
-$autoShortcut.IconLocation = "$ico,0"
+if (Test-Path $ico) {
+    $autoShortcut.IconLocation = "$ico,0"
+}
 $autoShortcut.Description = 'OrbitSuite Ghosted Background Server'
 $autoShortcut.Save()
 

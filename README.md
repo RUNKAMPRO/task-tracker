@@ -11,28 +11,45 @@ Eine hochmoderne, modulare All-in-One Produktivitäts- und Workflow-Suite im ele
 OrbitSuite ist klar modular gegliedert:
 
 ```text
-├── 📄 index.html              # Hauptdokument, App-Container & Modale
-├── 🎨 style.css                # Globales Designsystem, Themes & Responsive Breakpoints
-├── 💻 app.js                   # Kernanwendung (Router, Hub, Task, Notes, Focus, Habits, Tools, Rätsel)
-├── 🖥️ orbit-os.js              # OrbitOS Desktop-Engine, Fenstermanager & Linux Superuser Shell
-├── 🎨 orbit-os.css             # Aero-Glass Fenstersystem, macOS-Window-Controls, Dock & Startmenü
-├── 🎵 spotify-service.js       # Spotify Web API PKCE OAuth2 & Player-Dienst
-├── ⚙️ config.js                # Globale Konfiguration (Supabase, API Endpoints)
-├── ⚡ sw.js                    # Service Worker für Offline-PWA-Betrieb (v3.5.0)
+├── 📄 index.html                 # Hauptanwendung (Single Page Workspace)
+├── ⚡ sw.js                       # Service Worker & PWA Caching Engine (v3.6.0)
+├── 📄 manifest.json & .webmanifest # Progressive Web App Manifeste
+├── 🚀 Start_OrbitSuite.bat       # 1-Klick Starter für den Desktop
+├── 🖼️ favicon.ico                # Browser Tab Favicon
 │
-├── 📁 data/
-│   ├── 📄 README.md            # Datensatz-Dokumentation
-│   └── 📁 puzzles/             # Generierte Rätselsätze (Queens, Tango, Sudoku, CrossClimb, Pinpoint, Zip)
+├── 📁 css/                       # Stylesheets & Visual Themes
+│   ├── style.css                 # Globales Designsystem, Dark Glassmorphism, Responsive Breakpoints
+│   └── orbit-os.css              # Desktop-Fenstermanager, macOS Controls, Dock & Startmenü
 │
-├── 📁 scripts/                 # Hintergrunddienste, Netzwerkfreigabe & Starter
-│   ├── 📄 README.md            # Skript-Übersicht & Verwendung
-│   ├── Start_OrbitSuite.bat    # Hauptstarter (Webserver + Browser)
-│   ├── Start_OrbitSuite_Silent.vbs
-│   ├── Stop_OrbitSuite.bat
-│   ├── Start_Online_Tunnel.bat # Cloudflare/ngrok mobiler Zugriff
-│   └── Freigabe_Netzwerk_Firewall.bat
+├── 📁 js/                        # JavaScript Anwendungslogik & Services
+│   ├── app.js                    # Kernanwendung & Module (Hub, Task, Notes, Focus, Habits, Tools, Rätsel)
+│   ├── orbit-os.js               # OrbitOS Desktop-Engine & Linux Superuser Shell
+│   ├── spotify-service.js        # Spotify Web API PKCE OAuth2 & Player-Integration
+│   └── config.js                 # Globale Konfiguration (Supabase Endpoints)
 │
-└── 🔒 supabase_schema.sql      # Cloud-Datenbank & RLS-Sicherheitsregeln
+├── 📁 icons/                     # WebApp Icons & Assets
+│   ├── apple-touch-icon.png
+│   ├── icon-192.png & icon-512.png
+│   ├── icon-maskable.png
+│   ├── orbitsuite.ico
+│   └── orbitsuite_icon.png
+│
+├── 📁 data/                      # Daten & Rätselarchive
+│   ├── README.md                 # Datensatz-Dokumentation
+│   └── puzzles/                  # Generierte Rätselsätze (Queens, Tango, Sudoku, CrossClimb, Pinpoint, Zip)
+│
+├── 📁 database/                  # Cloud-Datenbank & Schemas
+│   └── supabase_schema.sql       # PostgreSQL Tabellen & Row-Level-Security (RLS)
+│
+└── 📁 scripts/                   # Automatisierung & Hintergrunddienste
+    ├── README.md                 # Dokumentation aller Skripte
+    ├── Start_OrbitSuite.bat      # Webserver-Starter
+    ├── Start_OrbitSuite_Silent.vbs
+    ├── Stop_OrbitSuite.bat
+    ├── Start_Online_Tunnel.bat   # Cloudflare/ngrok mobiler Zugriff
+    ├── Freigabe_Netzwerk_Firewall.bat
+    ├── host_service.ps1          # Daemon Prozess
+    └── create_shortcut.ps1       # Desktop-Verknüpfungsgenerator
 ```
 
 ---
@@ -64,7 +81,7 @@ OrbitSuite besitzt ein vollwertiges **Cloud-Nutzersystem mit Datenbank-Synchroni
    Klicke auf *New Project* (z. B. Name: `orbitsuite`, Passwort festlegen, Region: z. B. Frankfurt).
 3. **Datenbank-Tabelle mit 1 Klick erstellen**:
    - Öffne links den Menüpunkt **SQL Editor**.
-   - Klicke in OrbitSuite im Dialog *Cloud-Sync & Nutzersystem* auf den Button **"SQL-Script in Zwischenablage kopieren"** (oder kopiere den Inhalt aus [`supabase_schema.sql`](supabase_schema.sql)).
+   - Klicke in OrbitSuite im Dialog *Cloud-Sync & Nutzersystem* auf den Button **"SQL-Script in Zwischenablage kopieren"** (oder kopiere den Inhalt aus [`database/supabase_schema.sql`](database/supabase_schema.sql)).
    - Füge das Script im Supabase SQL Editor ein und klicke auf **Run**.
 4. **Verbindung eintragen**:
    - Gehe in Supabase zu **Project Settings > Data API** (oder *API Keys*).
