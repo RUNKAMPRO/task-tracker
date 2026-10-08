@@ -1970,6 +1970,28 @@ body:not(.orbit-os-active) .suite-app-view:not(.active) {
 }
 
 /* App Selector Dropdown Wrapper & Trigger */
+/* Desktop vs Mobile Navigation Selector logic */
+@media (min-width: 1025px) {
+  .app-selector-dropdown-wrapper {
+    display: none !important;
+  }
+  .suite-nav-pills {
+    display: flex !important;
+  }
+  .suite-pill span {
+    display: inline-block !important;
+  }
+}
+
+@media (max-width: 1024px) {
+  .app-selector-dropdown-wrapper {
+    display: block !important;
+  }
+  .suite-nav-pills {
+    display: none !important;
+  }
+}
+
 .app-selector-dropdown-wrapper {
   position: relative;
 }
@@ -4145,16 +4167,16 @@ body:not(.orbit-os-active) .suite-app-view:not(.active) {
    ========================================================================== */
 
 /* 1. Large Laptops / Intermediate Screens (1025px - 1380px) */
-@media (max-width: 1380px) {
-  .suite-pill span {
-    display: none;
-  }
+/* Between 1025px and 1240px: tighten pill padding so text remains cleanly visible */
+@media (max-width: 1240px) and (min-width: 1025px) {
   .suite-pill {
-    padding: 7px 10px;
+    padding: 5px 8px !important;
+    font-size: 0.76rem !important;
+    gap: 4px !important;
   }
   .suite-nav-pills {
-    gap: 4px;
-    padding: 3px;
+    gap: 3px !important;
+    padding: 2px !important;
   }
 }
 

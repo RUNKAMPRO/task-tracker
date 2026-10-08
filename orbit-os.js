@@ -727,23 +727,31 @@ class OrbitOS {
       }
     };
 
-    // In-Terminal Matrix Rain Engine
+    // In-Terminal Matrix Rain Engine (Robust, Does NOT kill itself)
     const launchInTerminalMatrix = () => {
       const matrixWrap = document.createElement('div');
       matrixWrap.id = 'os-term-matrix-wrap';
-      matrixWrap.style.cssText = 'position: absolute; inset: 0; background: #000; z-index: 25; display: flex; flex-direction: column; overflow: hidden;';
+      matrixWrap.style.cssText = 'position: absolute; inset: 0; background: #000000; z-index: 50; display: flex; flex-direction: column; overflow: hidden;';
       matrixWrap.innerHTML = `
-        <canvas id="os-term-matrix-cvs" style="width: 100%; height: 100%; display: block;"></canvas>
-        <div style="position: absolute; top: 8px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); border: 1px solid #22c55e; color: #22c55e; padding: 4px 14px; border-radius: 20px; font-family: monospace; font-size: 11px; letter-spacing: 1px; pointer-events: none;">
-          MATRIX DIGITAL RAIN // Click or press any key to exit
+        <div style="position: absolute; top: 10px; left: 14px; background: rgba(0,0,0,0.85); border: 1px solid #22c55e; color: #22c55e; padding: 4px 12px; border-radius: 6px; font-family: monospace; font-size: 11px; letter-spacing: 1px; pointer-events: none; z-index: 2;">
+          MATRIX DIGITAL RAIN // Beenden mit [q] oder [ESC]
         </div>
+        <button id="os-matrix-exit-btn" style="position: absolute; top: 10px; right: 14px; background: rgba(239, 68, 68, 0.25); border: 1px solid #ef4444; color: #ef4444; padding: 4px 12px; border-radius: 6px; font-family: monospace; font-size: 11px; cursor: pointer; z-index: 2; transition: all 0.2s ease;">
+          ✕ Beenden
+        </button>
+        <canvas id="os-term-matrix-cvs" style="width: 100%; height: 100%; display: block;"></canvas>
       `;
       wrap.appendChild(matrixWrap);
 
       const canvas = matrixWrap.querySelector('#os-term-matrix-cvs');
+      const exitBtn = matrixWrap.querySelector('#os-matrix-exit-btn');
       const ctx = canvas.getContext('2d');
-      canvas.width = wrap.clientWidth || 700;
-      canvas.height = wrap.clientHeight || 400;
+
+      const resizeCanvas = () => {
+        canvas.width = wrap.clientWidth || 700;
+        canvas.height = wrap.clientHeight || 400;
+      };
+      resizeCanvas();
 
       const chars = 'ｦｱｳｴｵｶｷｹｺｻｼｽｾｿﾀﾂﾃﾅﾆﾇﾈﾊﾋﾎﾏﾐﾑﾒﾓﾔﾕﾗﾘﾜ1234567890ABCDEF@#$%&*+-=<>'.split('');
       const fontSize = 14;
@@ -762,11 +770,13 @@ class OrbitOS {
           const x = i * fontSize;
           const y = drops[i] * fontSize;
 
+          // Glowing white head
           ctx.fillStyle = '#ffffff';
           ctx.shadowColor = '#00ff66';
           ctx.shadowBlur = 8;
           ctx.fillText(char, x, y);
 
+          // Green body trail
           ctx.fillStyle = '#00ff66';
           ctx.shadowBlur = 0;
           ctx.fillText(char, x, y - fontSize);
@@ -782,22 +792,35 @@ class OrbitOS {
 
       this.matrixAnimId = requestAnimationFrame(render);
 
+      // Grace period: ignore exits for first 350ms so initiating Enter key doesn't trigger exit
+      let canExit = false;
+      setTimeout(() => { canExit = true; }, 350);
+
       const exitMatrix = () => {
+        if (!canExit) return;
         animRunning = false;
         if (this.matrixAnimId) cancelAnimationFrame(this.matrixAnimId);
-        matrixWrap.remove();
         window.removeEventListener('keydown', keyHandler);
-        print('[ <span class="os-term-tag-ok">OK</span> ] Exited Matrix mode.', '#22c55e');
-        input.focus();
+        matrixWrap.remove();
+        print('[ <span class="os-term-tag-ok">OK</span> ] Matrix-Modus beendet. Willkommen zurück in der Shell.', '#22c55e');
+        setTimeout(() => input.focus(), 50);
       };
 
       const keyHandler = (ke) => {
-        ke.stopPropagation();
-        ke.preventDefault();
-        exitMatrix();
+        if (!canExit) return;
+        // Only exit on 'q', 'Q', 'Escape', or Ctrl+C
+        if (ke.key === 'q' || ke.key === 'Q' || ke.key === 'Escape' || (ke.ctrlKey && ke.key === 'c')) {
+          ke.preventDefault();
+          ke.stopPropagation();
+          exitMatrix();
+        }
       };
 
-      matrixWrap.addEventListener('click', exitMatrix);
+      exitBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        exitMatrix();
+      });
+
       window.addEventListener('keydown', keyHandler);
     };
 
@@ -874,25 +897,40 @@ class OrbitOS {
           setPrompt();
         } else if (cmd === 'help') {
           print(`
-<strong style="color: #facc15;">OrbitOS Linux Command Reference:</strong>
-  <strong style="color: #38bdf8;">System:</strong>
-    <span style="color: #34d399;">neofetch</span> / <span style="color: #34d399;">orbitfetch</span>  - System Info & ASCII Logo
-    <span style="color: #34d399;">uname -a</span>            - Kernel & Architektur
-    <span style="color: #34d399;">uptime</span>              - System-Laufzeit
-    <span style="color: #34d399;">whoami</span>              - Aktueller Benutzer
-    <span style="color: #34d399;">date</span>                - Datum & Zeit
-    <span style="color: #34d399;">clear</span>               - Terminal leeren
-  <strong style="color: #38bdf8;">Superuser (Root):</strong>
-    <span style="color: #ef4444;">sudo su</span>             - Zu Root wechseln (fragt Admin-PIN)
-    <span style="color: #ef4444;">systemctl &lt;status|restart&gt; cloud-sync</span> - Supabase Cloud Service steuern
-    <span style="color: #ef4444;">passwd</span>              - Admin-PIN ändern
-    <span style="color: #ef4444;">cat /etc/orbit/config.json</span> - Cloud-Konfiguration prüfen
-  <strong style="color: #38bdf8;">Apps & Fun:</strong>
-    <span style="color: #a855f7;">matrix</span>              - Echtes HTML5 Canvas Matrix Digital Rain starten (nur im Terminal)
-    <span style="color: #a855f7;">tasks</span>               - Aufgabenliste anzeigen
-    <span style="color: #a855f7;">calc &lt;math&gt;</span>         - Taschenrechner (z.B. calc 42*7)
-    <span style="color: #a855f7;">wallpaper &lt;theme&gt;</span>   - Wallpaper wechseln (nebula, cyberpunk, midnight, aurora)
-    <span style="color: #a855f7;">exit</span>                - Superuser verlassen oder Fenster schließen
+<div style="font-family: 'JetBrains Mono', 'Fira Code', monospace; line-height: 1.4; margin: 4px 0;">
+  <div style="color: #38bdf8; font-weight: bold; border-bottom: 1px solid rgba(56, 189, 248, 0.3); padding-bottom: 4px; margin-bottom: 8px;">
+    ORBITOS COMMAND MANUAL (v2.8) &bull; Shell Environment &bull; Type &lt;cmd&gt; --help
+  </div>
+
+  <div style="color: #fbbf24; font-weight: 700; margin: 6px 0 2px;">[ 1. SYSTEM COMMANDS ]</div>
+  <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+    <tr><td style="color: #34d399; width: 140px; font-weight: 600;">neofetch</td><td style="color: #94a3b8;">System-Informationen, Kernel &amp; Hardware-Zusammenfassung</td></tr>
+    <tr><td style="color: #34d399; font-weight: 600;">uname -a</td><td style="color: #94a3b8;">Linux Kernel-Version, Architektur &amp; Build-Information</td></tr>
+    <tr><td style="color: #34d399; font-weight: 600;">whoami</td><td style="color: #94a3b8;">Aktuelle Benutzeridentität (rune / root) ausgeben</td></tr>
+    <tr><td style="color: #34d399; font-weight: 600;">uptime</td><td style="color: #94a3b8;">Systemlaufzeit, aktive Benutzer &amp; Load Average</td></tr>
+    <tr><td style="color: #34d399; font-weight: 600;">date</td><td style="color: #94a3b8;">Aktuelles Datum und UTC/Lokalzeit anzeigen</td></tr>
+    <tr><td style="color: #34d399; font-weight: 600;">ls / ls -la</td><td style="color: #94a3b8;">Dateisystem und Verzeichnisse auflisten</td></tr>
+    <tr><td style="color: #34d399; font-weight: 600;">clear</td><td style="color: #94a3b8;">Terminal-Bildschirmpuffer leeren</td></tr>
+  </table>
+
+  <div style="color: #ef4444; font-weight: 700; margin: 10px 0 2px;">[ 2. SUPERUSER ADMINISTRATION (sudo) ]</div>
+  <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+    <tr><td style="color: #f87171; width: 140px; font-weight: 600;">sudo su</td><td style="color: #94a3b8;">Zu Superuser (root) wechseln (authentifiziert mit Admin-PIN)</td></tr>
+    <tr><td style="color: #f87171; font-weight: 600;">systemctl status</td><td style="color: #94a3b8;">Supabase Cloud-Sync Daemon Status, Latenz &amp; TLS prüfen</td></tr>
+    <tr><td style="color: #f87171; font-weight: 600;">systemctl restart</td><td style="color: #94a3b8;">Cloud-Daemon neu starten &amp; Live-Datenbankabgleich erzwingen</td></tr>
+    <tr><td style="color: #f87171; font-weight: 600;">passwd</td><td style="color: #94a3b8;">Admin-PIN sicher ändern (wird direkt im Keyring gespeichert)</td></tr>
+    <tr><td style="color: #f87171; font-weight: 600;">cat &lt;file&gt;</td><td style="color: #94a3b8;">z.B. <span style="color:#e2e8f0;">cat /etc/orbit/config.json</span> oder <span style="color:#e2e8f0;">cat /var/log/syslog</span></td></tr>
+  </table>
+
+  <div style="color: #a855f7; font-weight: 700; margin: 10px 0 2px;">[ 3. APPS &amp; VISUALS ]</div>
+  <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+    <tr><td style="color: #c084fc; width: 140px; font-weight: 600;">matrix</td><td style="color: #94a3b8;">Echter Katakana Canvas Matrix Rain (Beenden mit <kbd style="color:#fff;background:rgba(255,255,255,0.15);padding:1px 4px;border-radius:3px;">q</kbd> oder <kbd style="color:#fff;background:rgba(255,255,255,0.15);padding:1px 4px;border-radius:3px;">ESC</kbd>)</td></tr>
+    <tr><td style="color: #c084fc; font-weight: 600;">tasks</td><td style="color: #94a3b8;">Aufgabenliste aus der OrbitTask-Datenbank auslesen</td></tr>
+    <tr><td style="color: #c084fc; font-weight: 600;">calc &lt;math&gt;</td><td style="color: #94a3b8;">Inline-Taschenrechner (z.B. <span style="color:#e2e8f0;">calc (15 * 8) / 2</span>)</td></tr>
+    <tr><td style="color: #c084fc; font-weight: 600;">wallpaper &lt;name&gt;</td><td style="color: #94a3b8;">Theme wechseln: <span style="color:#e2e8f0;">nebula</span>, <span style="color:#e2e8f0;">cyberpunk</span>, <span style="color:#e2e8f0;">midnight</span>, <span style="color:#e2e8f0;">aurora</span></td></tr>
+    <tr><td style="color: #c084fc; font-weight: 600;">exit</td><td style="color: #94a3b8;">Root-Sitzung verlassen bzw. Terminalfenster schließen</td></tr>
+  </table>
+</div>
           `);
         } else if (cmd === 'neofetch' || cmd === 'orbitfetch') {
           const tasksCount = (this.suite && this.suite.tasks && this.suite.tasks.tasks) ? this.suite.tasks.tasks.length : 0;
