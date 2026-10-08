@@ -6,6 +6,37 @@ Eine hochmoderne, modulare All-in-One Produktivitäts- und Workflow-Suite im ele
 
 ---
 
+## 📂 Saubere Code- & Projektstruktur
+
+OrbitSuite ist klar modular gegliedert:
+
+```text
+├── 📄 index.html              # Hauptdokument, App-Container & Modale
+├── 🎨 style.css                # Globales Designsystem, Themes & Responsive Breakpoints
+├── 💻 app.js                   # Kernanwendung (Router, Hub, Task, Notes, Focus, Habits, Tools, Rätsel)
+├── 🖥️ orbit-os.js              # OrbitOS Desktop-Engine, Fenstermanager & Linux Superuser Shell
+├── 🎨 orbit-os.css             # Aero-Glass Fenstersystem, macOS-Window-Controls, Dock & Startmenü
+├── 🎵 spotify-service.js       # Spotify Web API PKCE OAuth2 & Player-Dienst
+├── ⚙️ config.js                # Globale Konfiguration (Supabase, API Endpoints)
+├── ⚡ sw.js                    # Service Worker für Offline-PWA-Betrieb (v3.5.0)
+│
+├── 📁 data/
+│   ├── 📄 README.md            # Datensatz-Dokumentation
+│   └── 📁 puzzles/             # Generierte Rätselsätze (Queens, Tango, Sudoku, CrossClimb, Pinpoint, Zip)
+│
+├── 📁 scripts/                 # Hintergrunddienste, Netzwerkfreigabe & Starter
+│   ├── 📄 README.md            # Skript-Übersicht & Verwendung
+│   ├── Start_OrbitSuite.bat    # Hauptstarter (Webserver + Browser)
+│   ├── Start_OrbitSuite_Silent.vbs
+│   ├── Stop_OrbitSuite.bat
+│   ├── Start_Online_Tunnel.bat # Cloudflare/ngrok mobiler Zugriff
+│   └── Freigabe_Netzwerk_Firewall.bat
+│
+└── 🔒 supabase_schema.sql      # Cloud-Datenbank & RLS-Sicherheitsregeln
+```
+
+---
+
 ## ☁️ 24/7 Cloud-Datenbank & Nutzersystem (Synchronisation über alle Geräte)
 
 OrbitSuite besitzt ein vollwertiges **Cloud-Nutzersystem mit Datenbank-Synchronisation**. Deine Daten werden verschlüsselt in einer cloudbasierten PostgreSQL-Datenbank (Supabase) synchronisiert – **auch wenn dein PC ausgeschaltet ist**!

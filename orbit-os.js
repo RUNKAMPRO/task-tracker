@@ -1,7 +1,20 @@
 /**
- * OrbitOS • Modern Web Desktop Environment & Window Management Engine
- * Hybrid Workspace Extension for OrbitSuite
- * Includes Linux Superuser Terminal with `sudo`, In-Terminal Canvas Matrix Rain, and Clean View Anchor Isolation
+ * ============================================================================
+ * ORBIT-OS: Modern Web Desktop Environment & Window Management Engine
+ * ============================================================================
+ * 
+ * TABLE OF CONTENTS:
+ *  1. CORE ARCHITECTURE & STATE INITIALIZATION
+ *  2. DESKTOP VIEWPORT & WINDOW ENGINE (Drag, Resize, Focus, Minimize, Maximize)
+ *  3. TASKBAR, DOCK & START MENU CONTROLLER
+ *  4. APP MOUNTS & NATIVE APPLICATIONS:
+ *     - 4.1 Folienwerk (RUNKAMPRO / OTTO Copilot Presentations on Port 8765)
+ *     - 4.2 Spotify Web API & Remote Control Player
+ *     - 4.3 Linux Terminal with Superuser sudo & Matrix Rain
+ *     - 4.4 Calculator
+ *     - 4.5 OS Settings & Wallpaper Engine
+ *  5. MATRIX RAIN TERMINAL ENGINE
+ * ============================================================================
  */
 
 class OrbitOS {
@@ -465,15 +478,28 @@ class OrbitOS {
     winEl.innerHTML = `
       <div class="os-window-header" data-app-id="${appId}">
         <div class="os-window-controls">
-          <button class="os-ctrl-dot os-dot-close" title="Schließen" data-action="close">✕</button>
-          <button class="os-ctrl-dot os-dot-minimize" title="Minimieren" data-action="minimize">−</button>
-          <button class="os-ctrl-dot os-dot-maximize" title="Maximieren" data-action="maximize">□</button>
+          <button class="os-ctrl-dot os-dot-close" title="Schließen" data-action="close">
+            <svg class="os-dot-icon" width="6" height="6" viewBox="0 0 6 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M1 1l4 4m0-4L1 5"/></svg>
+          </button>
+          <button class="os-ctrl-dot os-dot-minimize" title="Minimieren" data-action="minimize">
+            <svg class="os-dot-icon" width="6" height="6" viewBox="0 0 6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M1 3h4"/></svg>
+          </button>
+          <button class="os-ctrl-dot os-dot-maximize" title="Maximieren / Wiederherstellen" data-action="maximize">
+            <svg class="os-dot-icon os-icon-max" width="6" height="6" viewBox="0 0 6 6" fill="currentColor"><path d="M0 2.5L2.5 0v2.5H0zm6 1L3.5 6V3.5H6z"/></svg>
+          </button>
         </div>
         <div class="os-window-title">
           <span class="os-window-title-icon">${def.icon}</span>
-          <span>${def.name}</span>
+          <span class="os-window-title-text">${def.name}</span>
         </div>
-        <div class="os-window-actions"></div>
+        <div class="os-window-actions">
+          <button class="os-action-btn os-action-max" data-action="maximize" title="Vollbild umschalten">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+          </button>
+          <button class="os-action-btn os-action-min" data-action="minimize" title="Minimieren">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+        </div>
       </div>
       <div class="os-window-body" id="os-window-body-${appId}"></div>
       <div class="os-resize-handle os-resize-e" data-dir="e"></div>
@@ -605,8 +631,15 @@ class OrbitOS {
 
     el.addEventListener('mousedown', () => this.bringToFront(win.appId));
 
+    // Double click header to maximize / restore
+    header.addEventListener('dblclick', (e) => {
+      if (e.target.closest('.os-ctrl-dot, .os-action-btn')) return;
+      el.classList.toggle('maximized');
+      win.isMaximized = el.classList.contains('maximized');
+    });
+
     header.addEventListener('click', (e) => {
-      const btn = e.target.closest('.os-ctrl-dot');
+      const btn = e.target.closest('.os-ctrl-dot, .os-action-btn');
       if (!btn) return;
       const action = btn.dataset.action;
 

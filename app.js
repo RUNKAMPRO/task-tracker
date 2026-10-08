@@ -1,14 +1,29 @@
 /**
-
- * OrbitSuite • Integrated Productivity OS & Multi-App Framework
-
- * Modules: OrbitHub, OrbitTask, OrbitNotes, OrbitFocus, OrbitHabits, OrbitTools
-
- * Zero-dependency, offline-first client architecture with Web Audio synthesizer & Canvas Confetti.
-
+ * ============================================================================
+ * ORBITSUITE: Integrated Productivity OS & Multi-App Framework
+ * ============================================================================
+ * 
+ * TABLE OF CONTENTS:
+ *  1. SHARED FOUNDATION SERVICES
+ *     - SoundManager (Web Audio API Synthesizer & Ambient Soundscapes)
+ *     - ConfettiManager (Canvas Particle Physics Engine)
+ *  2. CORE PRODUCTIVITY MODULES
+ *     - OrbitTaskApp (Kanban Board, List Views, Urgency, Subtasks, Analytics)
+ *     - OrbitNotesApp (Markdown Editor, Sticky Notes, Auto-save, Tags)
+ *     - OrbitFocusApp (Pomodoro Timer, Soundscapes, Focus Stats)
+ *     - OrbitHabitsApp (Daily Routines, Streaks, Monthly Heatmap)
+ *     - OrbitToolsApp (JSON Beautifier, UUID Generator, Base64, Text Utilities)
+ *     - OrbitRiddleApp & Generator (Queens, Tango, Sudoku, CrossClimb, Pinpoint, Zip)
+ *  3. WORKSPACE PORTAL & HUB
+ *     - OrbitHubApp (KPI Analytics, App Launcher Cards, Quick Actions)
+ *  4. PLATFORM INTEGRATION SERVICES
+ *     - OrbitPwaManager (Service Worker, Install Prompts, Offline Cache)
+ *     - OrbitSyncManager (Cloud Backup, Supabase Auth & Synchronization)
+ *     - OrbitAdminManager (Security, Role Management, Audit Logs)
+ *  5. MASTER ROUTER & NAVIGATION
+ *     - OrbitSuiteRouter (App Switching, Keyboard Shortcuts Alt+0..7, URL Hash)
+ * ============================================================================
  */
-
-
 
 (() => {
 
