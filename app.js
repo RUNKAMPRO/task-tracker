@@ -11889,6 +11889,7 @@ END $$;`;
       this.activeTab = 'db';
       this.failedAttempts = 0;
       this.lockoutUntil = 0;
+      this.PEPPER = 'ORBIT_SUITE_PEPPER_X99_SECURE_AUTH_TOKEN';
 
       this.dom = {
         adminModal: document.getElementById('admin-modal'),
@@ -11950,9 +11951,14 @@ END $$;`;
         : '';
       if (!currentUserEmail) return false;
 
-      const emailHash = await this.sha256(currentUserEmail);
+      const salt = (window.ORBIT_CONFIG && window.ORBIT_CONFIG.adminSalt) || 'orbit_suite_salt_8f7b2c9e4a1d603e';
+      const pepper = this.PEPPER || 'ORBIT_SUITE_PEPPER_X99_SECURE_AUTH_TOKEN';
+
+      const saltedPepperedPayload = `${pepper}::${currentUserEmail}::${salt}`;
+      const emailHash = await this.sha256(saltedPepperedPayload);
+
       const authorizedHashes = (window.ORBIT_CONFIG && window.ORBIT_CONFIG.adminEmailHashes) || [
-        '83c026bcf211c9f2c87c482e45712e6c389b9fe9f0e2f9bcf5ec62ce47af07fa'
+        '0360abb0b5a61f231df78a97c916648b81ece575ffaa2d7171212d7b79f7f667'
       ];
       return authorizedHashes.includes(emailHash);
     }
