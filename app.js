@@ -11503,11 +11503,13 @@ END $$;`;
 
       try {
         if (this.mode === 'register') {
+          const currentCleanUrl = window.location.href.split('#')[0].split('?')[0];
           const { data, error } = await this.supabase.auth.signUp({
             email,
             password,
             options: {
-              data: { display_name: name || email.split('@')[0] }
+              data: { display_name: name || email.split('@')[0] },
+              emailRedirectTo: currentCleanUrl
             }
           });
 
