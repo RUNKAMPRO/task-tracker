@@ -4244,10 +4244,24 @@ body:not(.orbit-os-active) .suite-app-view:not(.active) {
 @media (max-width: 900px) {
   .suite-header {
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 10px;
+    padding: 10px 12px;
   }
   .suite-header-left {
-    gap: 12px;
+    gap: 10px;
+    width: 100%;
+    justify-content: space-between;
+  }
+  .suite-header-right {
+    width: 100%;
+    justify-content: space-between;
+    gap: 6px;
+  }
+  .user-sync-info {
+    display: none !important;
+  }
+  .suite-user-btn {
+    padding: 6px 10px !important;
   }
   .app-header {
     flex-direction: column;
@@ -4346,8 +4360,47 @@ body:not(.orbit-os-active) .suite-app-view:not(.active) {
 
 /* 6. Extra Small Screens (<= 480px) */
 @media (max-width: 480px) {
+  .suite-layout {
+    padding: 6px 8px 32px !important;
+  }
+  .suite-header {
+    padding: 8px 10px !important;
+    border-radius: var(--radius-md) !important;
+  }
+  .suite-header-left {
+    width: 100% !important;
+    justify-content: space-between !important;
+  }
+  .suite-brand-text .suite-badge {
+    display: none !important;
+  }
+  .suite-brand-text .suite-title {
+    font-size: 1.15rem !important;
+  }
+  .suite-header-right {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 4px !important;
+  }
+  .suite-os-mode-btn {
+    padding: 5px 8px !important;
+    font-size: 11px !important;
+    flex-shrink: 0 !important;
+  }
+  .suite-control-btn {
+    width: 34px !important;
+    height: 34px !important;
+    padding: 0 !important;
+    flex-shrink: 0 !important;
+  }
+  .suite-user-btn {
+    padding: 5px 8px !important;
+    flex-shrink: 0 !important;
+  }
   .suite-clock-pill {
-    display: none;
+    display: none !important;
   }
   .riddle-input-group {
     flex-direction: column;
