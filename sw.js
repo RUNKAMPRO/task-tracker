@@ -2,7 +2,7 @@
 // OrbitSuite Service Worker (Offline & PWA Caching Engine)
 // ==============================================================================
 
-const CACHE_VERSION = 'orbitsuite-v1.0.0';
+const CACHE_VERSION = 'orbitsuite-v2.1.0';
 const STATIC_CACHE_NAME = `orbitsuite-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE_NAME = `orbitsuite-runtime-${CACHE_VERSION}`;
 
@@ -24,6 +24,7 @@ const PRECACHE_ASSETS = [
 
 // 1. Install Event: Precaching static assets
 self.addEventListener('install', event => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(STATIC_CACHE_NAME)
       .then(cache => {
@@ -36,7 +37,6 @@ self.addEventListener('install', event => {
           })
         );
       })
-      .then(() => self.skipWaiting())
   );
 });
 
@@ -121,14 +121,12 @@ self.addEventListener('fetch', event => {
             caches.open(RUNTIME_CACHE_NAME).then(cache => cache.put(request, responseClone));
           }
           return networkResponse;
-        }).catch(() => new Response('', { status: 408 }));
+        });
       })
     );
     return;
   }
 
-  // D. Default Fetch
-  event.respondWith(
-    caches.match(request).then(cached => cached || fetch(request))
-  );
+  // Default: Network Fetch
+  event.respondWith(fetch(request));
 });

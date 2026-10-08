@@ -21,7 +21,76 @@
   <link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png">
   <meta name="msapplication-TileColor" content="#0b0f19">
   <meta name="msapplication-TileImage" content="icons/icon-192.png">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=2.1.0">
+  <style id="critical-auth-styles">
+    .suite-user-btn {
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 8px !important;
+      background: rgba(255, 255, 255, 0.05) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      padding: 5px 12px 5px 8px !important;
+      border-radius: 9999px !important;
+      color: #e2e8f0 !important;
+      cursor: pointer !important;
+      font-family: inherit !important;
+      transition: all 0.2s ease !important;
+      outline: none !important;
+    }
+    .suite-user-btn:hover {
+      background: rgba(255, 255, 255, 0.1) !important;
+      border-color: rgba(99, 102, 241, 0.5) !important;
+      transform: translateY(-1px) !important;
+    }
+    .user-avatar-indicator {
+      width: 28px !important;
+      height: 28px !important;
+      border-radius: 50% !important;
+      background: rgba(99, 102, 241, 0.18) !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      color: #a5b4fc !important;
+      font-size: 0.75rem !important;
+      font-weight: 700 !important;
+      flex-shrink: 0 !important;
+    }
+    .user-avatar-initials.hidden { display: none !important; }
+    .user-sync-info {
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: flex-start !important;
+      line-height: 1.2 !important;
+      text-align: left !important;
+    }
+    .user-name-display {
+      font-size: 0.8rem !important;
+      font-weight: 600 !important;
+      color: #f8fafc !important;
+      max-width: 120px !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+    }
+    .user-sync-status-badge {
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 4px !important;
+      font-size: 0.68rem !important;
+      color: #94a3b8 !important;
+    }
+    .user-sync-status-badge .sync-dot {
+      width: 6px !important;
+      height: 6px !important;
+      border-radius: 50% !important;
+      display: inline-block !important;
+      background: #94a3b8 !important;
+    }
+    .user-sync-status-badge.status-synced .sync-dot { background: #34d399 !important; box-shadow: 0 0 6px rgba(52, 211, 153, 0.6) !important; }
+    .user-sync-status-badge.status-guest .sync-dot { background: #64748b !important; }
+    .user-sync-status-badge.status-syncing .sync-dot { background: #38bdf8 !important; }
+    .user-sync-status-badge.status-offline .sync-dot { background: #f87171 !important; }
+  </style>
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="shortcut icon" href="favicon.ico">
   <link rel="apple-touch-icon" href="orbitsuite_icon.png">
@@ -224,13 +293,13 @@
         </button>
 
         <!-- Global User Account & Cloud Sync Trigger -->
-        <button class="suite-user-btn" id="btn-user-sync" title="Konto &amp; Cloud-Synchronisation" aria-label="Benutzerkonto &amp; Sync">
+        <button class="suite-user-btn" id="btn-user-sync" title="Konto &amp; Cloud-Synchronisation" aria-label="Benutzerkonto &amp; Sync" onclick="if(window.orbitSuite&amp;&amp;window.orbitSuite.sync){window.orbitSuite.sync.openModal('account');}else{var m=document.getElementById('auth-modal');if(m)m.classList.remove('hidden');}">
           <div class="user-avatar-indicator" id="user-avatar-indicator">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
               <circle cx="12" cy="7" r="4"></circle>
             </svg>
-            <span class="user-avatar-initials hidden" id="user-avatar-initials">U</span>
+            <span class="user-avatar-initials hidden" id="user-avatar-initials" style="display:none;"></span>
           </div>
           <div class="user-sync-info">
             <span class="user-name-display" id="user-name-display">Anmelden</span>
@@ -2479,7 +2548,42 @@
   <!-- Global Confetti Canvas -->
   <canvas id="confetti-canvas" class="confetti-canvas"></canvas>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=2.1.0"></script>
+  <script>
+    // Fail-safe direct click binding for Cloud Sync
+    (function() {
+      function bindAuth() {
+        var btn = document.getElementById('btn-user-sync');
+        var modal = document.getElementById('auth-modal');
+        var closeBtn = document.getElementById('auth-modal-close');
+        if (btn && modal) {
+          btn.onclick = function(e) {
+            e.preventDefault();
+            if (window.orbitSuite && window.orbitSuite.sync) {
+              window.orbitSuite.sync.openModal('account');
+            } else {
+              modal.classList.remove('hidden');
+            }
+          };
+        }
+        if (closeBtn && modal) {
+          closeBtn.onclick = function(e) {
+            e.preventDefault();
+            if (window.orbitSuite && window.orbitSuite.sync) {
+              window.orbitSuite.sync.closeModal();
+            } else {
+              modal.classList.add('hidden');
+            }
+          };
+        }
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bindAuth);
+      } else {
+        bindAuth();
+      }
+    })();
+  </script>
 </body>
 </html>
 
