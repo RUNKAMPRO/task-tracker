@@ -2,7 +2,7 @@
 // OrbitSuite Service Worker (Offline & PWA Caching Engine)
 // ==============================================================================
 
-const CACHE_VERSION = 'orbitsuite-v2.9.0';
+const CACHE_VERSION = 'orbitsuite-v3.0.0';
 const STATIC_CACHE_NAME = `orbitsuite-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE_NAME = `orbitsuite-runtime-${CACHE_VERSION}`;
 
@@ -15,6 +15,7 @@ const PRECACHE_ASSETS = [
   './config.js',
   './orbit-os.css',
   './orbit-os.js',
+  './spotify-service.js',
   './manifest.webmanifest',
   './manifest.json',
   './favicon.ico',

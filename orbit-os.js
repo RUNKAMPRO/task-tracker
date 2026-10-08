@@ -24,7 +24,18 @@ class OrbitOS {
     // Matrix Rain State inside Terminal
     this.matrixAnimId = null;
 
+    // Spotify Integration
+    this.spotify = window.SpotifyService ? new window.SpotifyService() : null;
+
     this.appDefinitions = {
+      spotify: {
+        name: 'Spotify Player',
+        icon: '🎧',
+        color: '#1db954',
+        isSuiteApp: false,
+        defaultWidth: 700,
+        defaultHeight: 520
+      },
       tasks: {
         name: 'Aufgaben & Kanban',
         icon: '🎯',
@@ -104,6 +115,7 @@ class OrbitOS {
     this.createDesktopDOM();
     this.bindGlobalEvents();
     this.startClock();
+    this.initSpotifyTaskbar();
 
     // Check if user previously was in OS mode
     if (this.activeMode === 'os') {
@@ -190,6 +202,7 @@ class OrbitOS {
           <div class="os-taskbar-apps" id="os-taskbar-apps"></div>
         </div>
 
+        <div class="os-taskbar-spotify-slot" id="os-taskbar-spotify-slot"></div>
         <div class="os-taskbar-right">
           <div class="os-tray-item" id="os-tray-sync" title="Supabase Sync-Status">
             <span class="sync-dot" id="os-tray-sync-dot" style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
@@ -476,6 +489,8 @@ class OrbitOS {
         suiteView.style.display = 'block';
         bodyEl.appendChild(suiteView);
       }
+    } else if (appId === 'spotify') {
+      this.mountSpotify(bodyEl);
     } else if (appId === 'terminal') {
       this.mountLinuxTerminal(bodyEl);
     } else if (appId === 'calculator') {
@@ -924,6 +939,7 @@ class OrbitOS {
 
   <div style="color: #a855f7; font-weight: 700; margin: 10px 0 2px;">[ 3. APPS &amp; VISUALS ]</div>
   <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+    <tr><td style="color: #10b981; width: 140px; font-weight: 600;">spotify</td><td style="color: #94a3b8;">Spotify Player steuern: <span style="color:#e2e8f0;">status</span>, <span style="color:#e2e8f0;">play</span>, <span style="color:#e2e8f0;">pause</span>, <span style="color:#e2e8f0;">next</span></td></tr>
     <tr><td style="color: #c084fc; width: 140px; font-weight: 600;">matrix</td><td style="color: #94a3b8;">Echter Katakana Canvas Matrix Rain (Beenden mit <kbd style="color:#fff;background:rgba(255,255,255,0.15);padding:1px 4px;border-radius:3px;">q</kbd> oder <kbd style="color:#fff;background:rgba(255,255,255,0.15);padding:1px 4px;border-radius:3px;">ESC</kbd>)</td></tr>
     <tr><td style="color: #c084fc; font-weight: 600;">tasks</td><td style="color: #94a3b8;">Aufgabenliste aus der OrbitTask-Datenbank auslesen</td></tr>
     <tr><td style="color: #c084fc; font-weight: 600;">calc &lt;math&gt;</td><td style="color: #94a3b8;">Inline-Taschenrechner (z.B. <span style="color:#e2e8f0;">calc (15 * 8) / 2</span>)</td></tr>
@@ -1041,6 +1057,49 @@ Oct  8 10:24:15 orbit-os sudo[142]: rune : TTY=pts/0 ; PWD=/home/rune ; USER=roo
           }
         } else if (cmd === 'matrix') {
           launchInTerminalMatrix();
+        } else if (cmd === 'spotify') {
+          if (!this.spotify) {
+            print('SpotifyService not initialized.', '#ef4444');
+            return;
+          }
+          if (arg1 === 'status' || !arg1) {
+            const state = this.spotify.currentState;
+            if (state && state.item) {
+              const trk = state.item;
+              const isPlay = state.is_playing ? 'PLAYING 🟢' : 'PAUSED ⏸';
+              print(`
+<div style="color: #1db954; font-weight: bold;">Spotify Web Playback [${isPlay}]</div>
+  Track: <strong style="color: #ffffff;">${trk.name}</strong>
+  Artist: ${trk.artists ? trk.artists.map(a => a.name).join(', ') : 'Unknown'}
+  Album: ${trk.album ? trk.album.name : 'Unknown'}
+  Device: ${state.device ? `${state.device.name} (${state.device.type})` : 'Active'}
+              `);
+            } else if (this.spotify.isAuthenticated()) {
+              print('Spotify verbunden, aber keine aktive Wiedergabe. Starte Musik in der Spotify App.', '#facc15');
+            } else {
+              print('Spotify nicht autorisiert. Tippe \'spotify login\' oder öffne Spotify.app.', '#ef4444');
+            }
+          } else if (arg1 === 'play') {
+            this.spotify.play();
+            print('[ <span class="os-term-tag-ok">OK</span> ] Spotify play command sent.', '#22c55e');
+          } else if (arg1 === 'pause') {
+            this.spotify.pause();
+            print('[ <span class="os-term-tag-ok">OK</span> ] Spotify pause command sent.', '#22c55e');
+          } else if (arg1 === 'next') {
+            this.spotify.next();
+            print('[ <span class="os-term-tag-ok">OK</span> ] Skipped to next track.', '#22c55e');
+          } else if (arg1 === 'prev') {
+            this.spotify.previous();
+            print('[ <span class="os-term-tag-ok">OK</span> ] Returned to previous track.', '#22c55e');
+          } else if (arg1 === 'login') {
+            this.openApp('spotify');
+            print('Spotify-Anmeldedialog in Spotify.app geöffnet.', '#38bdf8');
+          } else if (arg1 === 'logout') {
+            this.spotify.logout();
+            print('Spotify-Sitzung abgemeldet.', '#facc15');
+          } else {
+            print('Usage: spotify <status|play|pause|next|prev|login|logout>', '#ef4444');
+          }
         } else if (cmd === 'tasks') {
           const tasks = (this.suite && this.suite.tasks && this.suite.tasks.tasks) ? this.suite.tasks.tasks : [];
           print(`OrbitTask Database: <strong>${tasks.length}</strong> active task(s):`);
@@ -1076,6 +1135,313 @@ Oct  8 10:24:15 orbit-os sudo[142]: rune : TTY=pts/0 ; PWD=/home/rune ; USER=roo
         }
       }
     });
+  }
+
+  
+  /* ==========================================================================
+     Spotify Web Player & Taskbar Mini-Player Engine
+     ========================================================================== */
+  initSpotifyTaskbar() {
+    if (!this.spotify) return;
+    const slot = document.getElementById('os-taskbar-spotify-slot');
+    if (!slot) return;
+
+    this.spotify.subscribe((state) => {
+      if (!state || !state.item) {
+        slot.innerHTML = '';
+        return;
+      }
+
+      const track = state.item;
+      const isPlaying = state.is_playing;
+      const title = track.name || 'Unbekannter Titel';
+      const artist = track.artists ? track.artists.map(a => a.name).join(', ') : 'Spotify';
+
+      slot.innerHTML = `
+        <div class="os-taskbar-spotify" id="os-tb-spotify" title="${title} &bull; ${artist}">
+          <span style="font-size: 13px;">🎧</span>
+          <span style="max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            ${title} &bull; <span style="opacity: 0.7;">${artist}</span>
+          </span>
+          <button class="os-taskbar-spotify-btn" id="os-tb-sp-play" title="${isPlaying ? 'Pause' : 'Play'}">
+            ${isPlaying ? '⏸' : '▶'}
+          </button>
+          <button class="os-taskbar-spotify-btn" id="os-tb-sp-next" title="Nächster Titel">
+            ⏭
+          </button>
+        </div>
+      `;
+
+      const pill = slot.querySelector('#os-tb-spotify');
+      if (pill) {
+        pill.addEventListener('click', (e) => {
+          if (e.target.closest('button')) return;
+          this.openApp('spotify');
+        });
+      }
+
+      const playBtn = slot.querySelector('#os-tb-sp-play');
+      if (playBtn) {
+        playBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.spotify.togglePlayPause();
+        });
+      }
+
+      const nextBtn = slot.querySelector('#os-tb-sp-next');
+      if (nextBtn) {
+        nextBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.spotify.next();
+        });
+      }
+    });
+  }
+
+  mountSpotify(container) {
+    if (!this.spotify) return;
+    const isAuth = this.spotify.isAuthenticated();
+    const redirectUri = this.spotify.getRedirectUri();
+
+    container.innerHTML = `
+      <div class="os-spotify-wrap" id="os-sp-wrap">
+        <div class="os-spotify-header">
+          <div class="os-spotify-brand">
+            <div class="os-spotify-logo-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+              </svg>
+            </div>
+            <strong style="font-size: 14px; letter-spacing: 0.5px;">Spotify Web Player</strong>
+          </div>
+          <div class="os-spotify-tabs">
+            <button class="os-spotify-tab-btn active" id="os-sp-tab-api">Web API</button>
+            <button class="os-spotify-tab-btn" id="os-sp-tab-embed">Embed Player</button>
+            ${isAuth ? '<button class="os-spotify-tab-btn" id="os-sp-btn-logout" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.4);">Abmelden</button>' : ''}
+          </div>
+        </div>
+
+        <div id="os-sp-view-content" style="flex: 1; display: flex; flex-direction: column;"></div>
+      </div>
+    `;
+
+    const viewContent = container.querySelector('#os-sp-view-content');
+    const tabApi = container.querySelector('#os-sp-tab-api');
+    const tabEmbed = container.querySelector('#os-sp-tab-embed');
+    const logoutBtn = container.querySelector('#os-sp-btn-logout');
+
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', () => {
+        this.spotify.logout();
+        this.mountSpotify(container);
+      });
+    }
+
+    const renderApiView = () => {
+      tabApi.classList.add('active');
+      tabEmbed.classList.remove('active');
+
+      if (!this.spotify.isAuthenticated()) {
+        viewContent.innerHTML = `
+          <div class="os-spotify-auth-card">
+            <div style="font-size: 40px; margin-bottom: 4px;">🎧</div>
+            <h3 style="font-size: 18px; font-weight: 700;">Mit eigenem Spotify-Konto verbinden</h3>
+            <p style="font-size: 12.5px; color: #a1a1aa; line-height: 1.5;">
+              Nutze die offizielle Spotify Web API für echte Fernsteuerung deines Handys, PCs oder Lautsprechers direkt aus OrbitOS!
+            </p>
+
+            <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 14px; text-align: left; font-size: 12px; display: flex; flex-direction: column; gap: 8px;">
+              <div><strong>1. Redirect URI bei Spotify eintragen:</strong></div>
+              <div class="os-spotify-copy-box">
+                <span id="os-sp-redirect-val">${redirectUri}</span>
+                <button class="btn-secondary" id="os-sp-copy-btn" style="padding: 2px 8px; font-size: 10px; margin-left: auto;">Kopieren</button>
+              </div>
+              <div style="color: #94a3b8; font-size: 11px;">
+                Trage diese URL im <a href="https://developer.spotify.com/dashboard" target="_blank" style="color: #1db954; text-decoration: underline;">Spotify Developer Dashboard</a> unter deiner App in <em>Redirect URIs</em> ein.
+              </div>
+
+              <div style="margin-top: 6px;"><strong>2. Deine Spotify Client ID eingeben:</strong></div>
+              <input type="text" id="os-sp-client-id" class="input-field" placeholder="Client ID aus dem Dashboard..." value="${this.spotify.clientId || ''}" style="background: #181818; color: #fff; padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.15); font-family: monospace; font-size: 12px;">
+            </div>
+
+            <button class="os-spotify-auth-btn" id="os-sp-login-btn">
+              <span>🟢</span>
+              <span>Mit Spotify autorisieren</span>
+            </button>
+          </div>
+        `;
+
+        const copyBtn = viewContent.querySelector('#os-sp-copy-btn');
+        if (copyBtn) {
+          copyBtn.addEventListener('click', () => {
+            navigator.clipboard.writeText(redirectUri);
+            copyBtn.textContent = 'Kopiert!';
+            setTimeout(() => { copyBtn.textContent = 'Kopieren'; }, 2000);
+          });
+        }
+
+        const loginBtn = viewContent.querySelector('#os-sp-login-btn');
+        if (loginBtn) {
+          loginBtn.addEventListener('click', async () => {
+            const cid = viewContent.querySelector('#os-sp-client-id').value.trim();
+            if (!cid) {
+              alert('Bitte trage deine Spotify Client ID ein!');
+              return;
+            }
+            try {
+              await this.spotify.login(cid);
+            } catch (err) {
+              alert(err.message);
+            }
+          });
+        }
+      } else {
+        // Authenticated Player UI
+        viewContent.innerHTML = `
+          <div class="os-spotify-player-main" id="os-sp-player-area">
+            <div class="os-spotify-cover-wrap">
+              <img id="os-sp-cover" class="os-spotify-cover" src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=400&auto=format&fit=crop&q=80" alt="Album Cover">
+            </div>
+
+            <div class="os-spotify-info">
+              <div>
+                <div class="os-spotify-track-title" id="os-sp-title">Warte auf Wiedergabe...</div>
+                <div class="os-spotify-track-artist" id="os-sp-artist">Starte Musik auf deinem Gerät (z.B. Spotify App)</div>
+              </div>
+
+              <div class="os-spotify-progress-row">
+                <span id="os-sp-time-cur">0:00</span>
+                <div class="os-spotify-progress-bar" id="os-sp-bar">
+                  <div class="os-spotify-progress-fill" id="os-sp-fill"></div>
+                </div>
+                <span id="os-sp-time-dur">0:00</span>
+              </div>
+
+              <div class="os-spotify-controls">
+                <button class="os-spotify-ctrl-btn" id="os-sp-btn-prev" title="Vorheriger">⏮</button>
+                <button class="os-spotify-ctrl-btn os-spotify-ctrl-play" id="os-sp-btn-toggle" title="Play / Pause">▶</button>
+                <button class="os-spotify-ctrl-btn" id="os-sp-btn-next" title="Nächster">⏭</button>
+              </div>
+
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 6px;">
+                <div class="os-spotify-device-badge" id="os-sp-device">
+                  <span>📱</span>
+                  <span id="os-sp-device-name">Bereit für Fernsteuerung</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span style="font-size: 11px; opacity: 0.7;">🔈</span>
+                  <input type="range" id="os-sp-vol" min="0" max="100" value="70" style="width: 70px; accent-color: #1db954;">
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+
+        const titleEl = viewContent.querySelector('#os-sp-title');
+        const artistEl = viewContent.querySelector('#os-sp-artist');
+        const coverEl = viewContent.querySelector('#os-sp-cover');
+        const fillEl = viewContent.querySelector('#os-sp-fill');
+        const curTimeEl = viewContent.querySelector('#os-sp-time-cur');
+        const durTimeEl = viewContent.querySelector('#os-sp-time-dur');
+        const toggleBtn = viewContent.querySelector('#os-sp-btn-toggle');
+        const deviceNameEl = viewContent.querySelector('#os-sp-device-name');
+        const volSlider = viewContent.querySelector('#os-sp-vol');
+
+        const formatTime = (ms) => {
+          const s = Math.floor(ms / 1000);
+          const m = Math.floor(s / 60);
+          const rem = s % 60;
+          return `${m}:${rem < 10 ? '0' : ''}${rem}`;
+        };
+
+        const updatePlayerUI = (state) => {
+          if (!state || !state.item) {
+            titleEl.textContent = 'Keine aktive Wiedergabe';
+            artistEl.textContent = 'Öffne Spotify auf Handy/PC und starte einen Song.';
+            toggleBtn.textContent = '▶';
+            fillEl.style.width = '0%';
+            return;
+          }
+
+          const track = state.item;
+          titleEl.textContent = track.name;
+          artistEl.textContent = track.artists ? track.artists.map(a => a.name).join(', ') : '';
+          if (track.album && track.album.images && track.album.images[0]) {
+            coverEl.src = track.album.images[0].url;
+          }
+
+          const progress = state.progress_ms || 0;
+          const duration = track.duration_ms || 1;
+          const pct = Math.min(100, (progress / duration) * 100);
+
+          fillEl.style.width = `${pct}%`;
+          curTimeEl.textContent = formatTime(progress);
+          durTimeEl.textContent = formatTime(duration);
+          toggleBtn.textContent = state.is_playing ? '⏸' : '▶';
+
+          if (state.device) {
+            deviceNameEl.textContent = `${state.device.name} (${state.device.type})`;
+            volSlider.value = state.device.volume_percent || 70;
+          }
+        };
+
+        // Subscribe UI
+        const unsub = this.spotify.subscribe(updatePlayerUI);
+        this.spotify.fetchPlaybackState();
+
+        // Control bindings
+        viewContent.querySelector('#os-sp-btn-toggle').addEventListener('click', () => this.spotify.togglePlayPause());
+        viewContent.querySelector('#os-sp-btn-prev').addEventListener('click', () => this.spotify.previous());
+        viewContent.querySelector('#os-sp-btn-next').addEventListener('click', () => this.spotify.next());
+
+        volSlider.addEventListener('change', (e) => {
+          this.spotify.setVolume(e.target.value);
+        });
+
+        // Seek click
+        viewContent.querySelector('#os-sp-bar').addEventListener('click', (e) => {
+          const rect = e.currentTarget.getBoundingClientRect();
+          const clickPct = (e.clientX - rect.left) / rect.width;
+          if (this.spotify.currentState && this.spotify.currentState.item) {
+            const targetMs = this.spotify.currentState.item.duration_ms * clickPct;
+            this.spotify.seek(targetMs);
+          }
+        });
+      }
+    };
+
+    const renderEmbedView = () => {
+      tabApi.classList.remove('active');
+      tabEmbed.classList.add('active');
+
+      viewContent.innerHTML = `
+        <div style="flex: 1; display: flex; flex-direction: column; padding: 14px; gap: 10px;">
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <input type="text" id="os-sp-embed-input" class="input-field" placeholder="Spotify Link einfügen (z.B. https://open.spotify.com/playlist/...)" style="flex: 1; background: #181818; color: #fff; padding: 7px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); font-size: 12px;">
+            <button class="btn-primary" id="os-sp-embed-btn" style="padding: 7px 14px; font-size: 12px; background: #1db954; color: #000; font-weight: 700;">Laden</button>
+          </div>
+          <iframe id="os-sp-iframe" style="border-radius:12px; flex: 1; width: 100%; border: 0;" src="https://open.spotify.com/embed/playlist/37i9dQZF1DXcBWIGoYBM5M?utm_source=generator&theme=0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+        </div>
+      `;
+
+      const embedInput = viewContent.querySelector('#os-sp-embed-input');
+      const embedBtn = viewContent.querySelector('#os-sp-embed-btn');
+      const iframe = viewContent.querySelector('#os-sp-iframe');
+
+      embedBtn.addEventListener('click', () => {
+        const val = embedInput.value.trim();
+        if (val) {
+          let embedUrl = val.replace('open.spotify.com/', 'open.spotify.com/embed/');
+          iframe.src = embedUrl;
+        }
+      });
+    };
+
+    tabApi.addEventListener('click', renderApiView);
+    tabEmbed.addEventListener('click', renderEmbedView);
+
+    // Initial render
+    renderApiView();
   }
 
   mountCalculator(container) {
