@@ -33,8 +33,8 @@ class OrbitOS {
         icon: '🎧',
         color: '#1db954',
         isSuiteApp: false,
-        defaultWidth: 700,
-        defaultHeight: 520
+        defaultWidth: 780,
+        defaultHeight: 560
       },
       tasks: {
         name: 'Aufgaben & Kanban',
@@ -1415,25 +1415,67 @@ Oct  8 10:24:15 orbit-os sudo[142]: rune : TTY=pts/0 ; PWD=/home/rune ; USER=roo
       tabEmbed.classList.add('active');
 
       viewContent.innerHTML = `
-        <div style="flex: 1; display: flex; flex-direction: column; padding: 14px; gap: 10px;">
-          <div style="display: flex; gap: 8px; align-items: center;">
-            <input type="text" id="os-sp-embed-input" class="input-field" placeholder="Spotify Link einfügen (z.B. https://open.spotify.com/playlist/...)" style="flex: 1; background: #181818; color: #fff; padding: 7px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); font-size: 12px;">
-            <button class="btn-primary" id="os-sp-embed-btn" style="padding: 7px 14px; font-size: 12px; background: #1db954; color: #000; font-weight: 700;">Laden</button>
+        <div style="flex: 1; display: flex; flex-direction: column; padding: 14px; gap: 12px; height: 100%; box-sizing: border-box;">
+          <!-- Quick Selection Chips -->
+          <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+            <span style="font-size: 11px; color: #a1a1aa; font-weight: 600;">STATIONEN:</span>
+            <button class="os-sp-chip active" data-uri="37i9dQZF1DXcBWIGoYBM5M">☕ Today's Top Hits</button>
+            <button class="os-sp-chip" data-uri="37i9dQZF1DXdLEN7aqioXM">💻 Lo-Fi Beats / Coding</button>
+            <button class="os-sp-chip" data-uri="37i9dQZF1DWZeKCadgRdKQ">⚡ Deep Focus</button>
+            <button class="os-sp-chip" data-uri="37i9dQZF1DX4sWSpwq3LiO">🌊 Peaceful Piano</button>
+            <button class="os-sp-chip" data-uri="37i9dQZF1DX1s9knjP51Oa">Synthwave / Cyberpunk</button>
           </div>
-          <iframe id="os-sp-iframe" style="border-radius:12px; flex: 1; width: 100%; border: 0;" src="https://open.spotify.com/embed/playlist/37i9dQZF1DXcBWIGoYBM5M?utm_source=generator&theme=0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+
+          <!-- Link input bar -->
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <input type="text" id="os-sp-embed-input" class="input-field" placeholder="Eigenen Spotify-Link (Album, Playlist oder Track) einfügen..." style="flex: 1; background: #181818; color: #fff; padding: 7px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); font-size: 12px;">
+            <button class="btn-primary" id="os-sp-embed-btn" style="padding: 7px 16px; font-size: 12px; background: #1db954; color: #000; font-weight: 700; border-radius: 8px; flex-shrink: 0;">Laden</button>
+          </div>
+
+          <!-- Interactive Web Player Iframe -->
+          <div style="flex: 1; min-height: 340px; border-radius: 12px; overflow: hidden; background: #000; border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 8px 24px rgba(0,0,0,0.5);">
+            <iframe id="os-sp-iframe" style="width: 100%; height: 100%; border: 0; display: block;" src="https://open.spotify.com/embed/playlist/37i9dQZF1DXcBWIGoYBM5M?utm_source=generator&theme=0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+          </div>
         </div>
       `;
 
       const embedInput = viewContent.querySelector('#os-sp-embed-input');
       const embedBtn = viewContent.querySelector('#os-sp-embed-btn');
       const iframe = viewContent.querySelector('#os-sp-iframe');
+      const chips = viewContent.querySelectorAll('.os-sp-chip');
+
+      const loadUri = (uri) => {
+        let cleanUri = uri.trim();
+        if (cleanUri.includes('open.spotify.com')) {
+          if (!cleanUri.includes('/embed/')) {
+            cleanUri = cleanUri.replace('open.spotify.com/', 'open.spotify.com/embed/');
+          }
+          iframe.src = cleanUri;
+        } else {
+          iframe.src = `https://open.spotify.com/embed/playlist/${cleanUri}?utm_source=generator&theme=0`;
+        }
+      };
 
       embedBtn.addEventListener('click', () => {
-        const val = embedInput.value.trim();
-        if (val) {
-          let embedUrl = val.replace('open.spotify.com/', 'open.spotify.com/embed/');
-          iframe.src = embedUrl;
+        if (embedInput.value.trim()) {
+          chips.forEach(c => c.classList.remove('active'));
+          loadUri(embedInput.value.trim());
         }
+      });
+
+      embedInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && embedInput.value.trim()) {
+          chips.forEach(c => c.classList.remove('active'));
+          loadUri(embedInput.value.trim());
+        }
+      });
+
+      chips.forEach((chip) => {
+        chip.addEventListener('click', () => {
+          chips.forEach(c => c.classList.remove('active'));
+          chip.classList.add('active');
+          loadUri(chip.dataset.uri);
+        });
       });
     };
 

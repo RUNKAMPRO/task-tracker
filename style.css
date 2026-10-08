@@ -196,7 +196,7 @@ body {
 }
 
 .brand-logo {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 12px;
   cursor: pointer;
@@ -204,8 +204,8 @@ body {
 }
 
 .logo-icon {
-  width: 42px;
-  height: 42px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--radius-md);
   background: var(--brand-gradient);
   display: flex;
@@ -214,6 +214,11 @@ body {
   color: #fff;
   box-shadow: var(--brand-glow);
   transition: transform var(--transition-bounce);
+  flex-shrink: 0;
+}
+
+.logo-icon svg {
+  display: block;
 }
 
 .brand-logo:hover .logo-icon {
@@ -221,8 +226,8 @@ body {
 }
 
 .logo-text {
-  display: flex;
-  align-items: baseline;
+  display: inline-flex;
+  align-items: center;
   gap: 8px;
 }
 
@@ -1949,8 +1954,8 @@ body:not(.orbit-os-active) .suite-app-view:not(.active) {
 }
 
 .suite-brand-text {
-  display: flex;
-  align-items: baseline;
+  display: inline-flex;
+  align-items: center;
   gap: 8px;
 }
 
@@ -2200,10 +2205,11 @@ body:not(.orbit-os-active) .suite-app-view:not(.active) {
 .suite-pill {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   padding: 6px 12px;
   background: transparent;
-  border: none;
+  border: 1px solid transparent; /* Keeps identical dimensions when active! */
   border-radius: var(--radius-md);
   color: var(--text-muted);
   font-family: inherit;
@@ -2212,6 +2218,12 @@ body:not(.orbit-os-active) .suite-app-view:not(.active) {
   cursor: pointer;
   transition: all var(--transition-fast);
   white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.suite-pill svg {
+  display: block;
+  flex-shrink: 0;
 }
 
 .suite-pill:hover {
@@ -2223,7 +2235,7 @@ body:not(.orbit-os-active) .suite-app-view:not(.active) {
   color: #fff;
   background: rgba(99, 102, 241, 0.25);
   box-shadow: 0 0 14px rgba(99, 102, 241, 0.3);
-  border: 1px solid rgba(99, 102, 241, 0.5);
+  border-color: rgba(99, 102, 241, 0.5);
 }
 
 /* Suite Header Right Controls */

@@ -1047,3 +1047,27 @@ body.orbit-os-active #suite-container {
   display: flex;
   align-items: center;
 }
+
+.os-sp-chip {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e4e4e7;
+  padding: 4px 10px;
+  border-radius: 16px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.os-sp-chip:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: #1db954;
+  color: #ffffff;
+}
+
+.os-sp-chip.active {
+  background: rgba(29, 185, 84, 0.2);
+  border-color: #1db954;
+  color: #1db954;
+  font-weight: 600;
+}
