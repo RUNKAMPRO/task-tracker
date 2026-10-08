@@ -6,12 +6,59 @@ Eine hochmoderne, modulare All-in-One Produktivitäts- und Workflow-Suite im ele
 
 ---
 
+## ☁️ 24/7 Cloud-Datenbank & Nutzersystem (Synchronisation über alle Geräte)
+
+OrbitSuite besitzt ein vollwertiges **Cloud-Nutzersystem mit Datenbank-Synchronisation**. Deine Daten werden verschlüsselt in einer cloudbasierten PostgreSQL-Datenbank (Supabase) synchronisiert – **auch wenn dein PC ausgeschaltet ist**!
+
+### ✨ Highlights des Nutzersystems:
+- **24/7 Verfügbarkeit via GitHub Pages**: Perfekt kombiniert mit `https://runkampro.github.io/task-tracker/`. Rufe die Suite jederzeit auf deinem Smartphone, Tablet oder Arbeits-PC auf.
+- **Echtzeit-Synchronisation (Realtime WebSocket)**: Änderungen auf dem Laptop (z. B. eine erledigte Aufgabe oder Notiz) erscheinen in Sekundenschnelle auch auf dem Smartphone.
+- **Offline-First & Datensicherheit**: Funktioniert auch ohne Internet oder Konfiguration im **Gast-Modus** (alles wird lokal gesichert). Sobald wieder eine Verbindung besteht, wird automatisch synchronisiert.
+- **Lokale Datenmigration mit 1 Klick**: Bestehende lokale Aufgaben, Notizen, Gewohnheiten und Rätselstände können bei der Registrierung direkt in das Cloud-Konto übernommen werden.
+- **Row Level Security (RLS)**: Höchste Datensicherheit auf Datenbank-Ebene – Benutzer können ausschließlich auf ihre eigenen Daten zugreifen.
+- **Was wird synchronisiert?**
+  - 📋 **OrbitTask**: Alle Aufgaben, Spalten, Prioritäten, Tags, Subtasks und Statusstände
+  - 📝 **OrbitNotes**: Alle Notizen, Formatierungen, Kategorien, Farben und Pins
+  - 🔄 **OrbitHabits**: Alle Gewohnheiten, 7-Tage-Historie und aktuelle Serien (Streaks)
+  - ⏱️ **OrbitFocus**: Abgeschlossene Pomodoro-Sessions und Gesamtfokus-Minuten
+  - 🧩 **OrbitPlay**: Gelöste Denk- & Mini-Game-Level (Queens, Tango, Pinpoint, Crossclimb, Zip, Sudoku, tägliche Rätsel)
+
+---
+
+### 🛠️ In 2 Minuten eingerichtet (100% Kostenlos)
+
+1. **Kostenloses Supabase-Konto erstellen**:
+   Gehe auf [https://supabase.com](https://supabase.com) und erstelle mit 1 Klick ein kostenloses Konto.
+2. **Neues Projekt anlegen**:
+   Klicke auf *New Project* (z. B. Name: `orbitsuite`, Passwort festlegen, Region: z. B. Frankfurt).
+3. **Datenbank-Tabelle mit 1 Klick erstellen**:
+   - Öffne links den Menüpunkt **SQL Editor**.
+   - Klicke in OrbitSuite im Dialog *Cloud-Sync & Nutzersystem* auf den Button **"SQL-Script in Zwischenablage kopieren"** (oder kopiere den Inhalt aus [`supabase_schema.sql`](supabase_schema.sql)).
+   - Füge das Script im Supabase SQL Editor ein und klicke auf **Run**.
+4. **Verbindung eintragen**:
+   - Gehe in Supabase zu **Project Settings > Data API** (oder *API Keys*).
+   - Kopiere deine **Project URL** (z. B. `https://xyzcompany.supabase.co`) und deinen **anon public key**.
+   - Öffne in OrbitSuite das Nutzer-Menü (oben rechts), wechsle auf den Tab **Cloud-Datenbank** und füge beides ein.
+   - Klicke auf **Verbindung testen & speichern**.
+5. **Konto registrieren oder anmelden**:
+   - Wechsle auf den Tab **Benutzerkonto**, gib deine E-Mail und dein Passwort ein und klicke auf **Konto erstellen**.
+   - Fertig! Ab jetzt sind all deine Geräte 24/7 nahtlos synchronisiert.
+
+---
+
 ## 🌐 Zugriff von außerhalb des Laptops (Handy, Tablet & Unterwegs)
 
 OrbitSuite ist auf allen Geräten erreichbar:
 
-### 1. Im selben WLAN / Heimnetzwerk (Smartphone, Tablet, Zweit-PC)
-- Der Server lauscht auf allen Schnittstellen (`0.0.0.0:8080`).
+### 1. Über GitHub Pages (Empfohlen – 24/7 Online)
+- OrbitSuite ist live gehostet unter:
+  ```text
+  https://runkampro.github.io/task-tracker/
+  ```
+- Kombiniert mit der Cloud-Datenbank hast du von überall auf der Welt Zugriff auf deine Daten, ohne dass dein PC laufen muss.
+
+### 2. Im selben WLAN / Heimnetzwerk (Smartphone, Tablet, Zweit-PC)
+- Der lokale Server lauscht auf allen Schnittstellen (`0.0.0.0:8080`).
 - **Aufruf am Smartphone / Tablet**: Einfach die im Launcher angezeigte WLAN-Adresse eingeben:
   ```text
   http://<DEINE-WLAN-IP>:8080/#hub
@@ -19,11 +66,9 @@ OrbitSuite ist auf allen Geräten erreichbar:
   ```
 - **Firewall-Freigabe**: Falls Windows externe Verbindungen blockiert, einmalig die Datei **`Freigabe_Netzwerk_Firewall.bat`** als Administrator ausführen.
 
-### 2. Weltweit von unterwegs über das Internet
-- **Option A – 1-Klick Online-Tunnel (`Start_Online_Tunnel.bat`)**:
-  Startet einen verschlüsselten SSH-Tunnel zu deinem Laptop. Du erhältst sofort eine öffentliche HTTPS-URL, die du unterwegs auf deinem Smartphone aufrufen kannst.
-- **Option B – GitHub Pages (24/7 Cloud-Hosting)**:
-  Da OrbitSuite eine reine clientseitige Web-App ist, kann sie kostenlos in deinem GitHub-Repository (`RUNKAMPRO/task-tracker`) unter **Settings > Pages** (Source: *Deploy from a branch*, Branch: *main*) aktiviert werden und ist dann weltweit unter `https://runkampro.github.io/task-tracker/` erreichbar – auch wenn der Laptop ausgeschaltet ist.
+### 3. Weltweit von unterwegs über das Internet via Tunnel
+- **1-Klick Online-Tunnel (`Start_Online_Tunnel.bat`)**:
+  Startet einen verschlüsselten SSH-Tunnel zu deinem Laptop. Du erhältst sofort eine öffentliche HTTPS-URL für dein Smartphone.
 
 ---
 
@@ -91,4 +136,5 @@ Das responsive Layout wurde optimiert, um visuelle Bugs bei jeglichen Fenstergr�
 
 ### 🧩 6. OrbitPlay • Rätsel & Gehirnjogging
 - **Tägliche Denksportaufgaben**: Logik- und Worträtsel für fokussierte Denkpausen.
+- **6 Mini-Games**: Queens, Tango, Pinpoint, Crossclimb, Zip und Sudoku mit Level-Hubs und Streak-Verfolgung.
 - **Highscore & Streak**: Tägliche Lösungsreihenfolge und Belohnungssystem.

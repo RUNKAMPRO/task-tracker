@@ -25,6 +25,8 @@
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="shortcut icon" href="favicon.ico">
   <link rel="apple-touch-icon" href="orbitsuite_icon.png">
+  <!-- Supabase Cloud DB & Auth SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
   <!-- Ambient Background Glows -->
@@ -219,6 +221,24 @@
             <polyline points="7 10 12 15 17 10"></polyline>
             <line x1="12" y1="15" x2="12" y2="3"></line>
           </svg>
+        </button>
+
+        <!-- Global User Account & Cloud Sync Trigger -->
+        <button class="suite-user-btn" id="btn-user-sync" title="Konto &amp; Cloud-Synchronisation" aria-label="Benutzerkonto &amp; Sync">
+          <div class="user-avatar-indicator" id="user-avatar-indicator">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <span class="user-avatar-initials hidden" id="user-avatar-initials">U</span>
+          </div>
+          <div class="user-sync-info">
+            <span class="user-name-display" id="user-name-display">Anmelden</span>
+            <span class="user-sync-status-badge status-guest" id="user-sync-status-badge">
+              <span class="sync-dot"></span>
+              <span class="sync-label" id="user-sync-label">Gast-Modus</span>
+            </span>
+          </div>
         </button>
 
         <!-- Shortcuts Help Modal Trigger -->
@@ -2180,6 +2200,275 @@
             <tr><td><kbd>Leertaste</kbd></td><td>In OrbitFocus Timer starten / pausieren</td></tr>
           </tbody>
         </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. Cloud Sync & User Account Modal -->
+  <div class="modal-backdrop hidden" id="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
+    <div class="modal-window auth-modal-window">
+      <div class="modal-header">
+        <div class="modal-title-with-icon">
+          <div class="modal-title-icon-box">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path>
+            </svg>
+          </div>
+          <div>
+            <h2 class="modal-title" id="auth-modal-title">Cloud-Sync &amp; Nutzersystem</h2>
+            <p class="modal-subtitle">Synchronisiere deine Aufgaben, Notizen und Fortschritte 24/7 ger&auml;te&uuml;bergreifend</p>
+          </div>
+        </div>
+        <button class="modal-close-btn" id="auth-modal-close" aria-label="Schlie&szlig;en">&times;</button>
+      </div>
+
+      <!-- Modal Tabs Navigation -->
+      <div class="auth-modal-tabs">
+        <button class="auth-tab-btn active" id="tab-btn-account" data-tab="account">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          <span>Benutzerkonto</span>
+        </button>
+        <button class="auth-tab-btn" id="tab-btn-cloud-setup" data-tab="setup">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path></svg>
+          <span>Cloud-Datenbank (Supabase)</span>
+        </button>
+        <button class="auth-tab-btn" id="tab-btn-data-status" data-tab="status">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+          <span>Sync-Status &amp; &Uuml;bersicht</span>
+        </button>
+      </div>
+
+      <div class="auth-modal-body">
+        <!-- TAB 1: USER ACCOUNT -->
+        <div class="auth-tab-panel active" id="auth-panel-account">
+          
+          <!-- Not Logged In View -->
+          <div class="auth-view-guest" id="auth-view-guest">
+            <div class="auth-mode-switch">
+              <button class="auth-mode-pill active" id="auth-pill-login">Anmelden</button>
+              <button class="auth-mode-pill" id="auth-pill-register">Neues Konto erstellen</button>
+            </div>
+
+            <form class="auth-form" id="auth-form" onsubmit="return false;">
+              <div class="auth-field" id="auth-field-name" style="display: none;">
+                <label for="auth-input-name">Anzeigename (optional)</label>
+                <input type="text" id="auth-input-name" class="auth-input" placeholder="z. B. Alex" autocomplete="name">
+              </div>
+
+              <div class="auth-field">
+                <label for="auth-input-email">E-Mail-Adresse</label>
+                <input type="email" id="auth-input-email" class="auth-input" placeholder="name@beispiel.de" required autocomplete="email">
+              </div>
+
+              <div class="auth-field">
+                <label for="auth-input-password">Passwort</label>
+                <div class="password-input-wrap">
+                  <input type="password" id="auth-input-password" class="auth-input" placeholder="Mindestens 6 Zeichen" required autocomplete="current-password">
+                  <button type="button" class="btn-toggle-pwd" id="btn-toggle-pwd" title="Passwort anzeigen">&#128065;</button>
+                </div>
+              </div>
+
+              <div class="auth-field" id="auth-field-password-confirm" style="display: none;">
+                <label for="auth-input-password-confirm">Passwort best&auml;tigen</label>
+                <input type="password" id="auth-input-password-confirm" class="auth-input" placeholder="Passwort wiederholen" autocomplete="new-password">
+              </div>
+
+              <div class="auth-checkbox-row" id="auth-row-migrate">
+                <label class="checkbox-container">
+                  <input type="checkbox" id="auth-chk-migrate" checked>
+                  <span class="checkmark"></span>
+                  <span class="checkbox-label">Bestehende lokale Daten (Aufgaben, Notizen, etc.) in dieses Konto &uuml;bernehmen</span>
+                </label>
+              </div>
+
+              <div class="auth-feedback hidden" id="auth-feedback"></div>
+
+              <div class="auth-actions">
+                <button type="button" class="btn-primary auth-submit-btn" id="btn-auth-submit">
+                  <span class="btn-text" id="btn-auth-submit-text">Anmelden</span>
+                  <span class="btn-spinner hidden" id="btn-auth-spinner"></span>
+                </button>
+              </div>
+
+              <div class="auth-hint-text">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                <span>Nach dem Anmelden werden alle deine Aufgaben, Notizen und Habits automatisch 24/7 &uuml;ber die Cloud synchronisiert.</span>
+              </div>
+            </form>
+          </div>
+
+          <!-- Logged In View -->
+          <div class="auth-view-user hidden" id="auth-view-user">
+            <div class="user-profile-card">
+              <div class="profile-avatar-large" id="profile-avatar-large">U</div>
+              <div class="profile-details">
+                <h3 class="profile-email" id="profile-email">nutzer@beispiel.de</h3>
+                <div class="profile-badges">
+                  <span class="sync-badge badge-synced" id="profile-sync-badge">
+                    <span class="sync-dot"></span>
+                    <span class="sync-badge-text" id="profile-sync-badge-text">Synchronisiert</span>
+                  </span>
+                  <span class="profile-user-id" id="profile-user-id">ID: ...</span>
+                </div>
+                <p class="profile-last-sync" id="profile-last-sync">Zuletzt synchronisiert: Gerade eben</p>
+              </div>
+            </div>
+
+            <div class="sync-actions-panel">
+              <h4 class="sync-section-title">Synchronisations-Aktionen</h4>
+              <div class="sync-buttons-grid">
+                <button class="btn-secondary sync-action-btn" id="btn-sync-now">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>
+                  <span>Jetzt synchronisieren</span>
+                </button>
+                <button class="btn-secondary sync-action-btn" id="btn-sync-push" title="&Uuml;berschreibt Cloud-Daten mit den Daten dieses Ger&auml;ts">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                  <span>Lokale Daten hochladen</span>
+                </button>
+                <button class="btn-secondary sync-action-btn" id="btn-sync-pull" title="L&auml;dt den aktuellen Stand aus der Cloud herunter">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                  <span>Aus Cloud herunterladen</span>
+                </button>
+                <button class="btn-danger sync-action-btn" id="btn-auth-logout">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                  <span>Abmelden</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- TAB 2: SUPABASE CONFIGURATION -->
+        <div class="auth-tab-panel" id="auth-panel-setup">
+          <div class="supabase-setup-content">
+            <div class="setup-info-card">
+              <div class="info-card-badge">24/7 CLOUD-DATENBANK</div>
+              <h3>Supabase Cloud-Anbindung</h3>
+              <p>Durch die Verbindung mit deiner kostenlosen Supabase-Datenbank synchronisiert OrbitSuite vollautomatisch im Hintergrund &ndash; auch wenn dein Laptop ausgeschaltet ist oder du die App &uuml;ber GitHub Pages nutzt.</p>
+            </div>
+
+            <div class="setup-form">
+              <div class="auth-field">
+                <label for="cfg-supabase-url">Supabase Project URL</label>
+                <input type="text" id="cfg-supabase-url" class="auth-input" placeholder="https://your-project-id.supabase.co">
+                <span class="field-hint">Zu finden in Supabase unter: Project Settings &rarr; API &rarr; Project URL</span>
+              </div>
+
+              <div class="auth-field">
+                <label for="cfg-supabase-key">Supabase Anon Public API-Key</label>
+                <input type="password" id="cfg-supabase-key" class="auth-input" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+                <span class="field-hint">Zu finden in Supabase unter: Project Settings &rarr; API &rarr; Project API keys (anon / public)</span>
+              </div>
+
+              <div class="config-feedback hidden" id="config-feedback"></div>
+
+              <div class="setup-form-actions">
+                <button class="btn-primary" id="btn-save-supabase-config">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <span>Verbindung speichern &amp; testen</span>
+                </button>
+                <button class="btn-secondary" id="btn-clear-supabase-config" title="Konfiguration entfernen">
+                  <span>Zur&uuml;cksetzen</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Guided Setup Accordion -->
+            <div class="setup-guide-box">
+              <h4 class="guide-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="12 8 8 12 12 16 12 8"></polygon></svg>
+                <span>3-Schritte Anleitung zur kostenlosen Einrichtung (dauert 2 Min.)</span>
+              </h4>
+
+              <div class="guide-steps">
+                <div class="guide-step">
+                  <div class="step-num">1</div>
+                  <div class="step-text">
+                    <strong>Kostenloses Supabase-Konto erstellen</strong>
+                    <p>Gehe auf <a href="https://supabase.com" target="_blank" rel="noopener" class="link-highlight">supabase.com</a> und erstelle ein kostenloses Konto und ein neues Projekt (z.B. <code>orbitsuite</code>).</p>
+                  </div>
+                </div>
+
+                <div class="guide-step">
+                  <div class="step-num">2</div>
+                  <div class="step-text">
+                    <strong>Datenbank-Tabelle mit 1 Klick anlegen</strong>
+                    <p>&Ouml;ffne in Supabase links den <strong>SQL Editor</strong>, klicke unten auf den Button und f&uuml;ge den Code dort ein:</p>
+                    <button class="btn-secondary btn-copy-sql" id="btn-copy-sql">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                      <span>SQL-Script in Zwischenablage kopieren</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="guide-step">
+                  <div class="step-num">3</div>
+                  <div class="step-text">
+                    <strong>URL &amp; Anon Key eintragen</strong>
+                    <p>Unter <em>Settings &gt; API</em> kopierst du die <code>Project URL</code> und den <code>anon public key</code> hier hinein und klickst auf &quot;Speichern&quot;. Fertig!</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 3: DATA & SYNC STATUS -->
+        <div class="auth-tab-panel" id="auth-panel-status">
+          <div class="status-overview">
+            <h4 class="sync-section-title">Lokale &amp; synchronisierte Daten</h4>
+            <div class="data-stats-grid">
+              <div class="data-stat-card">
+                <span class="stat-icon">&#128203;</span>
+                <div class="stat-info">
+                  <span class="stat-count" id="stat-count-tasks">0</span>
+                  <span class="stat-label">Aufgaben (OrbitTask)</span>
+                </div>
+              </div>
+              <div class="data-stat-card">
+                <span class="stat-icon">&#128221;</span>
+                <div class="stat-info">
+                  <span class="stat-count" id="stat-count-notes">0</span>
+                  <span class="stat-label">Notizen (OrbitNotes)</span>
+                </div>
+              </div>
+              <div class="data-stat-card">
+                <span class="stat-icon">&#128260;</span>
+                <div class="stat-info">
+                  <span class="stat-count" id="stat-count-habits">0</span>
+                  <span class="stat-label">Gewohnheiten (OrbitHabits)</span>
+                </div>
+              </div>
+              <div class="data-stat-card">
+                <span class="stat-icon">&#9201;&#65039;</span>
+                <div class="stat-info">
+                  <span class="stat-count" id="stat-count-focus">0 Sessions</span>
+                  <span class="stat-label">Fokus-Zeit (OrbitFocus)</span>
+                </div>
+              </div>
+              <div class="data-stat-card">
+                <span class="stat-icon">&#129513;</span>
+                <div class="stat-info">
+                  <span class="stat-count" id="stat-count-puzzles">0 gel&ouml;st</span>
+                  <span class="stat-label">R&auml;tsel &amp; Mini-Games</span>
+                </div>
+              </div>
+              <div class="data-stat-card">
+                <span class="stat-icon">&#127760;</span>
+                <div class="stat-info">
+                  <span class="stat-count" id="stat-count-network">Online</span>
+                  <span class="stat-label">Netzwerk-Status</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="auto-sync-info-box">
+              <h4>&#9889; Automatische Live-Synchronisation</h4>
+              <p>Jede &Auml;nderung an Aufgaben, Notizen oder Gewohnheiten wird automatisch und unbemerkt im Hintergrund in die Datenbank gespeichert. Bei schlechter oder unterbrochener Internetverbindung bleiben alle &Auml;nderungen lokal gesichert und werden &uuml;bertragen, sobald du wieder online bist.</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>

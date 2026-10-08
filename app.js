@@ -5784,6 +5784,12 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
       localStorage.setItem('orbitsuite_custom_riddles', JSON.stringify(this.customRiddles));
 
+      if (this.suite && this.suite.sync) {
+
+        this.suite.sync.requestSync();
+
+      }
+
     }
 
 
@@ -5867,6 +5873,12 @@ btnRandom: document.getElementById('btn-riddle-random'),
       localStorage.setItem('orbitsuite_riddle_daily_solved', JSON.stringify(Array.from(this.dailySolvedDates)));
 
       localStorage.setItem('orbitsuite_riddle_daily_streak', String(this.dailyStreak));
+
+      if (this.suite && this.suite.sync) {
+
+        this.suite.sync.requestSync();
+
+      }
 
     }
 
@@ -6869,6 +6881,9 @@ btnRandom: document.getElementById('btn-riddle-random'),
       this.updateTotalStats();
       if (this.suite && this.suite.hubApp) {
         this.suite.hubApp.render();
+      }
+      if (this.suite && this.suite.sync) {
+        this.suite.sync.requestSync();
       }
 
       // Checkpoint-Freischaltungs-Feier
@@ -10884,6 +10899,953 @@ init() {
 
 
 
+
+  /* ==========================================================================
+     OrbitSyncManager: 24/7 Cloud Database & User Synchronization (Supabase)
+     ========================================================================== */
+  class OrbitSyncManager {
+    constructor(suite) {
+      this.suite = suite;
+      this.supabase = null;
+      this.user = null;
+      this.session = null;
+      this.status = 'guest'; // 'guest' | 'synced' | 'syncing' | 'offline' | 'error'
+      this.lastSyncedAt = null;
+      this.debounceTimer = null;
+      this.realtimeChannel = null;
+      this.isSyncing = false;
+      this.mode = 'login'; // 'login' | 'register'
+      this.activeTab = 'account'; // 'account' | 'setup' | 'status'
+
+      this.STORAGE_KEY_URL = 'orbitsuite_supabase_url';
+      this.STORAGE_KEY_KEY = 'orbitsuite_supabase_key';
+
+      this.SCHEMA_SQL = `-- 1. Haupt-Tabelle fuer Benutzer-Synchronisation erstellen
+CREATE TABLE IF NOT EXISTS public.orbit_sync (
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
+    tasks JSONB DEFAULT '[]'::jsonb,
+    notes JSONB DEFAULT '[]'::jsonb,
+    habits JSONB DEFAULT '[]'::jsonb,
+    focus JSONB DEFAULT '{"sessions": 0, "minutes": 0}'::jsonb,
+    riddles JSONB DEFAULT '{"solved": [], "streak": 0, "custom": []}'::jsonb,
+    puzzles JSONB DEFAULT '{}'::jsonb,
+    settings JSONB DEFAULT '{}'::jsonb,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 2. Row Level Security (RLS) aktivieren (Absolute Datensicherheit)
+ALTER TABLE public.orbit_sync ENABLE ROW LEVEL SECURITY;
+
+-- 3. Richtlinien: Jeder authentifizierte Benutzer kann AUSSCHLIESSLICH seine eigenen Daten verwalten
+DROP POLICY IF EXISTS "Benutzer koennen nur ihre eigenen OrbitSuite-Daten lesen" ON public.orbit_sync;
+CREATE POLICY "Benutzer koennen nur ihre eigenen OrbitSuite-Daten lesen" 
+    ON public.orbit_sync FOR SELECT 
+    USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Benutzer koennen ihre eigenen OrbitSuite-Daten erstellen" ON public.orbit_sync;
+CREATE POLICY "Benutzer koennen ihre eigenen OrbitSuite-Daten erstellen" 
+    ON public.orbit_sync FOR INSERT 
+    WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Benutzer koennen ihre eigenen OrbitSuite-Daten aktualisieren" ON public.orbit_sync;
+CREATE POLICY "Benutzer koennen ihre eigenen OrbitSuite-Daten aktualisieren" 
+    ON public.orbit_sync FOR UPDATE 
+    USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Benutzer koennen ihre eigenen OrbitSuite-Daten loeschen" ON public.orbit_sync;
+CREATE POLICY "Benutzer koennen ihre eigenen OrbitSuite-Daten loeschen" 
+    ON public.orbit_sync FOR DELETE 
+    USING (auth.uid() = user_id);
+
+-- 4. Realtime aktivieren (fuer sofortige Live-Synchronisation zwischen PC & Smartphone)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.orbit_sync;
+  END IF;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;`;
+
+      this.cacheDom();
+    }
+
+    cacheDom() {
+      this.dom = {
+        btnUserSync: document.getElementById('btn-user-sync'),
+        userAvatarIndicator: document.getElementById('user-avatar-indicator'),
+        userAvatarInitials: document.getElementById('user-avatar-initials'),
+        userNameDisplay: document.getElementById('user-name-display'),
+        userSyncStatusBadge: document.getElementById('user-sync-status-badge'),
+        userSyncLabel: document.getElementById('user-sync-label'),
+        authModal: document.getElementById('auth-modal'),
+        authModalClose: document.getElementById('auth-modal-close'),
+        tabBtns: document.querySelectorAll('.auth-tab-btn'),
+        tabPanels: {
+          account: document.getElementById('auth-panel-account'),
+          setup: document.getElementById('auth-panel-setup'),
+          status: document.getElementById('auth-panel-status')
+        },
+        viewGuest: document.getElementById('auth-view-guest'),
+        viewUser: document.getElementById('auth-view-user'),
+        pillLogin: document.getElementById('auth-pill-login'),
+        pillRegister: document.getElementById('auth-pill-register'),
+        authForm: document.getElementById('auth-form'),
+        fieldName: document.getElementById('auth-field-name'),
+        inputName: document.getElementById('auth-input-name'),
+        inputEmail: document.getElementById('auth-input-email'),
+        inputPassword: document.getElementById('auth-input-password'),
+        fieldPasswordConfirm: document.getElementById('auth-field-password-confirm'),
+        inputPasswordConfirm: document.getElementById('auth-input-password-confirm'),
+        chkMigrate: document.getElementById('auth-chk-migrate'),
+        btnTogglePwd: document.getElementById('btn-toggle-pwd'),
+        btnAuthSubmit: document.getElementById('btn-auth-submit'),
+        btnAuthSubmitText: document.getElementById('btn-auth-submit-text'),
+        btnAuthSpinner: document.getElementById('btn-auth-spinner'),
+        authFeedback: document.getElementById('auth-feedback'),
+        profileAvatarLarge: document.getElementById('profile-avatar-large'),
+        profileEmail: document.getElementById('profile-email'),
+        profileUserId: document.getElementById('profile-user-id'),
+        profileSyncBadge: document.getElementById('profile-sync-badge'),
+        profileSyncBadgeText: document.getElementById('profile-sync-badge-text'),
+        profileLastSync: document.getElementById('profile-last-sync'),
+        btnSyncNow: document.getElementById('btn-sync-now'),
+        btnSyncPush: document.getElementById('btn-sync-push'),
+        btnSyncPull: document.getElementById('btn-sync-pull'),
+        btnAuthLogout: document.getElementById('btn-auth-logout'),
+        cfgSupabaseUrl: document.getElementById('cfg-supabase-url'),
+        cfgSupabaseKey: document.getElementById('cfg-supabase-key'),
+        btnSaveSupabaseConfig: document.getElementById('btn-save-supabase-config'),
+        btnClearSupabaseConfig: document.getElementById('btn-clear-supabase-config'),
+        configFeedback: document.getElementById('config-feedback'),
+        btnCopySql: document.getElementById('btn-copy-sql'),
+        statCountTasks: document.getElementById('stat-count-tasks'),
+        statCountNotes: document.getElementById('stat-count-notes'),
+        statCountHabits: document.getElementById('stat-count-habits'),
+        statCountFocus: document.getElementById('stat-count-focus'),
+        statCountPuzzles: document.getElementById('stat-count-puzzles'),
+        statCountNetwork: document.getElementById('stat-count-network')
+      };
+    }
+
+    async init() {
+      this.bindEvents();
+      this.loadConfig();
+      await this.initClient();
+      this.initNetworkListeners();
+      this.updateDataCounts();
+    }
+
+    bindEvents() {
+      // Trigger in header
+      if (this.dom.btnUserSync) {
+        this.dom.btnUserSync.addEventListener('click', () => this.openModal('account'));
+      }
+      if (this.dom.authModalClose) {
+        this.dom.authModalClose.addEventListener('click', () => this.closeModal());
+      }
+      if (this.dom.authModal) {
+        this.dom.authModal.addEventListener('click', (e) => {
+          if (e.target === this.dom.authModal) this.closeModal();
+        });
+      }
+
+      // Tab navigation
+      if (this.dom.tabBtns) {
+        this.dom.tabBtns.forEach(btn => {
+          btn.addEventListener('click', () => {
+            const tab = btn.dataset.tab;
+            this.switchTab(tab);
+          });
+        });
+      }
+
+      // Login / Register pills
+      if (this.dom.pillLogin) {
+        this.dom.pillLogin.addEventListener('click', () => this.setMode('login'));
+      }
+      if (this.dom.pillRegister) {
+        this.dom.pillRegister.addEventListener('click', () => this.setMode('register'));
+      }
+
+      // Toggle password visibility
+      if (this.dom.btnTogglePwd && this.dom.inputPassword) {
+        this.dom.btnTogglePwd.addEventListener('click', () => {
+          const isPwd = this.dom.inputPassword.type === 'password';
+          this.dom.inputPassword.type = isPwd ? 'text' : 'password';
+          if (this.dom.inputPasswordConfirm) {
+            this.dom.inputPasswordConfirm.type = isPwd ? 'text' : 'password';
+          }
+          this.dom.btnTogglePwd.textContent = isPwd ? '🔒' : '👁️';
+        });
+      }
+
+      // Submit Auth Form
+      if (this.dom.btnAuthSubmit) {
+        this.dom.btnAuthSubmit.addEventListener('click', () => this.handleAuthSubmit());
+      }
+      if (this.dom.authForm) {
+        this.dom.authForm.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            this.handleAuthSubmit();
+          }
+        });
+      }
+
+      // Sync action buttons
+      if (this.dom.btnSyncNow) {
+        this.dom.btnSyncNow.addEventListener('click', () => this.pullFromCloud(false));
+      }
+      if (this.dom.btnSyncPush) {
+        this.dom.btnSyncPush.addEventListener('click', () => this.pushToCloud(true));
+      }
+      if (this.dom.btnSyncPull) {
+        this.dom.btnSyncPull.addEventListener('click', () => this.pullFromCloud(false));
+      }
+      if (this.dom.btnAuthLogout) {
+        this.dom.btnAuthLogout.addEventListener('click', () => this.signOut());
+      }
+
+      // Supabase config buttons
+      if (this.dom.btnSaveSupabaseConfig) {
+        this.dom.btnSaveSupabaseConfig.addEventListener('click', () => this.handleSaveConfig());
+      }
+      if (this.dom.btnClearSupabaseConfig) {
+        this.dom.btnClearSupabaseConfig.addEventListener('click', () => this.handleClearConfig());
+      }
+      if (this.dom.btnCopySql) {
+        this.dom.btnCopySql.addEventListener('click', () => this.copySqlScript());
+      }
+    }
+
+    initNetworkListeners() {
+      window.addEventListener('online', () => {
+        this.updateNetworkStat(true);
+        if (this.user) {
+          this.updateBadge('syncing', 'Wieder online - Sync...');
+          this.pullFromCloud(true);
+        } else {
+          this.updateBadge('guest', 'Gast-Modus');
+        }
+      });
+
+      window.addEventListener('offline', () => {
+        this.updateNetworkStat(false);
+        this.updateBadge('offline', 'Offline');
+      });
+
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && this.user && navigator.onLine) {
+          this.pullFromCloud(true);
+        }
+      });
+    }
+
+    loadConfig() {
+      const url = localStorage.getItem(this.STORAGE_KEY_URL) || '';
+      const key = localStorage.getItem(this.STORAGE_KEY_KEY) || '';
+      if (this.dom.cfgSupabaseUrl) this.dom.cfgSupabaseUrl.value = url;
+      if (this.dom.cfgSupabaseKey) this.dom.cfgSupabaseKey.value = key;
+    }
+
+    async initClient() {
+      const url = (localStorage.getItem(this.STORAGE_KEY_URL) || '').trim();
+      const key = (localStorage.getItem(this.STORAGE_KEY_KEY) || '').trim();
+
+      if (!url || !key) {
+        this.updateBadge('guest', 'Gast-Modus');
+        this.renderGuestUI();
+        return false;
+      }
+
+      if (typeof window.supabase === 'undefined' || !window.supabase.createClient) {
+        console.warn('[OrbitSync] Supabase JS SDK not loaded yet.');
+        this.updateBadge('guest', 'Gast-Modus');
+        return false;
+      }
+
+      try {
+        this.supabase = window.supabase.createClient(url, key, {
+          auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true
+          }
+        });
+
+        this.setupAuthListener();
+        await this.checkCurrentSession();
+        return true;
+      } catch (err) {
+        console.error('[OrbitSync] Initialization error:', err);
+        this.showConfigFeedback('Fehler bei der Initialisierung von Supabase: ' + err.message, 'error');
+        this.updateBadge('error', 'Konfigurationsfehler');
+        return false;
+      }
+    }
+
+    setupAuthListener() {
+      if (!this.supabase) return;
+      this.supabase.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          if (session && session.user) {
+            this.session = session;
+            this.user = session.user;
+            this.renderUserUI();
+            this.subscribeRealtime();
+          }
+        } else if (event === 'SIGNED_OUT') {
+          this.session = null;
+          this.user = null;
+          if (this.realtimeChannel) {
+            try { this.supabase.removeChannel(this.realtimeChannel); } catch (e) {}
+            this.realtimeChannel = null;
+          }
+          this.renderGuestUI();
+          this.updateBadge('guest', 'Gast-Modus');
+        }
+      });
+    }
+
+    async checkCurrentSession() {
+      if (!this.supabase) return;
+      try {
+        const { data, error } = await this.supabase.auth.getSession();
+        if (error) throw error;
+        if (data && data.session && data.session.user) {
+          this.session = data.session;
+          this.user = data.session.user;
+          this.renderUserUI();
+          this.subscribeRealtime();
+          // Pull latest changes quietly
+          await this.pullFromCloud(true);
+        } else {
+          this.renderGuestUI();
+          this.updateBadge('guest', 'Gast-Modus');
+        }
+      } catch (err) {
+        console.warn('[OrbitSync] Could not restore session:', err);
+        this.renderGuestUI();
+        this.updateBadge('guest', 'Gast-Modus');
+      }
+    }
+
+    subscribeRealtime() {
+      if (!this.supabase || !this.user) return;
+      if (this.realtimeChannel) {
+        try { this.supabase.removeChannel(this.realtimeChannel); } catch (e) {}
+        this.realtimeChannel = null;
+      }
+
+      try {
+        this.realtimeChannel = this.supabase
+          .channel('orbit_realtime_' + this.user.id)
+          .on(
+            'postgres_changes',
+            {
+              event: 'UPDATE',
+              schema: 'public',
+              table: 'orbit_sync',
+              filter: `user_id=eq.${this.user.id}`
+            },
+            (payload) => {
+              if (this.isSyncing) return;
+              if (payload && payload.new) {
+                this.applyRemoteData(payload.new);
+                this.lastSyncedAt = new Date();
+                this.updateLastSyncText();
+                this.updateBadge('synced', 'Live synchronisiert');
+              }
+            }
+          )
+          .subscribe();
+      } catch (err) {
+        console.warn('[OrbitSync] Realtime subscription error:', err);
+      }
+    }
+
+    setMode(mode) {
+      this.mode = mode;
+      if (this.dom.pillLogin && this.dom.pillRegister) {
+        this.dom.pillLogin.classList.toggle('active', mode === 'login');
+        this.dom.pillRegister.classList.toggle('active', mode === 'register');
+      }
+
+      if (this.dom.fieldName) {
+        this.dom.fieldName.style.display = mode === 'register' ? 'flex' : 'none';
+      }
+      if (this.dom.fieldPasswordConfirm) {
+        this.dom.fieldPasswordConfirm.style.display = mode === 'register' ? 'flex' : 'none';
+      }
+      if (this.dom.btnAuthSubmitText) {
+        this.dom.btnAuthSubmitText.textContent = mode === 'register' ? 'Konto erstellen' : 'Anmelden';
+      }
+      this.hideAuthFeedback();
+    }
+
+    switchTab(tab) {
+      this.activeTab = tab;
+      if (this.dom.tabBtns) {
+        this.dom.tabBtns.forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.tab === tab);
+        });
+      }
+      if (this.dom.tabPanels) {
+        Object.entries(this.dom.tabPanels).forEach(([key, panel]) => {
+          if (panel) panel.classList.toggle('active', key === tab);
+        });
+      }
+      if (tab === 'status') {
+        this.updateDataCounts();
+      }
+    }
+
+    openModal(tab = 'account') {
+      if (this.dom.authModal) {
+        this.dom.authModal.classList.remove('hidden');
+        this.switchTab(tab);
+        this.updateDataCounts();
+        this.suite.sound.playPop();
+      }
+    }
+
+    closeModal() {
+      if (this.dom.authModal) {
+        this.dom.authModal.classList.add('hidden');
+      }
+    }
+
+    updateBadge(status, label) {
+      this.status = status;
+      if (this.dom.userSyncStatusBadge) {
+        this.dom.userSyncStatusBadge.className = `user-sync-status-badge status-${status}`;
+      }
+      if (this.dom.userSyncLabel) {
+        this.dom.userSyncLabel.textContent = label;
+      }
+      if (this.dom.profileSyncBadge) {
+        this.dom.profileSyncBadge.className = `sync-badge badge-${status}`;
+      }
+      if (this.dom.profileSyncBadgeText) {
+        this.dom.profileSyncBadgeText.textContent = label;
+      }
+    }
+
+    renderUserUI() {
+      if (!this.user) return;
+      if (this.dom.viewGuest) this.dom.viewGuest.classList.add('hidden');
+      if (this.dom.viewUser) this.dom.viewUser.classList.remove('hidden');
+
+      const email = this.user.email || 'Benutzer';
+      const name = (this.user.user_metadata && this.user.user_metadata.display_name) || email.split('@')[0];
+      const initials = (name.substring(0, 2) || 'US').toUpperCase();
+
+      if (this.dom.userNameDisplay) this.dom.userNameDisplay.textContent = name;
+      if (this.dom.profileEmail) this.dom.profileEmail.textContent = email;
+      if (this.dom.profileUserId) this.dom.profileUserId.textContent = 'ID: ' + this.user.id.substring(0, 8) + '...';
+
+      if (this.dom.userAvatarIndicator) {
+        const svg = this.dom.userAvatarIndicator.querySelector('svg');
+        if (svg) svg.classList.add('hidden');
+      }
+      if (this.dom.userAvatarInitials) {
+        this.dom.userAvatarInitials.textContent = initials;
+        this.dom.userAvatarInitials.classList.remove('hidden');
+      }
+      if (this.dom.profileAvatarLarge) {
+        this.dom.profileAvatarLarge.textContent = initials;
+      }
+
+      this.updateBadge('synced', 'Synchronisiert');
+      this.updateLastSyncText();
+    }
+
+    renderGuestUI() {
+      if (this.dom.viewGuest) this.dom.viewGuest.classList.remove('hidden');
+      if (this.dom.viewUser) this.dom.viewUser.classList.add('hidden');
+
+      if (this.dom.userNameDisplay) this.dom.userNameDisplay.textContent = 'Anmelden';
+      if (this.dom.userAvatarIndicator) {
+        const svg = this.dom.userAvatarIndicator.querySelector('svg');
+        if (svg) svg.classList.remove('hidden');
+      }
+      if (this.dom.userAvatarInitials) {
+        this.dom.userAvatarInitials.classList.add('hidden');
+      }
+
+      this.updateBadge('guest', 'Gast-Modus');
+    }
+
+    updateLastSyncText() {
+      if (!this.dom.profileLastSync) return;
+      if (!this.lastSyncedAt) {
+        this.dom.profileLastSync.textContent = 'Zuletzt synchronisiert: Noch nicht synchronisiert';
+        return;
+      }
+      const timeStr = this.lastSyncedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      this.dom.profileLastSync.textContent = `Zuletzt synchronisiert: Heute um ${timeStr}`;
+    }
+
+    updateNetworkStat(online) {
+      if (this.dom.statCountNetwork) {
+        this.dom.statCountNetwork.textContent = online ? 'Online 🟢' : 'Offline 🔴';
+        this.dom.statCountNetwork.style.color = online ? '#34d399' : '#f87171';
+      }
+    }
+
+    updateDataCounts() {
+      if (this.dom.statCountTasks) {
+        const tasks = (this.suite.taskApp && this.suite.taskApp.tasks) || JSON.parse(localStorage.getItem('orbittask_tasks_v2') || '[]');
+        this.dom.statCountTasks.textContent = `${tasks.length} Aufgaben`;
+      }
+      if (this.dom.statCountNotes) {
+        const notes = (this.suite.notesApp && this.suite.notesApp.notes) || JSON.parse(localStorage.getItem('orbitsuite_notes_v1') || '[]');
+        this.dom.statCountNotes.textContent = `${notes.length} Notizen`;
+      }
+      if (this.dom.statCountHabits) {
+        const habits = (this.suite.habitsApp && this.suite.habitsApp.habits) || JSON.parse(localStorage.getItem('orbitsuite_habits_v1') || '[]');
+        this.dom.statCountHabits.textContent = `${habits.length} Gewohnheiten`;
+      }
+      if (this.dom.statCountFocus) {
+        const sessions = localStorage.getItem('orbitsuite_focus_sessions') || '0';
+        const mins = localStorage.getItem('orbitsuite_focus_minutes') || '0';
+        this.dom.statCountFocus.textContent = `${sessions} Sessions (${mins}m)`;
+      }
+      if (this.dom.statCountPuzzles) {
+        let total = 0;
+        ['queens', 'tango', 'pinpoint', 'crossclimb', 'zip', 'sudoku'].forEach(g => {
+          const list = JSON.parse(localStorage.getItem(`orbitsuite_${g}_solved_levels`) || '[]');
+          total += list.length;
+        });
+        const solvedRiddles = JSON.parse(localStorage.getItem('orbitsuite_riddles_solved') || '[]');
+        total += solvedRiddles.length;
+        this.dom.statCountPuzzles.textContent = `${total} gelöst`;
+      }
+      this.updateNetworkStat(navigator.onLine);
+    }
+
+    showAuthFeedback(msg, type = 'info') {
+      if (!this.dom.authFeedback) return;
+      this.dom.authFeedback.textContent = msg;
+      this.dom.authFeedback.className = `auth-feedback ${type}`;
+    }
+
+    hideAuthFeedback() {
+      if (!this.dom.authFeedback) return;
+      this.dom.authFeedback.textContent = '';
+      this.dom.authFeedback.className = 'auth-feedback hidden';
+    }
+
+    showConfigFeedback(msg, type = 'info') {
+      if (!this.dom.configFeedback) return;
+      this.dom.configFeedback.textContent = msg;
+      this.dom.configFeedback.className = `config-feedback ${type}`;
+    }
+
+    setSubmitting(isSubmitting) {
+      if (this.dom.btnAuthSpinner) this.dom.btnAuthSpinner.classList.toggle('hidden', !isSubmitting);
+      if (this.dom.btnAuthSubmit) this.dom.btnAuthSubmit.disabled = isSubmitting;
+    }
+
+    async handleAuthSubmit() {
+      const email = (this.dom.inputEmail ? this.dom.inputEmail.value : '').trim();
+      const password = (this.dom.inputPassword ? this.dom.inputPassword.value : '').trim();
+      const name = (this.dom.inputName ? this.dom.inputName.value : '').trim();
+      const migrate = this.dom.chkMigrate ? this.dom.chkMigrate.checked : true;
+
+      if (!email || !password) {
+        this.showAuthFeedback('Bitte gib deine E-Mail-Adresse und dein Passwort ein.', 'error');
+        return;
+      }
+
+      if (password.length < 6) {
+        this.showAuthFeedback('Das Passwort muss mindestens 6 Zeichen lang sein.', 'error');
+        return;
+      }
+
+      if (this.mode === 'register') {
+        const confirmPwd = (this.dom.inputPasswordConfirm ? this.dom.inputPasswordConfirm.value : '').trim();
+        if (password !== confirmPwd) {
+          this.showAuthFeedback('Die eingegebenen Passwörter stimmen nicht überein.', 'error');
+          return;
+        }
+      }
+
+      if (!this.supabase) {
+        const initialized = await this.initClient();
+        if (!initialized) {
+          this.showAuthFeedback('Bitte trage zuerst im Tab "Cloud-Datenbank" deine Supabase Project-URL und den Anon Key ein (kostenlos & dauert nur 2 Min.)!', 'info');
+          this.switchTab('setup');
+          return;
+        }
+      }
+
+      this.setSubmitting(true);
+      this.hideAuthFeedback();
+
+      try {
+        if (this.mode === 'register') {
+          const { data, error } = await this.supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              data: { display_name: name || email.split('@')[0] }
+            }
+          });
+
+          if (error) throw error;
+
+          if (data && data.user && data.session) {
+            this.user = data.user;
+            this.session = data.session;
+            this.renderUserUI();
+            if (migrate) {
+              await this.pushToCloud(false);
+            }
+            this.suite.showToast('Konto erfolgreich erstellt & Daten synchronisiert! 🌟', 'success');
+            this.closeModal();
+          } else {
+            this.showAuthFeedback('Konto angelegt! Bitte überprüfe deine E-Mails, um die Registrierung zu bestätigen.', 'success');
+          }
+        } else {
+          const { data, error } = await this.supabase.auth.signInWithPassword({
+            email,
+            password
+          });
+
+          if (error) throw error;
+
+          if (data && data.user) {
+            this.user = data.user;
+            this.session = data.session;
+            this.renderUserUI();
+            await this.pullFromCloud(true);
+            if (migrate) {
+              await this.pushToCloud(false);
+            }
+            this.suite.showToast(`Willkommen zurück, ${email}! 🚀`, 'success');
+            this.closeModal();
+          }
+        }
+      } catch (err) {
+        console.error('[OrbitSync] Auth error:', err);
+        let msg = err.message || 'Ein Fehler ist aufgetreten.';
+        if (msg.includes('Invalid login credentials')) {
+          msg = 'Ungültige E-Mail-Adresse oder falsches Passwort.';
+        } else if (msg.includes('User already registered')) {
+          msg = 'Diese E-Mail ist bereits registriert. Bitte melde dich an.';
+        }
+        this.showAuthFeedback(msg, 'error');
+      } finally {
+        this.setSubmitting(false);
+      }
+    }
+
+    async signOut() {
+      if (!this.supabase) return;
+      try {
+        await this.supabase.auth.signOut();
+        this.suite.showToast('Erfolgreich abgemeldet. OrbitSuite läuft im Gast-Modus weiter.', 'info');
+      } catch (err) {
+        console.error('[OrbitSync] Sign out error:', err);
+      }
+    }
+
+    async handleSaveConfig() {
+      const url = (this.dom.cfgSupabaseUrl ? this.dom.cfgSupabaseUrl.value : '').trim();
+      const key = (this.dom.cfgSupabaseKey ? this.dom.cfgSupabaseKey.value : '').trim();
+
+      if (!url || !key) {
+        this.showConfigFeedback('Bitte sowohl Project URL als auch Anon Key angeben.', 'error');
+        return;
+      }
+
+      if (!url.startsWith('https://')) {
+        this.showConfigFeedback('Die Project URL muss mit "https://" beginnen.', 'error');
+        return;
+      }
+
+      this.showConfigFeedback('Verbindung wird getestet...', 'info');
+
+      try {
+        localStorage.setItem(this.STORAGE_KEY_URL, url);
+        localStorage.setItem(this.STORAGE_KEY_KEY, key);
+
+        const ok = await this.initClient();
+        if (ok) {
+          this.showConfigFeedback('Verbindung zur Supabase Cloud erfolgreich hergestellt! 🚀', 'success');
+          this.suite.showToast('Supabase-Verbindung erfolgreich eingerichtet! ✅', 'success');
+          setTimeout(() => this.switchTab('account'), 800);
+        }
+      } catch (err) {
+        this.showConfigFeedback('Verbindungsfehler: ' + (err.message || err), 'error');
+      }
+    }
+
+    handleClearConfig() {
+      if (confirm('Möchtest du die gespeicherte Supabase-Konfiguration entfernen?')) {
+        localStorage.removeItem(this.STORAGE_KEY_URL);
+        localStorage.removeItem(this.STORAGE_KEY_KEY);
+        if (this.dom.cfgSupabaseUrl) this.dom.cfgSupabaseUrl.value = '';
+        if (this.dom.cfgSupabaseKey) this.dom.cfgSupabaseKey.value = '';
+        this.supabase = null;
+        this.signOut();
+        this.showConfigFeedback('Konfiguration entfernt.', 'info');
+      }
+    }
+
+    copySqlScript() {
+      navigator.clipboard.writeText(this.SCHEMA_SQL).then(() => {
+        this.suite.showToast('SQL-Script erfolgreich in Zwischenablage kopiert! 📋', 'success');
+        if (this.dom.btnCopySql) {
+          const orig = this.dom.btnCopySql.innerHTML;
+          this.dom.btnCopySql.innerHTML = '<span>Kopiert! ✓</span>';
+          setTimeout(() => { this.dom.btnCopySql.innerHTML = orig; }, 2000);
+        }
+      }).catch(err => {
+        this.suite.showToast('Fehler beim Kopieren: ' + err, 'error');
+      });
+    }
+
+    collectAllLocalData() {
+      return {
+        tasks: (this.suite.taskApp && this.suite.taskApp.tasks) || JSON.parse(localStorage.getItem('orbittask_tasks_v2') || '[]'),
+        notes: (this.suite.notesApp && this.suite.notesApp.notes) || JSON.parse(localStorage.getItem('orbitsuite_notes_v1') || '[]'),
+        habits: (this.suite.habitsApp && this.suite.habitsApp.habits) || JSON.parse(localStorage.getItem('orbitsuite_habits_v1') || '[]'),
+        focus: {
+          sessions: parseInt(localStorage.getItem('orbitsuite_focus_sessions') || '0', 10),
+          minutes: parseInt(localStorage.getItem('orbitsuite_focus_minutes') || '0', 10)
+        },
+        riddles: {
+          custom: JSON.parse(localStorage.getItem('orbitsuite_custom_riddles') || '[]'),
+          solved: JSON.parse(localStorage.getItem('orbitsuite_riddles_solved') || '[]'),
+          streak: parseInt(localStorage.getItem('orbitsuite_riddle_streak') || '0', 10),
+          dailySolved: JSON.parse(localStorage.getItem('orbitsuite_riddle_daily_solved') || '[]'),
+          dailyStreak: parseInt(localStorage.getItem('orbitsuite_riddle_daily_streak') || '0', 10)
+        },
+        puzzles: {
+          queens_solved: JSON.parse(localStorage.getItem('orbitsuite_queens_solved_levels') || '[]'),
+          queens_current: localStorage.getItem('orbitsuite_queens_current_level') || '1',
+          tango_solved: JSON.parse(localStorage.getItem('orbitsuite_tango_solved_levels') || '[]'),
+          tango_current: localStorage.getItem('orbitsuite_tango_current_level') || '1',
+          pinpoint_solved: JSON.parse(localStorage.getItem('orbitsuite_pinpoint_solved_levels') || '[]'),
+          pinpoint_current: localStorage.getItem('orbitsuite_pinpoint_current_level') || '1',
+          crossclimb_solved: JSON.parse(localStorage.getItem('orbitsuite_crossclimb_solved_levels') || '[]'),
+          crossclimb_current: localStorage.getItem('orbitsuite_crossclimb_current_level') || '1',
+          zip_solved: JSON.parse(localStorage.getItem('orbitsuite_zip_solved_levels') || '[]'),
+          zip_current: localStorage.getItem('orbitsuite_zip_current_level') || '1',
+          sudoku_solved: JSON.parse(localStorage.getItem('orbitsuite_sudoku_solved_levels') || '[]'),
+          sudoku_current: localStorage.getItem('orbitsuite_sudoku_current_level') || '1'
+        },
+        settings: {
+          sound: localStorage.getItem('orbitsuite_sound_enabled') !== 'false'
+        }
+      };
+    }
+
+    applyRemoteData(remote) {
+      if (!remote) return;
+
+      // 1. Tasks
+      if (Array.isArray(remote.tasks)) {
+        localStorage.setItem('orbittask_tasks_v2', JSON.stringify(remote.tasks));
+        if (this.suite.taskApp) {
+          this.suite.taskApp.tasks = remote.tasks;
+          this.suite.taskApp.render();
+        }
+      }
+
+      // 2. Notes
+      if (Array.isArray(remote.notes)) {
+        localStorage.setItem('orbitsuite_notes_v1', JSON.stringify(remote.notes));
+        if (this.suite.notesApp) {
+          this.suite.notesApp.notes = remote.notes;
+          this.suite.notesApp.render();
+        }
+      }
+
+      // 3. Habits
+      if (Array.isArray(remote.habits)) {
+        localStorage.setItem('orbitsuite_habits_v1', JSON.stringify(remote.habits));
+        if (this.suite.habitsApp) {
+          this.suite.habitsApp.habits = remote.habits;
+          this.suite.habitsApp.render();
+        }
+      }
+
+      // 4. Focus
+      if (remote.focus) {
+        if (remote.focus.sessions !== undefined) {
+          localStorage.setItem('orbitsuite_focus_sessions', String(remote.focus.sessions));
+          if (this.suite.focusApp) this.suite.focusApp.completedSessions = remote.focus.sessions;
+        }
+        if (remote.focus.minutes !== undefined) {
+          localStorage.setItem('orbitsuite_focus_minutes', String(remote.focus.minutes));
+          if (this.suite.focusApp) this.suite.focusApp.totalMinutes = remote.focus.minutes;
+        }
+      }
+
+      // 5. Riddles
+      if (remote.riddles) {
+        if (Array.isArray(remote.riddles.custom)) {
+          localStorage.setItem('orbitsuite_custom_riddles', JSON.stringify(remote.riddles.custom));
+          if (this.suite.riddleApp) this.suite.riddleApp.customRiddles = remote.riddles.custom;
+        }
+        if (Array.isArray(remote.riddles.solved)) {
+          localStorage.setItem('orbitsuite_riddles_solved', JSON.stringify(remote.riddles.solved));
+          if (this.suite.riddleApp) this.suite.riddleApp.solvedRiddles = new Set(remote.riddles.solved);
+        }
+        if (remote.riddles.streak !== undefined) {
+          localStorage.setItem('orbitsuite_riddle_streak', String(remote.riddles.streak));
+          if (this.suite.riddleApp) this.suite.riddleApp.streak = remote.riddles.streak;
+        }
+      }
+
+      // 6. Mini Game Puzzles
+      if (remote.puzzles) {
+        const p = remote.puzzles;
+        ['queens', 'tango', 'pinpoint', 'crossclimb', 'zip', 'sudoku'].forEach(g => {
+          if (Array.isArray(p[`${g}_solved`])) {
+            localStorage.setItem(`orbitsuite_${g}_solved_levels`, JSON.stringify(p[`${g}_solved`]));
+          }
+          if (p[`${g}_current`]) {
+            localStorage.setItem(`orbitsuite_${g}_current_level`, String(p[`${g}_current`]));
+          }
+        });
+        if (this.suite.riddleApp && typeof this.suite.riddleApp.updateTotalStats === 'function') {
+          this.suite.riddleApp.updateTotalStats();
+        }
+      }
+
+      // 7. Refresh Hub
+      if (this.suite.hubApp && typeof this.suite.hubApp.render === 'function') {
+        this.suite.hubApp.render();
+      }
+
+      this.updateDataCounts();
+    }
+
+    requestSync() {
+      if (!this.user || !this.supabase) return;
+      if (!navigator.onLine) {
+        this.updateBadge('offline', 'Offline (Gespeichert)');
+        return;
+      }
+
+      this.updateBadge('syncing', 'Sync...');
+      clearTimeout(this.debounceTimer);
+      this.debounceTimer = setTimeout(() => {
+        this.pushToCloud(false);
+      }, 1200);
+    }
+
+    async pushToCloud(manual = false) {
+      if (!this.user || !this.supabase) {
+        if (manual) {
+          this.suite.showToast('Bitte melde dich zuerst an, um deine Daten in die Cloud zu sichern.', 'info');
+          this.openModal('account');
+        }
+        return;
+      }
+
+      if (!navigator.onLine) {
+        this.updateBadge('offline', 'Offline');
+        if (manual) this.suite.showToast('Keine Internetverbindung verfügbar.', 'error');
+        return;
+      }
+
+      this.isSyncing = true;
+      this.updateBadge('syncing', 'Wird gesichert...');
+
+      try {
+        const data = this.collectAllLocalData();
+        const payload = {
+          user_id: this.user.id,
+          tasks: data.tasks,
+          notes: data.notes,
+          habits: data.habits,
+          focus: data.focus,
+          riddles: data.riddles,
+          puzzles: data.puzzles,
+          settings: data.settings,
+          updated_at: new Date().toISOString()
+        };
+
+        const { error } = await this.supabase
+          .from('orbit_sync')
+          .upsert(payload, { onConflict: 'user_id' });
+
+        if (error) throw error;
+
+        this.lastSyncedAt = new Date();
+        this.updateBadge('synced', 'Synchronisiert');
+        this.updateLastSyncText();
+        this.updateDataCounts();
+
+        if (manual) {
+          this.suite.showToast('Lokale Daten erfolgreich in die Cloud übertragen! ☁️', 'success');
+        }
+      } catch (err) {
+        console.error('[OrbitSync] Push error:', err);
+        this.updateBadge('error', 'Sync-Fehler');
+        if (manual) {
+          this.suite.showToast('Fehler bei der Synchronisation: ' + (err.message || err), 'error');
+        }
+      } finally {
+        this.isSyncing = false;
+      }
+    }
+
+    async pullFromCloud(silent = false) {
+      if (!this.user || !this.supabase) {
+        if (!silent) {
+          this.suite.showToast('Bitte melde dich an, um Daten aus der Cloud zu laden.', 'info');
+          this.openModal('account');
+        }
+        return;
+      }
+
+      if (!navigator.onLine) {
+        this.updateBadge('offline', 'Offline');
+        if (!silent) this.suite.showToast('Keine Internetverbindung verfügbar.', 'error');
+        return;
+      }
+
+      this.updateBadge('syncing', 'Lade Daten...');
+
+      try {
+        const { data, error } = await this.supabase
+          .from('orbit_sync')
+          .select('*')
+          .eq('user_id', this.user.id)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        if (data) {
+          this.applyRemoteData(data);
+          this.lastSyncedAt = data.updated_at ? new Date(data.updated_at) : new Date();
+          this.updateBadge('synced', 'Synchronisiert');
+          this.updateLastSyncText();
+          if (!silent) {
+            this.suite.showToast('Cloud-Daten erfolgreich auf dieses Gerät geladen! 📥', 'success');
+          }
+        } else {
+          // No record exists in cloud yet -> push current local data as initial seed
+          await this.pushToCloud(false);
+        }
+      } catch (err) {
+        console.error('[OrbitSync] Pull error:', err);
+        this.updateBadge('error', 'Download-Fehler');
+        if (!silent) {
+          this.suite.showToast('Fehler beim Laden: ' + (err.message || err), 'error');
+        }
+      }
+    }
+  }
+
+
   class OrbitSuiteRouter {
 
     constructor() {
@@ -10957,6 +11919,12 @@ init() {
         shortcutsModal: document.getElementById('shortcuts-modal'),
 
         shortcutsModalClose: document.getElementById('shortcuts-modal-close'),
+
+        btnUserSync: document.getElementById('btn-user-sync'),
+
+        authModal: document.getElementById('auth-modal'),
+
+        authModalClose: document.getElementById('auth-modal-close'),
 
         toastContainer: document.getElementById('toast-container')
 
@@ -11039,6 +12007,14 @@ init() {
         this.switchApp('hub', false);
 
       }
+
+
+
+      // 5. Initialize Cloud Sync & User Account System
+
+      this.sync = new OrbitSyncManager(this);
+
+      this.sync.init();
 
     }
 
@@ -11226,6 +12202,44 @@ init() {
 
 
 
+      // Global User Account & Cloud Sync Modal Events
+
+      if (this.dom.btnUserSync) {
+
+        this.dom.btnUserSync.addEventListener('click', () => {
+
+          if (this.sync) this.sync.openModal('account');
+
+        });
+
+      }
+
+      if (this.dom.authModalClose) {
+
+        this.dom.authModalClose.addEventListener('click', () => {
+
+          if (this.sync) this.sync.closeModal();
+
+        });
+
+      }
+
+      if (this.dom.authModal) {
+
+        this.dom.authModal.addEventListener('click', (e) => {
+
+          if (e.target === this.dom.authModal) {
+
+            if (this.sync) this.sync.closeModal();
+
+          }
+
+        });
+
+      }
+
+
+
       // Universal Keyboard Shortcuts (Alt + 0..5, Alt + K, Escape)
 
       window.addEventListener('keydown', (e) => {
@@ -11289,6 +12303,8 @@ init() {
           if (this.dom.backupModal) this.dom.backupModal.classList.add('hidden');
 
           if (this.dom.shortcutsModal) this.dom.shortcutsModal.classList.add('hidden');
+
+          if (this.sync) this.sync.closeModal();
 
         }
 
