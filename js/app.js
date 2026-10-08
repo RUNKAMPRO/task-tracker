@@ -12383,7 +12383,9 @@ END $$;`;
 
         tools: { name: 'OrbitTools', color: '#0284c7' },
 
-        riddle: { name: 'OrbitRätsel', color: '#a855f7' }
+        riddle: { name: 'OrbitRätsel', color: '#a855f7' },
+
+        os: { name: 'OrbitOS Desktop', color: '#6366f1' }
 
       };
 
@@ -12433,7 +12435,11 @@ END $$;`;
 
       const initialHash = window.location.hash.replace('#', '');
 
-      if (this.dom.appViews[initialHash]) {
+      if (initialHash === 'os' || initialHash === 'orbit-os') {
+
+        this.switchApp('os', false);
+
+      } else if (this.dom.appViews[initialHash]) {
 
         this.switchApp(initialHash, false);
 
@@ -12743,6 +12749,12 @@ END $$;`;
 
             this.switchApp('folienwerk');
 
+          } else if (e.key === '8') {
+
+            e.preventDefault();
+
+            this.switchApp('os');
+
           } else if (e.key.toLowerCase() === 'k') {
 
             e.preventDefault();
@@ -12773,7 +12785,11 @@ END $$;`;
 
         const hash = window.location.hash.replace('#', '');
 
-        if (this.dom.appViews[hash] && hash !== this.activeApp) {
+        if ((hash === 'os' || hash === 'orbit-os') && this.activeApp !== 'os') {
+
+          this.switchApp('os', false);
+
+        } else if (this.dom.appViews[hash] && hash !== this.activeApp) {
 
           this.switchApp(hash, false);
 
@@ -12816,6 +12832,44 @@ END $$;`;
 
 
     switchApp(appId, updateHash = true) {
+
+      // Special handling for OrbitOS Desktop
+      if (appId === 'os') {
+        this.activeApp = 'os';
+        if (this.os) {
+          this.os.enableOSMode(true);
+        } else {
+          document.body.classList.add('orbit-os-active');
+        }
+        const theme = this.appThemes['os'] || { name: 'OrbitOS Desktop', color: '#6366f1' };
+        if (this.dom.currentAppName) this.dom.currentAppName.textContent = theme.name;
+        if (this.dom.currentAppDot) {
+          this.dom.currentAppDot.style.background = theme.color;
+          this.dom.currentAppDot.style.boxShadow = '0 0 10px ' + theme.color;
+        }
+        this.dom.suiteNavPills.forEach(pill => {
+          pill.classList.toggle('active', pill.dataset.app === 'os');
+        });
+        this.dom.appMenuItems.forEach(item => {
+          item.classList.toggle('active', item.dataset.appTarget === 'os');
+        });
+        if (updateHash) {
+          try {
+            history.replaceState(null, '', '#os');
+          } catch (e) {
+            window.location.hash = 'os';
+          }
+        }
+        this.sound.playPop();
+        return;
+      }
+
+      // If returning to a normal suite app from OrbitOS mode, deactivate OS mode
+      if (this.os && this.os.activeMode === 'os') {
+        this.os.activeMode = 'suite';
+        localStorage.setItem('orbit_active_mode', 'suite');
+        document.body.classList.remove('orbit-os-active');
+      }
 
       if (appId === 'folienwerk' && this.os && this.os.enabled) {
         this.os.openApp('folienwerk');

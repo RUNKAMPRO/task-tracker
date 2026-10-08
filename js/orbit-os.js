@@ -431,18 +431,49 @@ class OrbitOS {
     }
   }
 
-  enableOSMode() {
+  enableOSMode(clearWindows = true) {
     this.activeMode = 'os';
     localStorage.setItem('orbit_active_mode', 'os');
     document.body.classList.add('orbit-os-active');
 
-    // Default open Tasks window if none open
-    if (this.windows.size === 0) {
-      this.openApp('tasks');
+    // Beim Oeffnen/Wechseln keine Fenster geoeffnet haben
+    if (clearWindows && this.windows.size > 0) {
+      this.closeAll();
+    }
+
+    // Sync URL hash
+    if (window.location.hash !== '#os') {
+      try {
+        history.replaceState(null, '', '#os');
+      } catch (e) {
+        window.location.hash = 'os';
+      }
+    }
+
+    // Navigation-Pills & Menue synchronisieren
+    if (this.suite && this.suite.dom) {
+      if (this.suite.dom.suiteNavPills) {
+        this.suite.dom.suiteNavPills.forEach(pill => {
+          pill.classList.toggle('active', pill.dataset.app === 'os');
+        });
+      }
+      if (this.suite.dom.appMenuItems) {
+        this.suite.dom.appMenuItems.forEach(item => {
+          item.classList.toggle('active', item.dataset.appTarget === 'os');
+        });
+      }
+      if (this.suite.dom.currentAppName) {
+        this.suite.dom.currentAppName.textContent = 'OrbitOS Desktop';
+      }
+      if (this.suite.dom.currentAppDot) {
+        this.suite.dom.currentAppDot.style.background = '#6366f1';
+        this.suite.dom.currentAppDot.style.boxShadow = '0 0 10px #6366f1';
+      }
+      this.suite.activeApp = 'os';
     }
 
     if (this.suite && this.suite.showToast) {
-      this.suite.showToast('OrbitOS Desktop aktiv 🖥️ (Alt + D zum Wechseln)', 'info');
+      this.suite.showToast('OrbitOS Desktop aktiv 🖥️ (Alt + 8 oder Alt + D)', 'info');
     }
   }
 
@@ -466,7 +497,8 @@ class OrbitOS {
 
     // Synchronize router state so ONLY the currently active app view in Workspace is shown
     if (this.suite && this.suite.switchApp) {
-      this.suite.switchApp(this.suite.activeApp || 'hub', false);
+      const targetApp = (this.suite.activeApp && this.suite.activeApp !== 'os') ? this.suite.activeApp : 'hub';
+      this.suite.switchApp(targetApp, true);
     }
 
     if (this.suite && this.suite.showToast) {
@@ -648,6 +680,11 @@ class OrbitOS {
     if (this.suite && this.suite.sound) {
       this.suite.sound.playPop();
     }
+  }
+
+  closeAll() {
+    const appIds = Array.from(this.windows.keys());
+    appIds.forEach(id => this.closeApp(id));
   }
 
   setupWindowInteractions(win) {
