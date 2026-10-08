@@ -1,6 +1,7 @@
 /**
  * OrbitOS • Modern Web Desktop Environment & Window Management Engine
  * Hybrid Workspace Extension for OrbitSuite
+ * Includes Linux Superuser Terminal with `sudo`, Canvas Matrix Digital Rain, and Window Management
  */
 
 class OrbitOS {
@@ -12,6 +13,14 @@ class OrbitOS {
     this.windowZIndex = 100;
     this.activeWindowId = null;
 
+    // Terminal Linux State
+    this.terminalState = {
+      isRoot: false,
+      isPromptingPassword: false,
+      sudoCallback: null,
+      failedAttempts: 0
+    };
+
     this.appDefinitions = {
       tasks: {
         name: 'Aufgaben & Kanban',
@@ -19,8 +28,8 @@ class OrbitOS {
         color: '#6366f1',
         isSuiteApp: true,
         suiteViewId: 'app-view-tasks',
-        defaultWidth: 920,
-        defaultHeight: 640
+        defaultWidth: 900,
+        defaultHeight: 620
       },
       notes: {
         name: 'Notizen & Markdown',
@@ -58,6 +67,14 @@ class OrbitOS {
         defaultWidth: 800,
         defaultHeight: 600
       },
+      terminal: {
+        name: 'Linux Terminal (sudo)',
+        icon: '💻',
+        color: '#14b8a6',
+        isSuiteApp: false,
+        defaultWidth: 720,
+        defaultHeight: 460
+      },
       calculator: {
         name: 'Rechner',
         icon: '🧮',
@@ -66,13 +83,13 @@ class OrbitOS {
         defaultWidth: 320,
         defaultHeight: 440
       },
-      terminal: {
-        name: 'Terminal CLI',
-        icon: '💻',
-        color: '#14b8a6',
+      matrix: {
+        name: 'Matrix Digital Rain',
+        icon: '🟢',
+        color: '#22c55e',
         isSuiteApp: false,
-        defaultWidth: 640,
-        defaultHeight: 400
+        defaultWidth: 800,
+        defaultHeight: 500
       },
       settings: {
         name: 'OS Einstellungen',
@@ -107,32 +124,35 @@ class OrbitOS {
     this.root.innerHTML = `
       <!-- Desktop Area -->
       <div id="orbit-os-desktop">
-        <!-- Desktop Icons -->
+        <!-- Desktop Icons (Left Side Grid) -->
         <div class="os-desktop-icons" id="os-desktop-icons"></div>
 
-        <!-- Clock Widget -->
-        <div class="os-widget-clock" id="os-clock-widget">
-          <div class="os-widget-clock-time" id="os-clock-time">12:00</div>
-          <div class="os-widget-clock-date" id="os-clock-date">Mittwoch, 8. Oktober</div>
-        </div>
+        <!-- Floating Windows Container (Center Layer) -->
+        <div id="os-windows-container" style="position: absolute; inset: 0; pointer-events: none; z-index: 50;"></div>
 
-        <!-- Sticky Note Widget -->
-        <div class="os-widget-sticky" id="os-sticky-widget">
-          <div class="os-sticky-header">
-            <span>📌 Notizzettel</span>
-            <span style="font-size: 9px; opacity: 0.8;">Autosave</span>
+        <!-- Right Side Widgets Column (Non-Overlapping) -->
+        <div class="os-desktop-widgets-column" id="os-widgets-col">
+          <!-- Clock Widget -->
+          <div class="os-widget-clock" id="os-clock-widget">
+            <div class="os-widget-clock-time" id="os-clock-time">12:00</div>
+            <div class="os-widget-clock-date" id="os-clock-date">Mittwoch, 8. Oktober</div>
           </div>
-          <textarea class="os-sticky-textarea" id="os-sticky-text" placeholder="Schnelle Notiz direkt auf dem Desktop..."></textarea>
-        </div>
 
-        <!-- Floating Windows Container -->
-        <div id="os-windows-container" style="position: absolute; inset: 0; pointer-events: none;"></div>
+          <!-- Sticky Note Widget -->
+          <div class="os-widget-sticky" id="os-sticky-widget">
+            <div class="os-sticky-header">
+              <span>📌 Notizzettel</span>
+              <span style="font-size: 9px; opacity: 0.8;">Autosave</span>
+            </div>
+            <textarea class="os-sticky-textarea" id="os-sticky-text" placeholder="Schnelle Notiz direkt auf dem Desktop..."></textarea>
+          </div>
+        </div>
       </div>
 
       <!-- Start Menu Flyout -->
       <div id="orbit-os-start-menu">
         <div class="os-start-search">
-          <input type="text" class="os-start-search-input" id="os-start-search-input" placeholder="🔍 Apps und Befehle durchsuchen...">
+          <input type="text" class="os-start-search-input" id="os-start-search-input" placeholder="🔍 Apps oder Befehle suchen...">
         </div>
         <div class="os-start-apps-grid" id="os-start-apps-grid"></div>
         <div class="os-start-footer">
@@ -176,7 +196,6 @@ class OrbitOS {
 
     document.body.appendChild(this.root);
 
-    // Render Desktop Icons & Start Menu Apps
     this.renderDesktopIcons();
     this.renderStartMenuApps();
     this.initStickyWidget();
@@ -199,11 +218,8 @@ class OrbitOS {
       `;
 
       iconEl.addEventListener('dblclick', () => this.openApp(appId));
-      // For mobile / single-click:
-      iconEl.addEventListener('click', (e) => {
-        if (window.innerWidth < 768) {
-          this.openApp(appId);
-        }
+      iconEl.addEventListener('click', () => {
+        if (window.innerWidth < 768) this.openApp(appId);
       });
 
       container.appendChild(iconEl);
@@ -261,21 +277,21 @@ class OrbitOS {
 
   bindGlobalEvents() {
     // Mode Switch Button in Suite Header
-    const suiteHeader = document.querySelector('.suite-header-right');
-    if (suiteHeader) {
+    const suiteHeaderRight = document.querySelector('.suite-header-right');
+    if (suiteHeaderRight && !document.getElementById('btn-toggle-orbit-os')) {
       const btnToggle = document.createElement('button');
       btnToggle.className = 'suite-os-mode-btn';
       btnToggle.id = 'btn-toggle-orbit-os';
       btnToggle.title = 'Zu OrbitOS Desktop wechseln (Alt + D)';
       btnToggle.innerHTML = `
         <span>🖥️</span>
-        <span>OrbitOS Desktop</span>
+        <span>OrbitOS</span>
       `;
       btnToggle.addEventListener('click', () => this.enableOSMode());
-      suiteHeader.insertBefore(btnToggle, suiteHeader.firstChild);
+      suiteHeaderRight.insertBefore(btnToggle, suiteHeaderRight.firstChild);
     }
 
-    // Switch back to Workspace from Taskbar and Start Menu
+    // Switch back to Workspace
     const btnSwitchBack = document.getElementById('os-btn-tray-switch');
     if (btnSwitchBack) {
       btnSwitchBack.addEventListener('click', () => this.disableOSMode());
@@ -298,7 +314,6 @@ class OrbitOS {
       });
     }
 
-    // Click outside Start Menu to close
     document.addEventListener('click', (e) => {
       const startMenu = document.getElementById('orbit-os-start-menu');
       if (startMenu && startMenu.classList.contains('open')) {
@@ -308,7 +323,7 @@ class OrbitOS {
       }
     });
 
-    // Keyboard Shortcuts: Alt+D toggles OS Mode
+    // Keyboard Shortcut Alt + D
     window.addEventListener('keydown', (e) => {
       if (e.altKey && (e.key === 'd' || e.key === 'D')) {
         e.preventDefault();
@@ -340,13 +355,13 @@ class OrbitOS {
     localStorage.setItem('orbit_active_mode', 'os');
     document.body.classList.add('orbit-os-active');
 
-    // If no windows are open, open Tasks by default
+    // Default open window
     if (this.windows.size === 0) {
       this.openApp('tasks');
     }
 
     if (this.suite && this.suite.showToast) {
-      this.suite.showToast('OrbitOS Desktop aktiviert 🖥️ (Alt + D zum Umschalten)', 'info');
+      this.suite.showToast('OrbitOS Desktop aktiv 🖥️ (Alt + D zum Wechseln)', 'info');
     }
   }
 
@@ -355,7 +370,7 @@ class OrbitOS {
     localStorage.setItem('orbit_active_mode', 'suite');
     document.body.classList.remove('orbit-os-active');
 
-    // Return all suite views back to suite container
+    // Return suite views back to suite container
     this.windows.forEach((win, appId) => {
       const def = this.appDefinitions[appId];
       if (def && def.isSuiteApp && def.suiteViewId) {
@@ -376,7 +391,6 @@ class OrbitOS {
     const def = this.appDefinitions[appId];
     if (!def) return;
 
-    // If window already open, un-minimize and focus
     if (this.windows.has(appId)) {
       const win = this.windows.get(appId);
       win.element.classList.remove('minimized');
@@ -384,7 +398,6 @@ class OrbitOS {
       return;
     }
 
-    // Create New Window
     const winContainer = document.getElementById('os-windows-container');
     if (!winContainer) return;
 
@@ -393,19 +406,22 @@ class OrbitOS {
     winEl.id = `os-window-${appId}`;
     winEl.style.pointerEvents = 'auto';
 
-    // Position staggered based on window count
-    const offset = (this.windows.size * 28) % 180;
-    const initialLeft = Math.min(window.innerWidth - def.defaultWidth - 20, 60 + offset);
-    const initialTop = Math.min(window.innerHeight - def.defaultHeight - 80, 50 + offset);
+    // Position window nicely between left desktop icons (100px) and right widgets (270px)
+    const availableWidth = window.innerWidth - 380;
+    const winWidth = Math.min(Math.max(340, availableWidth), def.defaultWidth);
+    const winHeight = Math.min(window.innerHeight - 90, def.defaultHeight);
 
-    winEl.style.left = `${Math.max(20, initialLeft)}px`;
-    winEl.style.top = `${Math.max(20, initialTop)}px`;
-    winEl.style.width = `${Math.min(window.innerWidth - 40, def.defaultWidth)}px`;
-    winEl.style.height = `${Math.min(window.innerHeight - 100, def.defaultHeight)}px`;
+    const offset = (this.windows.size * 26) % 120;
+    const initialLeft = 110 + offset;
+    const initialTop = 24 + offset;
+
+    winEl.style.left = `${initialLeft}px`;
+    winEl.style.top = `${initialTop}px`;
+    winEl.style.width = `${winWidth}px`;
+    winEl.style.height = `${winHeight}px`;
     winEl.style.zIndex = ++this.windowZIndex;
 
     winEl.innerHTML = `
-      <!-- Window Titlebar -->
       <div class="os-window-header" data-app-id="${appId}">
         <div class="os-window-controls">
           <button class="os-ctrl-dot os-dot-close" title="Schließen" data-action="close">✕</button>
@@ -418,11 +434,7 @@ class OrbitOS {
         </div>
         <div class="os-window-actions"></div>
       </div>
-
-      <!-- Window Body -->
       <div class="os-window-body" id="os-window-body-${appId}"></div>
-
-      <!-- Resizers -->
       <div class="os-resize-handle os-resize-e" data-dir="e"></div>
       <div class="os-resize-handle os-resize-s" data-dir="s"></div>
       <div class="os-resize-handle os-resize-se" data-dir="se"></div>
@@ -434,41 +446,36 @@ class OrbitOS {
     `;
 
     winContainer.appendChild(winEl);
-
     const bodyEl = winEl.querySelector(`#os-window-body-${appId}`);
 
-    // Mount App Content
+    // Mount Content
     if (def.isSuiteApp && def.suiteViewId) {
       const suiteView = document.getElementById(def.suiteViewId);
       if (suiteView) {
         suiteView.style.display = 'block';
         bodyEl.appendChild(suiteView);
       }
+    } else if (appId === 'terminal') {
+      this.mountLinuxTerminal(bodyEl);
     } else if (appId === 'calculator') {
       this.mountCalculator(bodyEl);
-    } else if (appId === 'terminal') {
-      this.mountTerminal(bodyEl);
+    } else if (appId === 'matrix') {
+      this.mountMatrixRain(bodyEl);
     } else if (appId === 'settings') {
       this.mountSettings(bodyEl);
     }
 
-    // Save Window Record
     const winRecord = {
       appId,
       element: winEl,
-      isMaximized: false,
-      prevBounds: null
+      isMaximized: false
     };
     this.windows.set(appId, winRecord);
     this.activeWindowId = appId;
 
-    // Setup Window Dragging & Resizing
     this.setupWindowInteractions(winRecord);
-
-    // Add Tab to Taskbar
     this.addTaskbarTab(appId);
 
-    // Sound effect
     if (this.suite && this.suite.sound) {
       this.suite.sound.playPop();
     }
@@ -482,11 +489,9 @@ class OrbitOS {
     win.element.style.zIndex = this.windowZIndex;
     this.activeWindowId = appId;
 
-    // Update active classes
     this.windows.forEach((w) => w.element.classList.remove('active'));
     win.element.classList.add('active');
 
-    // Update taskbar tabs
     document.querySelectorAll('.os-taskbar-tab').forEach((tab) => {
       tab.classList.toggle('active', tab.dataset.appId === appId);
     });
@@ -528,6 +533,11 @@ class OrbitOS {
     const win = this.windows.get(appId);
     if (!win) return;
 
+    // Cleanup matrix if closing matrix window
+    if (appId === 'matrix' && win.matrixAnimId) {
+      cancelAnimationFrame(win.matrixAnimId);
+    }
+
     const def = this.appDefinitions[appId];
     if (def && def.isSuiteApp && def.suiteViewId) {
       const viewEl = document.getElementById(def.suiteViewId);
@@ -552,10 +562,8 @@ class OrbitOS {
     const el = win.element;
     const header = el.querySelector('.os-window-header');
 
-    // Focus on click
     el.addEventListener('mousedown', () => this.bringToFront(win.appId));
 
-    // Header Controls
     header.addEventListener('click', (e) => {
       const btn = e.target.closest('.os-ctrl-dot');
       if (!btn) return;
@@ -572,7 +580,6 @@ class OrbitOS {
       }
     });
 
-    // Window Dragging
     let isDragging = false;
     let dragStartX = 0;
     let dragStartY = 0;
@@ -605,7 +612,6 @@ class OrbitOS {
       isDragging = false;
     });
 
-    // Window Resizing
     const handles = el.querySelectorAll('.os-resize-handle');
     handles.forEach((handle) => {
       let isResizing = false;
@@ -635,12 +641,8 @@ class OrbitOS {
         const dx = e.clientX - startX;
         const dy = e.clientY - startY;
 
-        if (dir.includes('e')) {
-          el.style.width = `${Math.max(280, startW + dx)}px`;
-        }
-        if (dir.includes('s')) {
-          el.style.height = `${Math.max(180, startH + dy)}px`;
-        }
+        if (dir.includes('e')) el.style.width = `${Math.max(280, startW + dx)}px`;
+        if (dir.includes('s')) el.style.height = `${Math.max(180, startH + dy)}px`;
         if (dir.includes('w')) {
           const newW = Math.max(280, startW - dx);
           el.style.width = `${newW}px`;
@@ -656,6 +658,368 @@ class OrbitOS {
       window.addEventListener('mouseup', () => {
         isResizing = false;
       });
+    });
+  }
+
+  /* ==========================================================================
+     Authentic HTML5 Canvas Matrix Digital Rain
+     ========================================================================== */
+  mountMatrixRain(container) {
+    container.innerHTML = `
+      <div class="os-matrix-container">
+        <canvas class="os-matrix-canvas" id="os-matrix-cvs"></canvas>
+        <div class="os-matrix-banner">MATRIX DIGITAL RAIN // ESC to Exit</div>
+      </div>
+    `;
+
+    const canvas = container.querySelector('#os-matrix-cvs');
+    const ctx = canvas.getContext('2d');
+
+    const resize = () => {
+      canvas.width = container.clientWidth || 800;
+      canvas.height = container.clientHeight || 500;
+    };
+    resize();
+
+    // Half-width Katakana + Latin characters
+    const chars = 'ｦｱｳｴｵｶｷｹｺｻｼｽｾｿﾀﾂﾃﾅﾆﾇﾈﾊﾋﾎﾏﾐﾑﾒﾓﾔﾕﾗﾘﾜ1234567890ABCDEF@#$%&*+-=<>'.split('');
+    const fontSize = 14;
+    let columns = Math.floor(canvas.width / fontSize);
+    let drops = Array(columns).fill(1);
+
+    const render = () => {
+      // Black background with slight opacity for fading trails
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.055)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.font = `${fontSize}px monospace`;
+
+      for (let i = 0; i < drops.length; i++) {
+        const char = chars[Math.floor(Math.random() * chars.length)];
+        const x = i * fontSize;
+        const y = drops[i] * fontSize;
+
+        // Glowing white tip character
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = '#00ff66';
+        ctx.shadowBlur = 8;
+        ctx.fillText(char, x, y);
+
+        // Green trail character directly above
+        ctx.fillStyle = '#00ff66';
+        ctx.shadowBlur = 0;
+        ctx.fillText(char, x, y - fontSize);
+
+        if (y > canvas.height && Math.random() > 0.975) {
+          drops[i] = 0;
+        }
+        drops[i]++;
+      }
+
+      const winRecord = this.windows.get('matrix');
+      if (winRecord) {
+        winRecord.matrixAnimId = requestAnimationFrame(render);
+      }
+    };
+
+    const winRecord = this.windows.get('matrix');
+    if (winRecord) {
+      winRecord.matrixAnimId = requestAnimationFrame(render);
+    }
+
+    window.addEventListener('resize', () => {
+      resize();
+      columns = Math.floor(canvas.width / fontSize);
+      drops = Array(columns).fill(1);
+    });
+  }
+
+  /* ==========================================================================
+     Linux Superuser Terminal Engine with `sudo` & Admin Commands
+     ========================================================================== */
+  mountLinuxTerminal(container) {
+    container.innerHTML = `
+      <div class="os-terminal-wrap">
+        <div class="os-terminal-output" id="os-term-out">
+          <div><strong style="color: #38bdf8;">Linux orbit-os 6.8.0-orbit-generic x86_64</strong></div>
+          <div style="color: #94a3b8; font-size: 11px;">OrbitOS GNU/Linux Shell • Type <span style="color: #facc15;">'help'</span> for list of commands.</div>
+          <div style="color: #94a3b8; font-size: 11px; margin-bottom: 6px;">Type <span style="color: #ef4444; font-weight: bold;">'sudo su'</span> or <span style="color: #ef4444; font-weight: bold;">'sudo admin'</span> for system administrator console.</div>
+        </div>
+        <div class="os-terminal-input-row">
+          <span class="os-terminal-prompt" id="os-term-prompt">rune@orbit:~$</span>
+          <input type="text" class="os-terminal-input" id="os-term-in" autofocus autocomplete="off" spellcheck="false">
+        </div>
+      </div>
+    `;
+
+    const out = container.querySelector('#os-term-out');
+    const input = container.querySelector('#os-term-in');
+    const prompt = container.querySelector('#os-term-prompt');
+
+    const print = (text, color = '#cbd5e1') => {
+      const line = document.createElement('div');
+      line.style.color = color;
+      line.innerHTML = text;
+      out.appendChild(line);
+      out.scrollTop = out.scrollHeight;
+    };
+
+    const setPrompt = () => {
+      if (this.terminalState.isPromptingPassword) {
+        prompt.textContent = '[sudo] password for rune:';
+        prompt.className = 'os-terminal-prompt';
+        prompt.style.color = '#facc15';
+        input.type = 'password';
+      } else if (this.terminalState.isRoot) {
+        prompt.textContent = 'root@orbit:~#';
+        prompt.className = 'os-terminal-prompt root';
+        input.type = 'text';
+      } else {
+        prompt.textContent = 'rune@orbit:~$';
+        prompt.className = 'os-terminal-prompt';
+        prompt.style.color = '#34d399';
+        input.type = 'text';
+      }
+    };
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const val = input.value.trim();
+        input.value = '';
+
+        // Handle Password Prompt for SUDO
+        if (this.terminalState.isPromptingPassword) {
+          const expectedPin = localStorage.getItem('orbitsuite_admin_pin') || 
+            (window.ORBIT_CONFIG && window.ORBIT_CONFIG.defaultAdminPin) || '1234';
+
+          if (val === expectedPin) {
+            this.terminalState.isRoot = true;
+            this.terminalState.isPromptingPassword = false;
+            this.terminalState.failedAttempts = 0;
+            setPrompt();
+
+            print(`
+<pre style="color: #ef4444; margin: 4px 0; font-family: monospace; font-size: 11px; line-height: 1.15;">
+ ___       _     _ _   ___  ____  
+/ _ \\ _ __| |__ (_) |_/ _ \\/ ___| 
+| | | | '__| '_ \\| | __| | | \\___ \\ 
+| |_| | |  | |_) | | |_| |_| |___) |
+ \\___/|_|  |_.__/|_|\\__|\\___/|____/ 
+</pre>
+<div style="color: #22c55e; font-weight: bold;">[ OK ] Authentication successful. Granted superuser access.</div>
+<div style="color: #94a3b8; font-size: 11.5px;">Type <span style="color: #facc15;">'systemctl status cloud-sync'</span> or <span style="color: #facc15;">'passwd'</span> to manage system.</div>
+            `);
+
+            if (this.terminalState.sudoCallback) {
+              const cb = this.terminalState.sudoCallback;
+              this.terminalState.sudoCallback = null;
+              cb();
+            }
+          } else {
+            this.terminalState.failedAttempts++;
+            print(`sudo: ${this.terminalState.failedAttempts} incorrect password attempt(s)`, '#ef4444');
+            if (this.terminalState.failedAttempts >= 3) {
+              print('sudo: 3 incorrect password attempts; incident will be reported to /var/log/auth.log', '#ef4444');
+              this.terminalState.isPromptingPassword = false;
+              this.terminalState.sudoCallback = null;
+              setPrompt();
+            }
+          }
+          return;
+        }
+
+        if (!val) return;
+
+        // Print entered command
+        const currentPrompt = prompt.textContent;
+        print(`<span style="${this.terminalState.isRoot ? 'color: #ef4444; font-weight: 700;' : 'color: #34d399;'}">${currentPrompt}</span> ${val}`);
+
+        const parts = val.split(' ');
+        const cmd = parts[0].toLowerCase();
+        const arg1 = parts[1] ? parts[1].toLowerCase() : '';
+        const arg2 = parts[2] ? parts[2].toLowerCase() : '';
+
+        // Execute Command
+        if (cmd === 'sudo' || cmd === 'su') {
+          if (this.terminalState.isRoot) {
+            print('You are already root.', '#38bdf8');
+            return;
+          }
+          this.terminalState.isPromptingPassword = true;
+          this.terminalState.sudoCallback = () => {
+            if (arg1 === 'admin' || arg1 === 'panel') {
+              if (window.orbitSuite && window.orbitSuite.admin) {
+                window.orbitSuite.admin.openModal();
+              }
+            }
+          };
+          setPrompt();
+        } else if (cmd === 'help') {
+          print(`
+<strong style="color: #facc15;">OrbitOS Linux Command Reference:</strong>
+  <strong style="color: #38bdf8;">System:</strong>
+    <span style="color: #34d399;">neofetch</span> / <span style="color: #34d399;">orbitfetch</span>  - System Info & ASCII Logo
+    <span style="color: #34d399;">uname -a</span>            - Kernel & Architektur
+    <span style="color: #34d399;">uptime</span>              - System-Laufzeit
+    <span style="color: #34d399;">whoami</span>              - Aktueller Benutzer
+    <span style="color: #34d399;">date</span>                - Datum & Zeit
+    <span style="color: #34d399;">clear</span>               - Terminal leeren
+  <strong style="color: #38bdf8;">Superuser (Root):</strong>
+    <span style="color: #ef4444;">sudo su</span>             - Zu Root wechseln (fragt Admin-PIN)
+    <span style="color: #ef4444;">systemctl &lt;status|restart&gt; cloud-sync</span> - Supabase Cloud Service steuern
+    <span style="color: #ef4444;">passwd</span>              - Admin-PIN ändern
+    <span style="color: #ef4444;">cat /etc/orbit/config.json</span> - Cloud-Konfiguration prüfen
+  <strong style="color: #38bdf8;">Apps & Fun:</strong>
+    <span style="color: #a855f7;">matrix</span>              - Echtes HTML5 Canvas Matrix Digital Rain starten
+    <span style="color: #a855f7;">tasks</span>               - Aufgabenliste anzeigen
+    <span style="color: #a855f7;">calc &lt;math&gt;</span>         - Taschenrechner (z.B. calc 42*7)
+    <span style="color: #a855f7;">wallpaper &lt;theme&gt;</span>   - Wallpaper wechseln (nebula, cyberpunk, midnight, aurora)
+    <span style="color: #a855f7;">exit</span>                - Superuser verlassen oder Fenster schließen
+          `);
+        } else if (cmd === 'neofetch' || cmd === 'orbitfetch') {
+          const tasksCount = (this.suite && this.suite.tasks && this.suite.tasks.tasks) ? this.suite.tasks.tasks.length : 0;
+          print(`
+<div style="display: flex; gap: 16px; margin: 6px 0;">
+  <pre style="color: #6366f1; font-weight: bold; line-height: 1.15; margin: 0;">
+       .---.      
+      /     \\     
+     | () () |    
+      \\  _  /     
+       \`---\`      
+   /\\       /\\    
+  /  \`-----\`  \\   
+ /             \\  
+  </pre>
+  <div style="font-size: 11.5px; line-height: 1.45;">
+    <div><strong style="color: #38bdf8;">rune@orbit-os</strong></div>
+    <div>-----------------------</div>
+    <div><span style="color: #94a3b8;">OS:</span> OrbitOS 2.6 Linux-Compat (x86_64)</div>
+    <div><span style="color: #94a3b8;">Host:</span> OrbitSuite Productivity Core</div>
+    <div><span style="color: #94a3b8;">Kernel:</span> 6.8.0-orbit-generic</div>
+    <div><span style="color: #94a3b8;">Uptime:</span> 4h 12m</div>
+    <div><span style="color: #94a3b8;">Packages:</span> 8 (suite-apps)</div>
+    <div><span style="color: #94a3b8;">Shell:</span> orbitsh 2.4.0</div>
+    <div><span style="color: #94a3b8;">DE / WM:</span> OrbitDesktop / OrbitWindowManager</div>
+    <div><span style="color: #94a3b8;">Cloud Sync:</span> Supabase Active 🟢</div>
+    <div><span style="color: #94a3b8;">Tasks DB:</span> ${tasksCount} registered tasks</div>
+  </div>
+</div>
+          `);
+        } else if (cmd === 'systemctl') {
+          if (!this.terminalState.isRoot) {
+            print('systemctl: Access denied. Root privileges required. Try \'sudo systemctl\'.', '#ef4444');
+            return;
+          }
+          if (arg1 === 'status') {
+            const hasClient = Boolean(this.suite.sync && this.suite.sync.client);
+            print(`
+<span class="os-term-tag-ok">●</span> cloud-sync.service - Supabase Cloud Database Daemon
+     Loaded: loaded (/etc/systemd/system/cloud-sync.service; enabled)
+     Active: <span class="os-term-tag-ok">active (running)</span> since Tue 2026-10-08 10:00:00 UTC
+     Client Status: ${hasClient ? '<span style="color:#22c55e;">CONNECTED</span>' : '<span style="color:#f59e0b;">STANDBY</span>'}
+     Endpoint: ${window.ORBIT_CONFIG.supabaseUrl}
+     Target Table: public.orbit_sync
+     Encrypted Handshake: TLS 1.3 / AES-256-GCM
+     Main PID: 1042 (supabase-worker)
+            `);
+          } else if (arg1 === 'restart') {
+            print('[  ...  ] Stopping cloud-sync.service...', '#facc15');
+            setTimeout(() => {
+              if (this.suite.sync) {
+                this.suite.sync.pullFromCloud();
+              }
+              print('[  <span class="os-term-tag-ok">OK</span>  ] Stopped cloud-sync.service.');
+              print('[  <span class="os-term-tag-ok">OK</span>  ] Started cloud-sync.service.');
+              print('[  <span class="os-term-tag-ok">OK</span>  ] Synced live with Supabase cloud successfully!', '#22c55e');
+            }, 600);
+          } else {
+            print('Usage: systemctl <status|restart> cloud-sync', '#ef4444');
+          }
+        } else if (cmd === 'uname') {
+          print('Linux orbit-os 6.8.0-orbit-generic #42-SMP Tue Oct 8 10:45:00 UTC 2026 x86_64 GNU/Linux');
+        } else if (cmd === 'whoami') {
+          print(this.terminalState.isRoot ? '<strong style="color: #ef4444;">root</strong>' : 'rune');
+        } else if (cmd === 'uptime') {
+          print(' 10:45:12 up 4:12,  1 user,  load average: 0.08, 0.04, 0.01');
+        } else if (cmd === 'date') {
+          print(new Date().toString());
+        } else if (cmd === 'ls') {
+          print(`
+<span style="color: #38bdf8; font-weight: bold;">bin/</span>   <span style="color: #38bdf8; font-weight: bold;">etc/</span>   <span style="color: #38bdf8; font-weight: bold;">home/</span>   <span style="color: #38bdf8; font-weight: bold;">var/</span>   <span style="color: #a855f7;">orbit_sync.db</span>   <span style="color: #facc15;">notes.md</span>
+          `);
+        } else if (cmd === 'cat') {
+          if (arg1.includes('config.json') || arg1.includes('orbit')) {
+            if (!this.terminalState.isRoot) {
+              print('cat: /etc/orbit/config.json: Permission denied (root required)', '#ef4444');
+              return;
+            }
+            const cfg = window.ORBIT_CONFIG || {};
+            print(`
+{
+  "supabaseUrl": "${cfg.supabaseUrl || 'https://hsbtkwiuoxehexbcykvn.supabase.co'}",
+  "supabaseKey": "sb_publishable_************************",
+  "adminSalt": "${cfg.adminSalt || 'orbit_suite_salt_***'}",
+  "authStatus": "Salted & Peppered SHA-256 Protected"
+}
+            `, '#38bdf8');
+          } else if (arg1.includes('syslog') || arg1.includes('log')) {
+            print(`
+Oct  8 10:00:01 orbit-os systemd[1]: Started Supabase Cloud Synchronization.
+Oct  8 10:12:30 orbit-os kernel: [4210.021] User rune logged into OrbitOS Desktop.
+Oct  8 10:24:15 orbit-os sudo[142]: rune : TTY=pts/0 ; PWD=/home/rune ; USER=root ; COMMAND=/bin/bash
+            `, '#94a3b8');
+          } else {
+            print(`cat: ${arg1 || 'file'}: No such file or directory`, '#ef4444');
+          }
+        } else if (cmd === 'passwd') {
+          if (!this.terminalState.isRoot) {
+            print('passwd: You may not view or modify password for root. Try \'sudo passwd\'.', '#ef4444');
+            return;
+          }
+          const newPin = prompt('Neuen 4-stelligen Admin-PIN eingeben:');
+          if (newPin && newPin.trim().length >= 4) {
+            localStorage.setItem('orbitsuite_admin_pin', newPin.trim());
+            print(`[ <span class="os-term-tag-ok">OK</span> ] passwd: password updated successfully.`, '#22c55e');
+          } else {
+            print('passwd: Authentication token manipulation error (PIN must be at least 4 chars).', '#ef4444');
+          }
+        } else if (cmd === 'matrix') {
+          this.openApp('matrix');
+          print('[ <span class="os-term-tag-ok">OK</span> ] Matrix Digital Rain engine launched in window.', '#22c55e');
+        } else if (cmd === 'tasks') {
+          const tasks = (this.suite && this.suite.tasks && this.suite.tasks.tasks) ? this.suite.tasks.tasks : [];
+          print(`OrbitTask Database: <strong>${tasks.length}</strong> active task(s):`);
+          tasks.slice(0, 7).forEach((t, i) => {
+            print(` [${i+1}] ${t.title || 'Aufgabe'} <span style="color: #6366f1;">(${t.status || 'backlog'})</span>`);
+          });
+        } else if (cmd === 'calc') {
+          try {
+            const res = eval(parts.slice(1).join(' '));
+            print(`= ${res}`, '#10b981');
+          } catch (err) {
+            print(`Syntax Error: ${err.message}`, '#ef4444');
+          }
+        } else if (cmd === 'wallpaper') {
+          if (['nebula', 'cyberpunk', 'midnight', 'aurora'].includes(arg1)) {
+            this.setWallpaper(arg1);
+            print(`[ <span class="os-term-tag-ok">OK</span> ] Wallpaper switched to: ${arg1}`, '#38bdf8');
+          } else {
+            print('Invalid theme. Options: nebula, cyberpunk, midnight, aurora', '#ef4444');
+          }
+        } else if (cmd === 'clear') {
+          out.innerHTML = '';
+        } else if (cmd === 'exit') {
+          if (this.terminalState.isRoot) {
+            this.terminalState.isRoot = false;
+            setPrompt();
+            print('exit (dropped superuser privileges back to rune)', '#38bdf8');
+          } else {
+            this.closeApp('terminal');
+          }
+        } else {
+          print(`bash: ${cmd}: command not found. Type 'help'.`, '#ef4444');
+        }
+      }
     });
   }
 
@@ -716,88 +1080,6 @@ class OrbitOS {
     });
   }
 
-  mountTerminal(container) {
-    container.innerHTML = `
-      <div class="os-terminal-wrap">
-        <div class="os-terminal-output" id="os-term-out">
-          <div><strong style="color: #38bdf8;">OrbitOS Shell v1.0</strong> [Type <span style="color: #facc15;">'help'</span> for available commands]</div>
-        </div>
-        <div class="os-terminal-input-row">
-          <span class="os-terminal-prompt">rune@orbit:~$</span>
-          <input type="text" class="os-terminal-input" id="os-term-in" autofocus>
-        </div>
-      </div>
-    `;
-
-    const out = container.querySelector('#os-term-out');
-    const input = container.querySelector('#os-term-in');
-
-    const print = (text, color = '#cbd5e1') => {
-      const line = document.createElement('div');
-      line.style.color = color;
-      line.innerHTML = text;
-      out.appendChild(line);
-      out.scrollTop = out.scrollHeight;
-    };
-
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        const cmd = input.value.trim();
-        input.value = '';
-        if (!cmd) return;
-
-        print(`<span style="color: #34d399;">rune@orbit:~$</span> ${cmd}`);
-        const parts = cmd.split(' ');
-        const main = parts[0].toLowerCase();
-
-        if (main === 'help') {
-          print('Verfügbare Befehle:');
-          print('  <span style="color: #facc15;">tasks</span>        - Zeigt Anzahl und Status offener Aufgaben');
-          print('  <span style="color: #facc15;">calc &lt;expr&gt;</span>   - Berechnet einen mathematischen Ausdruck');
-          print('  <span style="color: #facc15;">matrix</span>       - Startet Matrix Digital Rain Animation');
-          print('  <span style="color: #facc15;">wallpaper</span>    - Ändert Wallpaper: nebula, cyberpunk, midnight, aurora');
-          print('  <span style="color: #facc15;">clear</span>        - Löscht den Bildschirm');
-          print('  <span style="color: #facc15;">exit</span>         - Schließt das Terminal');
-        } else if (main === 'tasks') {
-          const tasks = (this.suite && this.suite.tasks && this.suite.tasks.tasks) ? this.suite.tasks.tasks : [];
-          print(`Aktuelle Aufgabenanzahl: <strong>${tasks.length}</strong>`);
-          tasks.slice(0, 5).forEach((t, i) => {
-            print(` [${i+1}] ${t.title || 'Aufgabe'} (${t.status || 'backlog'})`);
-          });
-        } else if (main === 'calc') {
-          try {
-            const res = eval(parts.slice(1).join(' '));
-            print(`= ${res}`, '#10b981');
-          } catch (err) {
-            print(`Syntax Error: ${err.message}`, '#ef4444');
-          }
-        } else if (main === 'matrix') {
-          print('Entering the Matrix... Wake up, Neo.', '#22c55e');
-          for (let i = 0; i < 8; i++) {
-            setTimeout(() => {
-              const str = Array.from({length: 40}, () => String.fromCharCode(33 + Math.floor(Math.random() * 90))).join('');
-              print(str, '#22c55e');
-            }, i * 150);
-          }
-        } else if (main === 'wallpaper') {
-          const wp = parts[1];
-          if (['nebula', 'cyberpunk', 'midnight', 'aurora'].includes(wp)) {
-            this.setWallpaper(wp);
-            print(`Wallpaper geändert auf: ${wp}`, '#38bdf8');
-          } else {
-            print('Ungültiges Wallpaper. Verfügbar: nebula, cyberpunk, midnight, aurora', '#ef4444');
-          }
-        } else if (main === 'clear') {
-          out.innerHTML = '';
-        } else if (main === 'exit') {
-          this.closeApp('terminal');
-        } else {
-          print(`Befehl '${main}' nicht gefunden. Tippe 'help'.`, '#ef4444');
-        }
-      }
-    });
-  }
-
   mountSettings(container) {
     container.innerHTML = `
       <div style="padding: 20px; display: flex; flex-direction: column; gap: 18px; color: #f1f5f9;">
@@ -841,5 +1123,4 @@ class OrbitOS {
   }
 }
 
-// Attach OrbitOS to global window object
 window.OrbitOS = OrbitOS;
