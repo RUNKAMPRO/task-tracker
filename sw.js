@@ -1,8 +1,8 @@
 // ==============================================================================
-// OrbitSuite Service Worker (Offline & PWA Caching Engine)
+// OrbitSuite Service Worker (Offline & Instant PWA Caching Engine)
 // ==============================================================================
 
-const CACHE_VERSION = 'orbitsuite-v3.6.1';
+const CACHE_VERSION = 'orbitsuite-v3.6.2';
 const STATIC_CACHE_NAME = `orbitsuite-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE_NAME = `orbitsuite-runtime-${CACHE_VERSION}`;
 
@@ -38,7 +38,7 @@ self.addEventListener('install', event => {
   );
 });
 
-// 2. Activate Event: Clean up legacy caches
+// 2. Activate Event: Clean up legacy caches & take immediate control
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys => {
@@ -54,44 +54,47 @@ self.addEventListener('activate', event => {
   );
 });
 
-// 3. Fetch Event: Dual Caching Strategy
+// 3. Fetch Event: Instant Stale-While-Revalidate Strategy
 self.addEventListener('fetch', event => {
   const req = event.request;
   const url = new URL(req.url);
 
-  // Skip cross-origin or non-GET requests (e.g. Supabase POST/REST requests)
+  // Skip cross-origin non-GET requests or browser schemes
   if (req.method !== 'GET' || !url.protocol.startsWith('http')) {
     return;
   }
 
-  // Skip caching Supabase API or external auth / streaming calls
-  if (url.hostname.includes('supabase.co') || url.hostname.includes('spotify.com')) {
+  // Skip live dynamic APIs: Supabase DB, Spotify API, or local Folienwerk port
+  if (url.hostname.includes('supabase.co') || url.hostname.includes('spotify.com') || url.port === '8765') {
     return;
   }
 
-  // Strategy A: HTML Documents -> Network First with Stale-While-Revalidate Fallback
+  // Strategy A: HTML Document Navigation -> Instant Cache (0ms), revalidate in background
   if (req.mode === 'navigate' || req.headers.get('accept')?.includes('text/html')) {
     event.respondWith(
-      fetch(req)
-        .then(res => {
-          if (res.ok) {
-            const clone = res.clone();
-            caches.open(RUNTIME_CACHE_NAME).then(cache => cache.put(req, clone));
-          }
-          return res;
-        })
-        .catch(async () => {
-          const cached = await caches.match(req);
-          if (cached) return cached;
-          return caches.match('./index.html');
-        })
+      caches.match(req, { ignoreSearch: true }).then(async cachedResponse => {
+        const fallback = cachedResponse || (await caches.match('./index.html', { ignoreSearch: true }));
+
+        const networkFetch = fetch(req)
+          .then(networkResponse => {
+            if (networkResponse && networkResponse.ok) {
+              const clone = networkResponse.clone();
+              caches.open(RUNTIME_CACHE_NAME).then(cache => cache.put(req, clone));
+            }
+            return networkResponse;
+          })
+          .catch(() => fallback);
+
+        // If cached HTML exists, serve it in ~0ms for instant app launch
+        return fallback || networkFetch;
+      })
     );
     return;
   }
 
-  // Strategy B: Local App Assets (css, js, icons): Stale While Revalidate
+  // Strategy B: App Assets (CSS, JS, Fonts, Images) -> Stale-While-Revalidate with search param tolerance
   event.respondWith(
-    caches.match(req).then(cachedResponse => {
+    caches.match(req, { ignoreSearch: true }).then(cachedResponse => {
       const fetchPromise = fetch(req)
         .then(networkResponse => {
           if (networkResponse && networkResponse.ok) {
@@ -102,6 +105,7 @@ self.addEventListener('fetch', event => {
         })
         .catch(() => cachedResponse);
 
+      // Return instant cached response (0ms) if available, otherwise network fetch
       return cachedResponse || fetchPromise;
     })
   );
