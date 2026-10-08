@@ -12440,8 +12440,12 @@ END $$;`;
       // 6. Initialize Protected Admin Panel System
 
       this.admin = new OrbitAdminManager(this);
-
       this.admin.init();
+
+      // 7. Initialize OrbitOS Desktop Environment (Hybrid Mini-OS)
+      if (typeof window.OrbitOS !== 'undefined') {
+        this.os = new OrbitOS(this);
+      }
 
     }
 
