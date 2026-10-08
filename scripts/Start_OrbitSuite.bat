@@ -15,7 +15,7 @@ if %errorlevel% neq 0 (
         where py >nul 2>&1
         if !errorlevel! equ 0 set "PY_CMD=py"
     )
-    start /min "" !PY_CMD! -m http.server 8080 --bind 0.0.0.0
+    start /min "" !PY_CMD! -m http.server 8080 --bind 127.0.0.1
 )
 
 :: 3. Port 8765 (Folienwerk) blitzschnell via nativem netstat pruefen (<50ms)

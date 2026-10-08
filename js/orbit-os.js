@@ -144,6 +144,39 @@ class OrbitOS {
     }
   }
 
+
+  /* ==========================================================================
+     Security Helpers: Safe Math Evaluator & HTML Sanitization
+     ========================================================================== */
+  escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  safeEvaluateMath(exprStr) {
+    if (!exprStr || typeof exprStr !== 'string') return 0;
+    // Replace visual operators
+    let sanitized = exprStr.replace(/×/g, '*').replace(/÷/g, '/').trim();
+    // Strict whitelist: only allow digits, whitespace, decimal point, parentheses, and math operators (+, -, *, /, %)
+    if (!/^[0-9\s\.\+\-\*/\(\)\%]+$/.test(sanitized)) {
+      throw new Error('Ungueltiger mathematischer Ausdruck (nur Zahlen und Operatoren erlaubt).');
+    }
+    // Disallow dangerous JS sequences like comments or consecutive invalid tokens
+    if (/\/\*|\/\/|__proto__|constructor/.test(sanitized)) {
+      throw new Error('Sicherheitsverletzung im Ausdruck.');
+    }
+    const result = Function('"use strict"; return (' + sanitized + ')')();
+    if (typeof result !== 'number' || !isFinite(result)) {
+      throw new Error('Ungueltiges mathematisches Ergebnis.');
+    }
+    return result;
+  }
+
   /* Create invisible DOM anchors inside #suite-container to preserve 100% exact order */
   createSuiteAnchors() {
     Object.values(this.appDefinitions).forEach((def) => {
@@ -1178,14 +1211,17 @@ Oct  8 10:24:15 orbit-os sudo[142]: rune : TTY=pts/0 ; PWD=/home/rune ; USER=roo
           const tasks = (this.suite && this.suite.tasks && this.suite.tasks.tasks) ? this.suite.tasks.tasks : [];
           print(`OrbitTask Database: <strong>${tasks.length}</strong> active task(s):`);
           tasks.slice(0, 7).forEach((t, i) => {
-            print(` [${i+1}] ${t.title || 'Aufgabe'} <span style="color: #6366f1;">(${t.status || 'backlog'})</span>`);
+            const safeTitle = this.escapeHtml(t.title || 'Aufgabe');
+            const safeStatus = this.escapeHtml(t.status || 'backlog');
+            print(` [${i+1}] ${safeTitle} <span style="color: #6366f1;">(${safeStatus})</span>`);
           });
         } else if (cmd === 'calc') {
           try {
-            const res = eval(parts.slice(1).join(' '));
+            const mathExpr = parts.slice(1).join(' ');
+            const res = this.safeEvaluateMath(mathExpr);
             print(`= ${res}`, '#10b981');
           } catch (err) {
-            print(`Syntax Error: ${err.message}`, '#ef4444');
+            print(`Fehler: ${this.escapeHtml(err.message)}`, '#ef4444');
           }
         } else if (cmd === 'wallpaper') {
           if (['nebula', 'cyberpunk', 'midnight', 'aurora'].includes(arg1)) {
@@ -1604,7 +1640,7 @@ Oct  8 10:24:15 orbit-os sudo[142]: rune : TTY=pts/0 ; PWD=/home/rune ; USER=roo
           expr = expr.length > 1 ? expr.slice(0, -1) : '0';
         } else if (val === '=') {
           try {
-            expr = String(eval(expr.replace(/×/g, '*').replace(/÷/g, '/')));
+            expr = String(this.safeEvaluateMath(expr));
           } catch (e) {
             expr = 'Error';
           }
@@ -1646,7 +1682,7 @@ Oct  8 10:24:15 orbit-os sudo[142]: rune : TTY=pts/0 ; PWD=/home/rune ; USER=roo
 
         <!-- Frame / Status View -->
         <div style="flex:1; position:relative; overflow:hidden; background:#0b0d13;">
-          <iframe id="os-fw-iframe" src="http://localhost:8765" style="width:100%; height:100%; border:none; display:block;" allow="clipboard-read; clipboard-write"></iframe>
+          <iframe id="os-fw-iframe" src="http://localhost:8765" style="width:100%; height:100%; border:none; display:block;" allow="clipboard-read; clipboard-write; fullscreen" sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-modals"></iframe>
           
           <div id="os-fw-offline-card" style="display:none; position:absolute; inset:0; background:rgba(15,17,23,0.95); backdrop-filter:blur(10px); flex-direction:column; align-items:center; justify-content:center; padding:30px; text-align:center; z-index:10;">
             <div style="width:64px; height:64px; border-radius:18px; background:linear-gradient(135deg, #e11d48, #f43f5e); display:flex; align-items:center; justify-content:center; font-size:32px; margin-bottom:16px; box-shadow:0 8px 24px rgba(225,29,72,0.35);">📑</div>
