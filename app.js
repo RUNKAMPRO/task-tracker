@@ -11345,6 +11345,9 @@ END $$;`;
 
     renderUserUI() {
       if (!this.user) return;
+      if (this.suite.admin) {
+        this.suite.admin.updateVisibility();
+      }
       if (this.dom.viewGuest) this.dom.viewGuest.classList.add('hidden');
       if (this.dom.viewUser) this.dom.viewUser.classList.remove('hidden');
 
@@ -11373,6 +11376,9 @@ END $$;`;
     }
 
     renderGuestUI() {
+      if (this.suite.admin) {
+        this.suite.admin.updateVisibility();
+      }
       if (this.dom.viewGuest) this.dom.viewGuest.classList.remove('hidden');
       if (this.dom.viewUser) this.dom.viewUser.classList.add('hidden');
 
@@ -11867,6 +11873,8 @@ END $$;`;
       this.isAdminUnlocked = false;
       this.STORAGE_KEY_ADMIN_PIN = 'orbitsuite_admin_pin';
       this.activeTab = 'db';
+      this.failedAttempts = 0;
+      this.lockoutUntil = 0;
 
       this.dom = {
         adminModal: document.getElementById('admin-modal'),
@@ -11909,6 +11917,37 @@ END $$;`;
     init() {
       this.bindEvents();
       this.refreshConfigFields();
+      this.updateVisibility();
+    }
+
+    isAdminUser() {
+      const currentUserEmail = (this.suite.sync && this.suite.sync.user && this.suite.sync.user.email) 
+        ? this.suite.sync.user.email.toLowerCase().trim() 
+        : '';
+      const adminList = (window.ORBIT_CONFIG && window.ORBIT_CONFIG.adminEmails) || ['runekamprolf@gmail.com'];
+      const normalizedAdmins = adminList.map(e => (e || '').toLowerCase().trim());
+      return Boolean(currentUserEmail && normalizedAdmins.includes(currentUserEmail));
+    }
+
+    updateVisibility() {
+      const isAuthorized = this.isAdminUser();
+      if (this.dom.btnSuiteAdmin) {
+        this.dom.btnSuiteAdmin.classList.toggle('hidden', !isAuthorized);
+        if (isAuthorized && this.suite.sync && this.suite.sync.user) {
+          this.dom.btnSuiteAdmin.title = `Admin-Panel (Autorisiert: ${this.suite.sync.user.email})`;
+        }
+      }
+      if (this.dom.btnOpenAdminFromModal) {
+        const wrap = this.dom.btnOpenAdminFromModal.closest('.auth-modal-footer');
+        if (wrap) {
+          wrap.classList.toggle('hidden', !isAuthorized);
+        } else {
+          this.dom.btnOpenAdminFromModal.classList.toggle('hidden', !isAuthorized);
+        }
+      }
+      if (!isAuthorized && this.dom.adminModal && !this.dom.adminModal.classList.contains('hidden')) {
+        this.closeModal();
+      }
     }
 
     getValidPin() {
@@ -11919,6 +11958,15 @@ END $$;`;
 
     openModal() {
       if (!this.dom.adminModal) return;
+      if (!this.isAdminUser()) {
+        const currentUserEmail = (this.suite.sync && this.suite.sync.user) ? this.suite.sync.user.email : null;
+        if (currentUserEmail) {
+          this.suite.showToast(`Zugriff verweigert: ${currentUserEmail} ist nicht als Administrator autorisiert.`, 'error');
+        } else {
+          this.suite.showToast('Zugriff verweigert: Bitte melde dich zuerst mit deinem Admin-Konto (runekamprolf@gmail.com) an.', 'error');
+        }
+        return;
+      }
       if (this.isAdminUnlocked) {
         this.showUnlockedView();
       } else {
@@ -11949,16 +11997,38 @@ END $$;`;
     }
 
     unlock() {
+      if (this.lockoutUntil && Date.now() < this.lockoutUntil) {
+        const remaining = Math.ceil((this.lockoutUntil - Date.now()) / 1000);
+        if (this.dom.pinError) {
+          this.dom.pinError.classList.remove('hidden');
+          this.dom.pinError.textContent = `Zu viele Fehlversuche. Bitte warte noch ${remaining}s.`;
+        }
+        return;
+      }
+
       const entered = (this.dom.inputPin ? this.dom.inputPin.value : '').trim();
       const valid = this.getValidPin();
+
       if (entered === valid) {
         this.isAdminUnlocked = true;
+        this.failedAttempts = 0;
+        this.lockoutUntil = 0;
         this.showUnlockedView();
         this.suite.showToast('Admin-Bereich erfolgreich entsperrt! 🛡️', 'success');
       } else {
-        if (this.dom.pinError) {
-          this.dom.pinError.classList.remove('hidden');
-          this.dom.pinError.textContent = 'Falsche PIN. Bitte erneut versuchen.';
+        this.failedAttempts = (this.failedAttempts || 0) + 1;
+        if (this.failedAttempts >= 3) {
+          this.lockoutUntil = Date.now() + 60000;
+          if (this.dom.pinError) {
+            this.dom.pinError.classList.remove('hidden');
+            this.dom.pinError.textContent = '3 Fehlversuche. PIN-Eingabe für 60 Sekunden gesperrt!';
+          }
+        } else {
+          const left = 3 - this.failedAttempts;
+          if (this.dom.pinError) {
+            this.dom.pinError.classList.remove('hidden');
+            this.dom.pinError.textContent = `Falsche PIN. (${left} Versuch${left === 1 ? '' : 'e'} übrig)`;
+          }
         }
         if (this.dom.inputPin) {
           this.dom.inputPin.style.borderColor = '#ef4444';
