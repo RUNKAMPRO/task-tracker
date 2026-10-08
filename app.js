@@ -11302,6 +11302,11 @@ END $$;`;
     }
 
     openModal(tab = 'account') {
+      if (tab === 'setup' && this.suite.admin) {
+        this.closeModal();
+        this.suite.admin.openModal();
+        return;
+      }
       if (this.dom.authModal) {
         this.dom.authModal.classList.remove('hidden');
         this.switchTab(tab);
@@ -11846,6 +11851,307 @@ END $$;`;
   }
 
 
+
+  // ==============================================================================
+  // OrbitAdminManager: Protected Admin Panel (PIN Security & Cloud Config)
+  // ==============================================================================
+  class OrbitAdminManager {
+    constructor(suite) {
+      this.suite = suite;
+      this.isAdminUnlocked = false;
+      this.STORAGE_KEY_ADMIN_PIN = 'orbitsuite_admin_pin';
+      this.activeTab = 'db';
+
+      this.dom = {
+        adminModal: document.getElementById('admin-modal'),
+        adminModalClose: document.getElementById('admin-modal-close'),
+        btnSuiteAdmin: document.getElementById('btn-suite-admin'),
+        btnOpenAdminFromModal: document.getElementById('btn-open-admin-from-modal'),
+
+        // Locked View
+        viewLocked: document.getElementById('admin-view-locked'),
+        inputPin: document.getElementById('admin-input-pin'),
+        btnTogglePin: document.getElementById('btn-toggle-admin-pin'),
+        pinError: document.getElementById('admin-pin-error'),
+        btnUnlock: document.getElementById('btn-admin-unlock'),
+
+        // Unlocked View
+        viewUnlocked: document.getElementById('admin-view-unlocked'),
+        btnLockSession: document.getElementById('btn-admin-lock-session'),
+        tabBtns: document.querySelectorAll('.admin-tabs .auth-tab-btn'),
+        tabPanels: document.querySelectorAll('.admin-tab-panel'),
+
+        // Tab 1: Database
+        cfgSupabaseUrl: document.getElementById('cfg-supabase-url'),
+        cfgSupabaseKey: document.getElementById('cfg-supabase-key'),
+        btnToggleAnonKey: document.getElementById('btn-toggle-anon-key'),
+        btnSaveConfig: document.getElementById('btn-save-supabase-config'),
+        btnClearConfig: document.getElementById('btn-clear-supabase-config'),
+        configFeedback: document.getElementById('config-feedback'),
+
+        // Tab 2: SQL
+        btnCopySql: document.getElementById('btn-copy-sql'),
+
+        // Tab 3: Security & PIN
+        inputNewPin: document.getElementById('admin-new-pin'),
+        inputConfirmPin: document.getElementById('admin-confirm-pin'),
+        btnSavePin: document.getElementById('btn-save-admin-pin'),
+        pinFeedback: document.getElementById('pin-change-feedback')
+      };
+    }
+
+    init() {
+      this.bindEvents();
+      this.refreshConfigFields();
+    }
+
+    getValidPin() {
+      return localStorage.getItem(this.STORAGE_KEY_ADMIN_PIN) || 
+             (window.ORBIT_CONFIG && window.ORBIT_CONFIG.defaultAdminPin) || 
+             '1234';
+    }
+
+    openModal() {
+      if (!this.dom.adminModal) return;
+      if (this.isAdminUnlocked) {
+        this.showUnlockedView();
+      } else {
+        this.showLockedView();
+      }
+      this.dom.adminModal.classList.remove('hidden');
+    }
+
+    closeModal() {
+      if (!this.dom.adminModal) return;
+      this.dom.adminModal.classList.add('hidden');
+    }
+
+    showLockedView() {
+      if (this.dom.viewLocked) this.dom.viewLocked.classList.remove('hidden');
+      if (this.dom.viewUnlocked) this.dom.viewUnlocked.classList.add('hidden');
+      if (this.dom.pinError) this.dom.pinError.classList.add('hidden');
+      if (this.dom.inputPin) {
+        this.dom.inputPin.value = '';
+        setTimeout(() => this.dom.inputPin.focus(), 150);
+      }
+    }
+
+    showUnlockedView() {
+      if (this.dom.viewLocked) this.dom.viewLocked.classList.add('hidden');
+      if (this.dom.viewUnlocked) this.dom.viewUnlocked.classList.remove('hidden');
+      this.refreshConfigFields();
+    }
+
+    unlock() {
+      const entered = (this.dom.inputPin ? this.dom.inputPin.value : '').trim();
+      const valid = this.getValidPin();
+      if (entered === valid) {
+        this.isAdminUnlocked = true;
+        this.showUnlockedView();
+        this.suite.showToast('Admin-Bereich erfolgreich entsperrt! 🛡️', 'success');
+      } else {
+        if (this.dom.pinError) {
+          this.dom.pinError.classList.remove('hidden');
+          this.dom.pinError.textContent = 'Falsche PIN. Bitte erneut versuchen.';
+        }
+        if (this.dom.inputPin) {
+          this.dom.inputPin.style.borderColor = '#ef4444';
+          setTimeout(() => {
+            if (this.dom.inputPin) this.dom.inputPin.style.borderColor = '';
+          }, 800);
+        }
+      }
+    }
+
+    lock() {
+      this.isAdminUnlocked = false;
+      this.showLockedView();
+      this.suite.showToast('Admin-Sitzung gesperrt 🔒', 'info');
+    }
+
+    switchTab(tabId) {
+      this.activeTab = tabId;
+      if (this.dom.tabBtns) {
+        this.dom.tabBtns.forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.admintab === tabId);
+        });
+      }
+      const panel = document.getElementById(`admin-panel-${tabId}`);
+      document.querySelectorAll('.admin-tab-panel').forEach(p => p.classList.remove('active'));
+      if (panel) panel.classList.add('active');
+    }
+
+    refreshConfigFields() {
+      const fileUrl = (window.ORBIT_CONFIG && window.ORBIT_CONFIG.supabaseUrl) || '';
+      const fileKey = (window.ORBIT_CONFIG && window.ORBIT_CONFIG.supabaseKey) || '';
+      const localUrl = localStorage.getItem('orbitsuite_supabase_url') || '';
+      const localKey = localStorage.getItem('orbitsuite_supabase_key') || '';
+
+      const activeUrl = localUrl || fileUrl;
+      const activeKey = localKey || fileKey;
+
+      if (this.dom.cfgSupabaseUrl) this.dom.cfgSupabaseUrl.value = activeUrl;
+      if (this.dom.cfgSupabaseKey) this.dom.cfgSupabaseKey.value = activeKey;
+    }
+
+    async saveSupabaseConfig() {
+      const url = (this.dom.cfgSupabaseUrl ? this.dom.cfgSupabaseUrl.value : '').trim();
+      const key = (this.dom.cfgSupabaseKey ? this.dom.cfgSupabaseKey.value : '').trim();
+
+      if (!url || !key) {
+        this.showConfigFeedback('Bitte sowohl URL als auch Key eingeben.', 'error');
+        return;
+      }
+
+      this.showConfigFeedback('Verbindung wird getestet...', 'info');
+
+      try {
+        if (typeof window.supabase === 'undefined' || !window.supabase.createClient) {
+          throw new Error('Supabase SDK nicht geladen.');
+        }
+
+        const testClient = window.supabase.createClient(url, key);
+        const { error } = await testClient.from('orbit_sync').select('updated_at').limit(1);
+
+        if (error && error.code !== 'PGRST116' && !error.message.includes('0 rows')) {
+          console.warn('[Admin] Test connection warning:', error);
+        }
+
+        localStorage.setItem('orbitsuite_supabase_url', url);
+        localStorage.setItem('orbitsuite_supabase_key', key);
+
+        if (this.suite.sync) {
+          await this.suite.sync.initClient();
+        }
+
+        this.showConfigFeedback('Verbindung zur Supabase Cloud erfolgreich hergestellt & gespeichert! 🚀', 'success');
+        this.suite.showToast('Cloud-Datenbank erfolgreich verbunden!', 'success');
+      } catch (err) {
+        this.showConfigFeedback('Fehler bei der Verbindung: ' + (err.message || err), 'error');
+      }
+    }
+
+    clearSupabaseConfig() {
+      if (confirm('Möchtest du die gespeicherte Supabase-Konfiguration wirklich zurücksetzen?')) {
+        localStorage.removeItem('orbitsuite_supabase_url');
+        localStorage.removeItem('orbitsuite_supabase_key');
+        if (this.dom.cfgSupabaseUrl) this.dom.cfgSupabaseUrl.value = '';
+        if (this.dom.cfgSupabaseKey) this.dom.cfgSupabaseKey.value = '';
+        if (this.suite.sync) {
+          this.suite.sync.supabase = null;
+          this.suite.sync.updateBadge('guest', 'Gast-Modus');
+        }
+        this.showConfigFeedback('Konfiguration entfernt. Zurück im Gast-Modus.', 'info');
+      }
+    }
+
+    changePin() {
+      const newPin = (this.dom.inputNewPin ? this.dom.inputNewPin.value : '').trim();
+      const confirmPin = (this.dom.inputConfirmPin ? this.dom.inputConfirmPin.value : '').trim();
+
+      if (!newPin || newPin.length < 4) {
+        this.showPinFeedback('Die PIN muss mindestens 4 Zeichen lang sein.', 'error');
+        return;
+      }
+      if (newPin !== confirmPin) {
+        this.showPinFeedback('Die eingegebenen PINs stimmen nicht überein.', 'error');
+        return;
+      }
+
+      localStorage.setItem(this.STORAGE_KEY_ADMIN_PIN, newPin);
+      this.dom.inputNewPin.value = '';
+      this.dom.inputConfirmPin.value = '';
+      this.showPinFeedback('Admin-PIN erfolgreich geändert! 🔐', 'success');
+      this.suite.showToast('Neue Admin-PIN aktiv!', 'success');
+    }
+
+    showConfigFeedback(msg, type) {
+      if (!this.dom.configFeedback) return;
+      this.dom.configFeedback.className = `config-feedback ${type}`;
+      this.dom.configFeedback.textContent = msg;
+      this.dom.configFeedback.classList.remove('hidden');
+    }
+
+    showPinFeedback(msg, type) {
+      if (!this.dom.pinFeedback) return;
+      this.dom.pinFeedback.className = `config-feedback ${type}`;
+      this.dom.pinFeedback.textContent = msg;
+      this.dom.pinFeedback.classList.remove('hidden');
+    }
+
+    bindEvents() {
+      if (this.dom.btnSuiteAdmin) {
+        this.dom.btnSuiteAdmin.addEventListener('click', () => this.openModal());
+      }
+      if (this.dom.btnOpenAdminFromModal) {
+        this.dom.btnOpenAdminFromModal.addEventListener('click', () => {
+          if (this.suite.sync) this.suite.sync.closeModal();
+          this.openModal();
+        });
+      }
+      if (this.dom.adminModalClose) {
+        this.dom.adminModalClose.addEventListener('click', () => this.closeModal());
+      }
+      if (this.dom.adminModal) {
+        this.dom.adminModal.addEventListener('click', (e) => {
+          if (e.target === this.dom.adminModal) this.closeModal();
+        });
+      }
+      if (this.dom.btnUnlock) {
+        this.dom.btnUnlock.addEventListener('click', () => this.unlock());
+      }
+      if (this.dom.inputPin) {
+        this.dom.inputPin.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            this.unlock();
+          }
+        });
+      }
+      if (this.dom.btnTogglePin) {
+        this.dom.btnTogglePin.addEventListener('click', () => {
+          const type = this.dom.inputPin.type === 'password' ? 'text' : 'password';
+          this.dom.inputPin.type = type;
+        });
+      }
+      if (this.dom.btnToggleAnonKey) {
+        this.dom.btnToggleAnonKey.addEventListener('click', () => {
+          const type = this.dom.cfgSupabaseKey.type === 'password' ? 'text' : 'password';
+          this.dom.cfgSupabaseKey.type = type;
+        });
+      }
+      if (this.dom.btnLockSession) {
+        this.dom.btnLockSession.addEventListener('click', () => this.lock());
+      }
+      if (this.dom.tabBtns) {
+        this.dom.tabBtns.forEach(btn => {
+          btn.addEventListener('click', () => this.switchTab(btn.dataset.admintab));
+        });
+      }
+      if (this.dom.btnSaveConfig) {
+        this.dom.btnSaveConfig.addEventListener('click', () => this.saveSupabaseConfig());
+      }
+      if (this.dom.btnClearConfig) {
+        this.dom.btnClearConfig.addEventListener('click', () => this.clearSupabaseConfig());
+      }
+      if (this.dom.btnCopySql) {
+        this.dom.btnCopySql.addEventListener('click', () => {
+          const sql = this.suite.sync ? this.suite.sync.SCHEMA_SQL : '';
+          navigator.clipboard.writeText(sql).then(() => {
+            const btnSpan = this.dom.btnCopySql.querySelector('span');
+            const prevText = btnSpan.textContent;
+            btnSpan.textContent = 'Kopiert! ✓';
+            setTimeout(() => { btnSpan.textContent = prevText; }, 2000);
+            this.suite.showToast('SQL-Script in Zwischenablage kopiert! 📋', 'success');
+          });
+        });
+      }
+      if (this.dom.btnSavePin) {
+        this.dom.btnSavePin.addEventListener('click', () => this.changePin());
+      }
+    }
+  }
+
   class OrbitSuiteRouter {
 
     constructor() {
@@ -12015,6 +12321,14 @@ END $$;`;
       this.sync = new OrbitSyncManager(this);
 
       this.sync.init();
+
+
+
+      // 6. Initialize Protected Admin Panel System
+
+      this.admin = new OrbitAdminManager(this);
+
+      this.admin.init();
 
     }
 
@@ -12219,6 +12533,8 @@ END $$;`;
         this.dom.authModalClose.addEventListener('click', () => {
 
           if (this.sync) this.sync.closeModal();
+
+          if (this.admin) this.admin.closeModal();
 
         });
 

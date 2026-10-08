@@ -21,7 +21,7 @@
   <link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png">
   <meta name="msapplication-TileColor" content="#0b0f19">
   <meta name="msapplication-TileImage" content="icons/icon-192.png">
-  <link rel="stylesheet" href="style.css?v=2.1.0">
+  <link rel="stylesheet" href="style.css?v=2.2.0">
   <style id="critical-auth-styles">
     .suite-user-btn {
       display: inline-flex !important;
@@ -308,6 +308,14 @@
               <span class="sync-label" id="user-sync-label">Gast-Modus</span>
             </span>
           </div>
+        </button>
+
+        <!-- Admin Panel Trigger (Protected by PIN) -->
+        <button class="btn-icon suite-control-btn" id="btn-suite-admin" title="Admin-Panel (Cloud &amp; Datenbank)" aria-label="Admin-Panel" onclick="if(window.orbitSuite&amp;&amp;window.orbitSuite.admin){window.orbitSuite.admin.openModal();}else{var m=document.getElementById('admin-modal');if(m)m.classList.remove('hidden');}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
         </button>
 
         <!-- Shortcuts Help Modal Trigger -->
@@ -2291,15 +2299,11 @@
         <button class="modal-close-btn" id="auth-modal-close" aria-label="Schlie&szlig;en">&times;</button>
       </div>
 
-      <!-- Modal Tabs Navigation -->
+      <!-- Modal Tabs Navigation (Clean 2-Tab View for Users) -->
       <div class="auth-modal-tabs">
         <button class="auth-tab-btn active" id="tab-btn-account" data-tab="account">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
           <span>Benutzerkonto</span>
-        </button>
-        <button class="auth-tab-btn" id="tab-btn-cloud-setup" data-tab="setup">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path></svg>
-          <span>Cloud-Datenbank (Supabase)</span>
         </button>
         <button class="auth-tab-btn" id="tab-btn-data-status" data-tab="status">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
@@ -2408,81 +2412,6 @@
 
         </div>
 
-        <!-- TAB 2: SUPABASE CONFIGURATION -->
-        <div class="auth-tab-panel" id="auth-panel-setup">
-          <div class="supabase-setup-content">
-            <div class="setup-info-card">
-              <div class="info-card-badge">24/7 CLOUD-DATENBANK</div>
-              <h3>Supabase Cloud-Anbindung</h3>
-              <p>Durch die Verbindung mit deiner kostenlosen Supabase-Datenbank synchronisiert OrbitSuite vollautomatisch im Hintergrund &ndash; auch wenn dein Laptop ausgeschaltet ist oder du die App &uuml;ber GitHub Pages nutzt.</p>
-            </div>
-
-            <div class="setup-form">
-              <div class="auth-field">
-                <label for="cfg-supabase-url">Supabase Project URL</label>
-                <input type="text" id="cfg-supabase-url" class="auth-input" placeholder="https://your-project-id.supabase.co">
-                <span class="field-hint">Zu finden in Supabase unter: Project Settings &rarr; API &rarr; Project URL</span>
-              </div>
-
-              <div class="auth-field">
-                <label for="cfg-supabase-key">Supabase Anon Public API-Key</label>
-                <input type="password" id="cfg-supabase-key" class="auth-input" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
-                <span class="field-hint">Zu finden in Supabase unter: Project Settings &rarr; API &rarr; Project API keys (anon / public)</span>
-              </div>
-
-              <div class="config-feedback hidden" id="config-feedback"></div>
-
-              <div class="setup-form-actions">
-                <button class="btn-primary" id="btn-save-supabase-config">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                  <span>Verbindung speichern &amp; testen</span>
-                </button>
-                <button class="btn-secondary" id="btn-clear-supabase-config" title="Konfiguration entfernen">
-                  <span>Zur&uuml;cksetzen</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- Guided Setup Accordion -->
-            <div class="setup-guide-box">
-              <h4 class="guide-title">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="12 8 8 12 12 16 12 8"></polygon></svg>
-                <span>3-Schritte Anleitung zur kostenlosen Einrichtung (dauert 2 Min.)</span>
-              </h4>
-
-              <div class="guide-steps">
-                <div class="guide-step">
-                  <div class="step-num">1</div>
-                  <div class="step-text">
-                    <strong>Kostenloses Supabase-Konto erstellen</strong>
-                    <p>Gehe auf <a href="https://supabase.com" target="_blank" rel="noopener" class="link-highlight">supabase.com</a> und erstelle ein kostenloses Konto und ein neues Projekt (z.B. <code>orbitsuite</code>).</p>
-                  </div>
-                </div>
-
-                <div class="guide-step">
-                  <div class="step-num">2</div>
-                  <div class="step-text">
-                    <strong>Datenbank-Tabelle mit 1 Klick anlegen</strong>
-                    <p>&Ouml;ffne in Supabase links den <strong>SQL Editor</strong>, klicke unten auf den Button und f&uuml;ge den Code dort ein:</p>
-                    <button class="btn-secondary btn-copy-sql" id="btn-copy-sql">
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                      <span>SQL-Script in Zwischenablage kopieren</span>
-                    </button>
-                  </div>
-                </div>
-
-                <div class="guide-step">
-                  <div class="step-num">3</div>
-                  <div class="step-text">
-                    <strong>URL &amp; Anon Key eintragen</strong>
-                    <p>Unter <em>Settings &gt; API</em> kopierst du die <code>Project URL</code> und den <code>anon public key</code> hier hinein und klickst auf &quot;Speichern&quot;. Fertig!</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- TAB 3: DATA & SYNC STATUS -->
         <div class="auth-tab-panel" id="auth-panel-status">
           <div class="status-overview">
@@ -2538,6 +2467,211 @@
             </div>
           </div>
         </div>
+
+        <!-- Discreet Admin Link Footer -->
+        <div class="auth-modal-footer">
+          <button type="button" class="btn-text-admin-link" id="btn-open-admin-from-modal" onclick="var m1=document.getElementById('auth-modal');if(m1)m1.classList.add('hidden');if(window.orbitSuite&amp;&amp;window.orbitSuite.admin){window.orbitSuite.admin.openModal();}else{var m2=document.getElementById('admin-modal');if(m2)m2.classList.remove('hidden');}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            <span>Admin-Panel (Datenbank-Konfiguration)</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  
+  <!-- ======================================================================
+       8. PROTECTED ADMIN PANEL MODAL (PIN SECURED)
+       ====================================================================== -->
+  <div class="modal-backdrop hidden" id="admin-modal" role="dialog" aria-modal="true" aria-labelledby="admin-modal-title">
+    <div class="modal-window admin-modal-window">
+      <div class="modal-header admin-modal-header">
+        <div class="modal-title-with-icon">
+          <div class="modal-title-icon-box admin-icon-box">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+          </div>
+          <div>
+            <h2 class="modal-title" id="admin-modal-title">OrbitSuite Admin-Panel</h2>
+            <p class="modal-subtitle">Gesch&uuml;tzter System- und Datenbankbereich</p>
+          </div>
+        </div>
+        <button class="modal-close-btn" id="admin-modal-close" aria-label="Schlie&szlig;en">&times;</button>
+      </div>
+
+      <!-- VIEW 1: LOCKED VIEW (PIN INPUT) -->
+      <div class="admin-view-locked" id="admin-view-locked">
+        <div class="admin-locked-card">
+          <div class="admin-lock-shield">
+            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              <circle cx="12" cy="11" r="2"></circle>
+              <path d="M12 13v3"></path>
+            </svg>
+          </div>
+          <h3 class="admin-locked-title">Admin-Bereich entsperren</h3>
+          <p class="admin-locked-desc">Gib deine Master-PIN ein, um die Cloud-Datenbank und Systemeinstellungen zu verwalten.</p>
+
+          <form class="admin-pin-form" id="admin-pin-form" onsubmit="return false;">
+            <div class="admin-pin-input-wrap">
+              <input type="password" id="admin-input-pin" class="admin-pin-input" placeholder="Admin-PIN eingeben" maxlength="20" autocomplete="current-password" autofocus>
+              <button type="button" class="btn-toggle-pwd" id="btn-toggle-admin-pin" title="PIN anzeigen">&#128065;</button>
+            </div>
+            <div class="admin-pin-error hidden" id="admin-pin-error">Falsche PIN. Bitte erneut versuchen.</div>
+            <button type="submit" class="btn-primary admin-btn-unlock" id="btn-admin-unlock">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+              <span>Entsperren</span>
+            </button>
+            <p class="admin-pin-hint">&#128161; Standard-PIN: <code>1234</code> (kann nach dem Entsperren ge&auml;ndert werden)</p>
+          </form>
+        </div>
+      </div>
+
+      <!-- VIEW 2: UNLOCKED DASHBOARD -->
+      <div class="admin-view-unlocked hidden" id="admin-view-unlocked">
+        <div class="admin-unlocked-toolbar">
+          <div class="admin-status-badge">
+            <span class="admin-status-dot"></span>
+            <span>Admin-Sitzung aktiv (Vollzugriff)</span>
+          </div>
+          <button class="btn-secondary btn-admin-lock" id="btn-admin-lock-session" title="Sitzung jetzt sperren">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            <span>Jetzt sperren</span>
+          </button>
+        </div>
+
+        <!-- Admin Navigation Tabs -->
+        <div class="auth-modal-tabs admin-tabs">
+          <button class="auth-tab-btn active" id="admin-tab-btn-db" data-admintab="db">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path></svg>
+            <span>Cloud-Datenbank</span>
+          </button>
+          <button class="auth-tab-btn" id="admin-tab-btn-sql" data-admintab="sql">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+            <span>SQL-Script</span>
+          </button>
+          <button class="auth-tab-btn" id="admin-tab-btn-security" data-admintab="security">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            <span>Admin-PIN &amp; Sicherheit</span>
+          </button>
+        </div>
+
+        <div class="admin-modal-body">
+          <!-- ADMIN TAB 1: CLOUD DATABASE CONFIG -->
+          <div class="admin-tab-panel active" id="admin-panel-db">
+            <div class="setup-info-card">
+              <div class="info-card-badge">ZENTRALE KONFIGURATION</div>
+              <h3>Supabase Cloud-Anbindung</h3>
+              <p>Trage hier deine Supabase-Verbindungsdaten ein. Diese werden verschl&uuml;sselt im Browser gesichert oder k&ouml;nnen dauerhaft in der Datei <code>config.js</code> hinterlegt werden, sodass alle deine Ger&auml;te (auch dein Smartphone) sofort automatisch verbunden sind.</p>
+            </div>
+
+            <div class="setup-form">
+              <div class="auth-field">
+                <label for="cfg-supabase-url">Supabase Project URL</label>
+                <input type="text" id="cfg-supabase-url" class="auth-input" placeholder="https://your-project-id.supabase.co">
+                <span class="field-hint">In Supabase: Project Settings &rarr; Data API &rarr; Project URL</span>
+              </div>
+
+              <div class="auth-field">
+                <label for="cfg-supabase-key">Supabase Anon Public API-Key</label>
+                <div class="password-input-wrap">
+                  <input type="password" id="cfg-supabase-key" class="auth-input" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+                  <button type="button" class="btn-toggle-pwd" id="btn-toggle-anon-key" title="Schl&uuml;ssel anzeigen">&#128065;</button>
+                </div>
+                <span class="field-hint">In Supabase: Project Settings &rarr; Data API &rarr; Project API keys (anon public)</span>
+              </div>
+
+              <div class="config-feedback hidden" id="config-feedback"></div>
+
+              <div class="setup-form-actions">
+                <button class="btn-primary" id="btn-save-supabase-config">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <span>Verbindung testen &amp; speichern</span>
+                </button>
+                <button class="btn-secondary" id="btn-clear-supabase-config" title="Konfiguration entfernen">
+                  <span>Zur&uuml;cksetzen</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ADMIN TAB 2: SQL SETUP SCRIPT -->
+          <div class="admin-tab-panel" id="admin-panel-sql">
+            <div class="setup-guide-box">
+              <h4 class="guide-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="12 8 8 12 12 16 12 8"></polygon></svg>
+                <span>Einrichtung der Datenbanktabelle in Supabase</span>
+              </h4>
+              <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 14px;">Kopiere dieses SQL-Script und f&uuml;hre es einmalig im Supabase <strong>SQL Editor</strong> aus, um die Tabelle <code>orbit_sync</code> mit Row Level Security (RLS) und Echtzeit-Websockets zu erstellen:</p>
+              
+              <button class="btn-secondary btn-copy-sql" id="btn-copy-sql" style="margin-bottom: 16px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                <span>SQL-Script in Zwischenablage kopieren</span>
+              </button>
+
+              <div class="guide-steps">
+                <div class="guide-step">
+                  <div class="step-num">1</div>
+                  <div class="step-text">
+                    <strong>Supabase Projekt &ouml;ffnen</strong>
+                    <p>Gehe auf <a href="https://supabase.com" target="_blank" rel="noopener" class="link-highlight">supabase.com</a> in dein Projekt.</p>
+                  </div>
+                </div>
+                <div class="guide-step">
+                  <div class="step-num">2</div>
+                  <div class="step-text">
+                    <strong>SQL Editor &ouml;ffnen &amp; Ausf&uuml;hren</strong>
+                    <p>Klicke links auf <strong>SQL Editor</strong> &rarr; <em>New query</em>, f&uuml;ge das kopierte Script ein und dr&uuml;cke <strong>Run</strong>.</p>
+                  </div>
+                </div>
+                <div class="guide-step">
+                  <div class="step-num">3</div>
+                  <div class="step-text">
+                    <strong>Schl&uuml;ssel eintragen</strong>
+                    <p>Kopiere unter <em>Settings &rarr; Data API</em> die URL und den anon key in Tab 1.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ADMIN TAB 3: ADMIN SECURITY & PIN -->
+          <div class="admin-tab-panel" id="admin-panel-security">
+            <div class="setup-info-card">
+              <div class="info-card-badge">SICHERHEIT</div>
+              <h3>Master Admin-PIN &auml;ndern</h3>
+              <p>Vergib eine eigene PIN, damit nur du Zugriff auf das Admin-Panel und die Datenbank-Konfiguration hast.</p>
+            </div>
+
+            <form class="admin-pin-change-form" id="admin-pin-change-form" onsubmit="return false;">
+              <div class="auth-field">
+                <label for="admin-new-pin">Neue Admin-PIN</label>
+                <input type="password" id="admin-new-pin" class="auth-input" placeholder="Mindestens 4 Zeichen (z. B. 8492)" required>
+              </div>
+
+              <div class="auth-field">
+                <label for="admin-confirm-pin">Neue Admin-PIN best&auml;tigen</label>
+                <input type="password" id="admin-confirm-pin" class="auth-input" placeholder="PIN wiederholen" required>
+              </div>
+
+              <div class="config-feedback hidden" id="pin-change-feedback"></div>
+
+              <div class="setup-form-actions">
+                <button type="button" class="btn-primary" id="btn-save-admin-pin">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <span>Neue PIN speichern</span>
+                </button>
+              </div>
+            </form>
+
+            <div class="auto-sync-info-box" style="margin-top: 20px;">
+              <h4>&#128161; Dauerhafte Standard-Konfiguration via config.js</h4>
+              <p>Du kannst die Supabase URL und den Key auch direkt in <code>config.js</code> in deinem GitHub-Repository eintragen. Dadurch ist die Cloud auf allen deinen Handys und Laptops sofort einsatzbereit, ohne dass du je wieder Konfigurationsdaten eingeben musst!</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -2548,7 +2682,8 @@
   <!-- Global Confetti Canvas -->
   <canvas id="confetti-canvas" class="confetti-canvas"></canvas>
 
-  <script src="app.js?v=2.1.0"></script>
+  <script src="config.js?v=2.2.0"></script>
+  <script src="app.js?v=2.2.0"></script>
   <script>
     // Fail-safe direct click binding for Cloud Sync
     (function() {
