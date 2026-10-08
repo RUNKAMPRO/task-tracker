@@ -11934,24 +11934,36 @@ END $$;`;
       this.updateVisibility();
     }
 
-    isAdminUser() {
+    async sha256(str) {
+      try {
+        const buffer = new TextEncoder().encode(str);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+        return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+      } catch (e) {
+        return '';
+      }
+    }
+
+    async isAdminUser() {
       const currentUserEmail = (this.suite.sync && this.suite.sync.user && this.suite.sync.user.email) 
         ? this.suite.sync.user.email.toLowerCase().trim() 
         : '';
-      const adminList = (window.ORBIT_CONFIG && window.ORBIT_CONFIG.adminEmails) || ['runekamprolf@gmail.com'];
-      const normalizedAdmins = adminList.map(e => (e || '').toLowerCase().trim());
-      return Boolean(currentUserEmail && normalizedAdmins.includes(currentUserEmail));
+      if (!currentUserEmail) return false;
+
+      const emailHash = await this.sha256(currentUserEmail);
+      const authorizedHashes = (window.ORBIT_CONFIG && window.ORBIT_CONFIG.adminEmailHashes) || [
+        '83c026bcf211c9f2c87c482e45712e6c389b9fe9f0e2f9bcf5ec62ce47af07fa'
+      ];
+      return authorizedHashes.includes(emailHash);
     }
 
-    updateVisibility() {
-      const isAuthorized = this.isAdminUser();
+    async updateVisibility() {
+      const isAuthorized = await this.isAdminUser();
       if (this.dom.btnSuiteAdmin) {
         if (isAuthorized) {
           this.dom.btnSuiteAdmin.classList.remove('hidden');
           this.dom.btnSuiteAdmin.style.display = 'flex';
-          if (this.suite.sync && this.suite.sync.user) {
-            this.dom.btnSuiteAdmin.title = `Admin-Panel (Autorisiert: ${this.suite.sync.user.email})`;
-          }
+          this.dom.btnSuiteAdmin.title = 'Admin-Panel';
         } else {
           this.dom.btnSuiteAdmin.classList.add('hidden');
           this.dom.btnSuiteAdmin.style.display = 'none';
@@ -11979,15 +11991,11 @@ END $$;`;
              '1234';
     }
 
-    openModal() {
+    async openModal() {
       if (!this.dom.adminModal) return;
-      if (!this.isAdminUser()) {
-        const currentUserEmail = (this.suite.sync && this.suite.sync.user) ? this.suite.sync.user.email : null;
-        if (currentUserEmail) {
-          this.suite.showToast(`Zugriff verweigert: ${currentUserEmail} ist nicht als Administrator autorisiert.`, 'error');
-        } else {
-          this.suite.showToast('Zugriff verweigert: Bitte melde dich zuerst mit deinem Admin-Konto (runekamprolf@gmail.com) an.', 'error');
-        }
+      const isAuthorized = await this.isAdminUser();
+      if (!isAuthorized) {
+        this.suite.showToast('Zugriff verweigert: Administrator-Berechtigung erforderlich.', 'error');
         return;
       }
       if (this.isAdminUnlocked) {

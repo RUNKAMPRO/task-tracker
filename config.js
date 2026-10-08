@@ -15,8 +15,10 @@ window.ORBIT_CONFIG = {
   // Dein Supabase Publishable Key
   supabaseKey: 'sb_publishable_O3RjZyTjL_D9pF68PtxImg_ZDe-J1RM',
 
-  // Autorisierte Administrator-Konten (Nur diese E-Mail-Adressen haben Zugriff auf das Admin-Panel)
-  adminEmails: ['runekamprolf@gmail.com'],
+  // Autorisierte Administrator-Konten (als anonymer SHA-256 Hash geschützt - keine Klartext-E-Mail im Code!)
+  adminEmailHashes: [
+    '83c026bcf211c9f2c87c482e45712e6c389b9fe9f0e2f9bcf5ec62ce47af07fa'
+  ],
 
   // Standard Admin-PIN (über das Admin-Panel im Browser anpassbar)
   defaultAdminPin: '1234'
