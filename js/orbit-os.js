@@ -510,27 +510,19 @@ class OrbitOS {
 
     winEl.innerHTML = `
       <div class="os-window-header" data-app-id="${appId}">
-        <div class="os-window-controls">
-          <button class="os-ctrl-dot os-dot-close" title="Schließen" data-action="close">
-            <svg class="os-dot-icon" width="6" height="6" viewBox="0 0 6 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M1 1l4 4m0-4L1 5"/></svg>
-          </button>
-          <button class="os-ctrl-dot os-dot-minimize" title="Minimieren" data-action="minimize">
-            <svg class="os-dot-icon" width="6" height="6" viewBox="0 0 6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M1 3h4"/></svg>
-          </button>
-          <button class="os-ctrl-dot os-dot-maximize" title="Maximieren / Wiederherstellen" data-action="maximize">
-            <svg class="os-dot-icon os-icon-max" width="6" height="6" viewBox="0 0 6 6" fill="currentColor"><path d="M0 2.5L2.5 0v2.5H0zm6 1L3.5 6V3.5H6z"/></svg>
-          </button>
-        </div>
-        <div class="os-window-title">
+        <div class="os-window-title" style="position:static; transform:none; max-width:65%;">
           <span class="os-window-title-icon">${def.icon}</span>
           <span class="os-window-title-text">${def.name}</span>
         </div>
         <div class="os-window-actions">
-          <button class="os-action-btn os-action-max" data-action="maximize" title="Vollbild umschalten">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
-          </button>
           <button class="os-action-btn os-action-min" data-action="minimize" title="Minimieren">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <button class="os-action-btn os-action-max" data-action="maximize" title="Maximieren / Wiederherstellen">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+          </button>
+          <button class="os-action-btn os-action-close" data-action="close" title="Schließen">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6L6 18M6 6l12 12"/></svg>
           </button>
         </div>
       </div>
@@ -694,7 +686,7 @@ class OrbitOS {
     let initialY = 0;
 
     header.addEventListener('mousedown', (e) => {
-      if (e.target.closest('.os-ctrl-dot') || el.classList.contains('maximized')) return;
+      if (e.target.closest('.os-action-btn, .os-ctrl-dot') || el.classList.contains('maximized')) return;
       isDragging = true;
       document.body.classList.add('os-window-dragging');
       dragStartX = e.clientX;
@@ -1028,7 +1020,7 @@ class OrbitOS {
     <tr><td style="color: #c084fc; width: 140px; font-weight: 600;">matrix</td><td style="color: #94a3b8;">Echter Katakana Canvas Matrix Rain (Beenden mit <kbd style="color:#fff;background:rgba(255,255,255,0.15);padding:1px 4px;border-radius:3px;">q</kbd> oder <kbd style="color:#fff;background:rgba(255,255,255,0.15);padding:1px 4px;border-radius:3px;">ESC</kbd>)</td></tr>
     <tr><td style="color: #c084fc; font-weight: 600;">tasks</td><td style="color: #94a3b8;">Aufgabenliste aus der OrbitTask-Datenbank auslesen</td></tr>
     <tr><td style="color: #c084fc; font-weight: 600;">calc &lt;math&gt;</td><td style="color: #94a3b8;">Inline-Taschenrechner (z.B. <span style="color:#e2e8f0;">calc (15 * 8) / 2</span>)</td></tr>
-    <tr><td style="color: #c084fc; font-weight: 600;">wallpaper &lt;name&gt;</td><td style="color: #94a3b8;">Theme wechseln: <span style="color:#e2e8f0;">nebula</span>, <span style="color:#e2e8f0;">cyberpunk</span>, <span style="color:#e2e8f0;">midnight</span>, <span style="color:#e2e8f0;">aurora</span></td></tr>
+    <tr><td style="color: #c084fc; font-weight: 600;">wallpaper &lt;name&gt;</td><td style="color: #94a3b8;">Theme wechseln: <span style="color:#e2e8f0;">shadow-knight</span>, <span style="color:#e2e8f0;">nebula</span>, <span style="color:#e2e8f0;">cyberpunk</span>, <span style="color:#e2e8f0;">midnight</span>, <span style="color:#e2e8f0;">aurora</span></td></tr>
     <tr><td style="color: #c084fc; font-weight: 600;">exit</td><td style="color: #94a3b8;">Root-Sitzung verlassen bzw. Terminalfenster schließen</td></tr>
   </table>
 </div>
@@ -1224,11 +1216,11 @@ Oct  8 10:24:15 orbit-os sudo[142]: rune : TTY=pts/0 ; PWD=/home/rune ; USER=roo
             print(`Fehler: ${this.escapeHtml(err.message)}`, '#ef4444');
           }
         } else if (cmd === 'wallpaper') {
-          if (['nebula', 'cyberpunk', 'midnight', 'aurora'].includes(arg1)) {
+          if (['shadow-knight', 'nebula', 'cyberpunk', 'midnight', 'aurora'].includes(arg1)) {
             this.setWallpaper(arg1);
             print(`[ <span class="os-term-tag-ok">OK</span> ] Wallpaper switched to: ${arg1}`, '#38bdf8');
           } else {
-            print('Invalid theme. Options: nebula, cyberpunk, midnight, aurora', '#ef4444');
+            print('Invalid theme. Options: shadow-knight, nebula, cyberpunk, midnight, aurora', '#ef4444');
           }
         } else if (cmd === 'clear') {
           out.innerHTML = '';
@@ -1768,6 +1760,7 @@ Oct  8 10:24:15 orbit-os sudo[142]: rune : TTY=pts/0 ; PWD=/home/rune ; USER=roo
         <div>
           <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 8px;">Desktop-Wallpaper:</label>
           <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+            <button class="btn-secondary os-wp-btn ${this.activeWallpaper === 'shadow-knight' ? 'active' : ''}" data-wp="shadow-knight">⚔️ Shadow Knight (Dark Fantasy)</button>
             <button class="btn-secondary os-wp-btn ${this.activeWallpaper === 'nebula' ? 'active' : ''}" data-wp="nebula">🌌 Nebula Cosmic</button>
             <button class="btn-secondary os-wp-btn ${this.activeWallpaper === 'cyberpunk' ? 'active' : ''}" data-wp="cyberpunk">🌆 Cyberpunk Glow</button>
             <button class="btn-secondary os-wp-btn ${this.activeWallpaper === 'midnight' ? 'active' : ''}" data-wp="midnight">🌑 Deep Midnight</button>

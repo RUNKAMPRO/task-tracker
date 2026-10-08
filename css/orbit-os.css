@@ -50,6 +50,16 @@ body.orbit-os-active #suite-container {
               #02120e;
 }
 
+.os-wallpaper-shadow-knight {
+  background-color: #05060a;
+  background-image: linear-gradient(180deg, rgba(5, 7, 13, 0.35) 0%, rgba(5, 7, 13, 0.75) 100%),
+                    url('../assets/wallpapers/shadow-knight.jpg');
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
 /* Desktop Work Area */
 #orbit-os-desktop {
   flex: 1;
@@ -408,6 +418,24 @@ body.orbit-os-active #suite-container {
   border-color: rgba(255, 255, 255, 0.2);
   color: #ffffff;
   transform: scale(1.06);
+}
+
+.os-action-btn.os-action-close:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #f87171;
+}
+
+.os-action-btn.os-action-min:hover {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #fbbf24;
+}
+
+.os-action-btn.os-action-max:hover {
+  background: rgba(34, 197, 94, 0.2);
+  border-color: rgba(34, 197, 94, 0.4);
+  color: #4ade80;
 }
 
 .os-action-btn:active {
