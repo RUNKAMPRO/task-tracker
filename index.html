@@ -21,8 +21,8 @@
   <link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png">
   <meta name="msapplication-TileColor" content="#0b0f19">
   <meta name="msapplication-TileImage" content="icons/icon-192.png">
-  <link rel="stylesheet" href="css/style.css?v=3.6.0">
-  <link rel="stylesheet" href="css/orbit-os.css?v=3.6.0">
+  <link rel="stylesheet" href="css/style.css?v=3.6.1">
+  <link rel="stylesheet" href="css/orbit-os.css?v=3.6.1">
   <style id="critical-auth-styles">
     /* Fail-Safe Immediate Visibility Overrides */
     .hidden, [hidden], #btn-suite-admin.hidden, .auth-view-guest.hidden, .auth-view-user.hidden, .auth-modal-footer.hidden {
@@ -2017,6 +2017,51 @@
       </div>
     </section>
 
+    <!-- ==================================================================
+         APP VIEW 7: FOLIENWERK (Interactive Presentations & AI Copilot)
+         ================================================================== -->
+    <section id="app-view-folienwerk" class="app-view hidden" aria-label="Folienwerk Präsentationen">
+      <div class="folienwerk-container glass-card" style="display:flex; flex-direction:column; height: calc(100vh - 120px); min-height: 550px; border-radius: 16px; overflow: hidden; padding: 0; background: #0f1117; border: 1px solid rgba(255, 255, 255, 0.08);">
+        <!-- Top Toolbar -->
+        <div class="folienwerk-toolbar" style="display:flex; align-items:center; justify-content:space-between; padding: 12px 18px; background: rgba(24, 27, 36, 0.95); border-bottom: 1px solid rgba(255, 255, 255, 0.08); flex-shrink: 0;">
+          <div style="display:flex; align-items:center; gap: 12px;">
+            <button class="btn-icon" data-app-nav="hub" title="Zurück zum Hub" style="padding: 6px 12px; font-size: 12px; border-radius: 8px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.1); color: #fff; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+              <span>←</span> <span>Hub</span>
+            </button>
+            <div style="display:flex; align-items:center; gap: 8px;">
+              <span style="font-size: 20px;">📑</span>
+              <div>
+                <span style="font-weight: 700; font-size: 14px; color: #fff;">Folienwerk</span>
+                <span style="font-size: 10px; color: #f43f5e; font-weight: 700; background: rgba(225, 29, 72, 0.15); border: 1px solid rgba(225, 29, 72, 0.3); padding: 1px 6px; border-radius: 10px; margin-left: 6px;">RUNKAMPRO</span>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap: 10px;">
+            <span class="folienwerk-status-badge" id="suite-fw-status" style="font-size: 11px; padding: 4px 10px; border-radius: 12px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.1); color: #94a3b8; display: flex; align-items: center; gap: 6px;">
+              <span id="suite-fw-status-dot" style="width: 7px; height: 7px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
+              <span id="suite-fw-status-text">Server: localhost:8765</span>
+            </span>
+            <button id="suite-fw-btn-reload" style="padding: 6px 12px; font-size: 11px; border-radius: 8px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.12); color: #fff; cursor: pointer;" title="Präsentation neu laden">🔄 Neu laden</button>
+            <a href="https://github.com/RUNKAMPRO/Folienwerk" target="_blank" style="padding: 6px 12px; font-size: 11px; border-radius: 8px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.12); color: #fff; text-decoration: none;" title="GitHub Repository">Repo ↗</a>
+            <a href="http://localhost:8765" target="_blank" style="padding: 6px 14px; font-size: 11px; font-weight: 600; border-radius: 8px; background: #e11d48; color: #fff; text-decoration: none;" title="In neuem Tab öffnen">Extern ↗</a>
+          </div>
+        </div>
+
+        <!-- iFrame Container -->
+        <div style="flex: 1; position: relative; overflow: hidden; background: #0b0d13;">
+          <iframe id="suite-fw-iframe" src="http://localhost:8765" style="width: 100%; height: 100%; border: none; display: block;" allow="clipboard-read; clipboard-write; fullscreen"></iframe>
+          <div id="suite-fw-offline-card" style="display:none; position:absolute; inset:0; background:rgba(15,17,23,0.96); backdrop-filter:blur(10px); flex-direction:column; align-items:center; justify-content:center; padding:30px; text-align:center; z-index:10;">
+            <div style="width:64px; height:64px; border-radius:18px; background:linear-gradient(135deg, #e11d48, #f43f5e); display:flex; align-items:center; justify-content:center; font-size:32px; margin-bottom:16px;">📑</div>
+            <h3 style="font-size:18px; font-weight:700; margin-bottom:6px; color:#fff;">Folienwerk Server verbinden</h3>
+            <p style="font-size:13px; color:#94a3b8; max-width:480px; line-height:1.5; margin-bottom:18px;">
+              Folienwerk läuft lokal als Server auf deinem Computer unter <code style="background:rgba(255,255,255,0.08); padding:2px 6px; border-radius:4px; color:#f43f5e; font-size:12px;">http://localhost:8765</code>.
+            </p>
+            <button id="suite-fw-btn-retry" style="padding:8px 18px; background:#e11d48; color:#fff; border-radius:8px; font-size:12.5px; font-weight:600; border:none; cursor:pointer;">Verbindung prüfen 🔄</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
   </div>
 
   <!-- ======================================================================
@@ -2737,10 +2782,10 @@
   <!-- Global Confetti Canvas -->
   <canvas id="confetti-canvas" class="confetti-canvas"></canvas>
 
-  <script src="js/config.js?v=3.6.0"></script>
-  <script src="js/spotify-service.js?v=3.6.0"></script>
-  <script src="js/orbit-os.js?v=3.6.0"></script>
-  <script src="js/app.js?v=3.6.0"></script>
+  <script src="js/config.js?v=3.6.1"></script>
+  <script src="js/spotify-service.js?v=3.6.1"></script>
+  <script src="js/orbit-os.js?v=3.6.1"></script>
+  <script src="js/app.js?v=3.6.1"></script>
   <script>
     // Fail-safe direct click binding for Cloud Sync
     (function() {

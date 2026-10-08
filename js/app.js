@@ -12328,7 +12328,8 @@ END $$;`;
 
           tools: document.getElementById('app-view-tools'),
 
-          riddle: document.getElementById('app-view-riddle')
+          riddle: document.getElementById('app-view-riddle'),
+          folienwerk: document.getElementById('app-view-folienwerk')
 
         },
 
@@ -12816,13 +12817,8 @@ END $$;`;
 
     switchApp(appId, updateHash = true) {
 
-      if (appId === 'folienwerk') {
-        if (this.os) {
-          this.os.enableOSMode();
-          this.os.openApp('folienwerk');
-        } else {
-          window.open('http://localhost:8765', '_blank');
-        }
+      if (appId === 'folienwerk' && this.os && this.os.enabled) {
+        this.os.openApp('folienwerk');
         return;
       }
 
@@ -12924,6 +12920,10 @@ END $$;`;
 
         this.riddleApp.render();
 
+      } else if (appId === 'folienwerk') {
+
+        this.checkSuiteFolienwerk();
+
       }
 
 
@@ -12935,6 +12935,52 @@ END $$;`;
     }
 
 
+
+    checkSuiteFolienwerk() {
+      const dot = document.getElementById('suite-fw-status-dot');
+      const text = document.getElementById('suite-fw-status-text');
+      const iframe = document.getElementById('suite-fw-iframe');
+      const card = document.getElementById('suite-fw-offline-card');
+      const btnReload = document.getElementById('suite-fw-btn-reload');
+      const btnRetry = document.getElementById('suite-fw-btn-retry');
+
+      if (!this._fwSuiteBound && btnReload) {
+        this._fwSuiteBound = true;
+        btnReload.addEventListener('click', () => {
+          this.checkSuiteFolienwerk();
+          if (iframe) iframe.src = 'http://localhost:8765';
+        });
+        if (btnRetry) {
+          btnRetry.addEventListener('click', () => {
+            this.checkSuiteFolienwerk();
+            if (iframe) iframe.src = 'http://localhost:8765';
+          });
+        }
+      }
+
+      if (dot && text) {
+        dot.style.background = '#f59e0b';
+        text.textContent = 'Verbinde: localhost:8765...';
+      }
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 1400);
+
+      fetch('http://localhost:8765', { mode: 'no-cors', signal: controller.signal })
+        .then(() => {
+          clearTimeout(timeout);
+          if (dot) dot.style.background = '#10b981';
+          if (text) text.textContent = 'Online: localhost:8765';
+          if (card) card.style.display = 'none';
+          if (iframe) iframe.style.display = 'block';
+        })
+        .catch(() => {
+          if (dot) dot.style.background = '#ef4444';
+          if (text) text.textContent = 'Offline (Port 8765)';
+          if (card) card.style.display = 'flex';
+          if (iframe) iframe.style.display = 'none';
+        });
+    }
 
     startClock() {
 

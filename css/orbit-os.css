@@ -1173,3 +1173,10 @@ body.orbit-os-active #suite-container {
   color: #1db954;
   font-weight: 600;
 }
+
+/* Prevent iframes (such as Folienwerk) from swallowing mouse events during window drag/resize */
+body.os-window-dragging iframe,
+body.os-window-resizing iframe {
+  pointer-events: none !important;
+  user-select: none !important;
+}

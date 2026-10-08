@@ -663,6 +663,7 @@ class OrbitOS {
     header.addEventListener('mousedown', (e) => {
       if (e.target.closest('.os-ctrl-dot') || el.classList.contains('maximized')) return;
       isDragging = true;
+      document.body.classList.add('os-window-dragging');
       dragStartX = e.clientX;
       dragStartY = e.clientY;
       initialX = el.offsetLeft;
@@ -683,7 +684,10 @@ class OrbitOS {
     });
 
     window.addEventListener('mouseup', () => {
-      isDragging = false;
+      if (isDragging) {
+        isDragging = false;
+        document.body.classList.remove('os-window-dragging');
+      }
     });
 
     const handles = el.querySelectorAll('.os-resize-handle');
@@ -701,6 +705,7 @@ class OrbitOS {
         if (el.classList.contains('maximized')) return;
         e.stopPropagation();
         isResizing = true;
+        document.body.classList.add('os-window-resizing');
         startX = e.clientX;
         startY = e.clientY;
         startW = el.offsetWidth;
@@ -730,7 +735,10 @@ class OrbitOS {
       });
 
       window.addEventListener('mouseup', () => {
-        isResizing = false;
+        if (isResizing) {
+          isResizing = false;
+          document.body.classList.remove('os-window-resizing');
+        }
       });
     });
   }
