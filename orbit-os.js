@@ -1,7 +1,7 @@
 /**
  * OrbitOS • Modern Web Desktop Environment & Window Management Engine
  * Hybrid Workspace Extension for OrbitSuite
- * Includes Linux Superuser Terminal with `sudo`, Canvas Matrix Digital Rain, and Window Management
+ * Includes Linux Superuser Terminal with `sudo`, In-Terminal Canvas Matrix Rain, and Clean View Anchor Isolation
  */
 
 class OrbitOS {
@@ -20,6 +20,9 @@ class OrbitOS {
       sudoCallback: null,
       failedAttempts: 0
     };
+
+    // Matrix Rain State inside Terminal
+    this.matrixAnimId = null;
 
     this.appDefinitions = {
       tasks: {
@@ -83,14 +86,6 @@ class OrbitOS {
         defaultWidth: 320,
         defaultHeight: 440
       },
-      matrix: {
-        name: 'Matrix Digital Rain',
-        icon: '🟢',
-        color: '#22c55e',
-        isSuiteApp: false,
-        defaultWidth: 800,
-        defaultHeight: 500
-      },
       settings: {
         name: 'OS Einstellungen',
         icon: '⚙️',
@@ -105,6 +100,7 @@ class OrbitOS {
   }
 
   init() {
+    this.createSuiteAnchors();
     this.createDesktopDOM();
     this.bindGlobalEvents();
     this.startClock();
@@ -115,8 +111,26 @@ class OrbitOS {
     }
   }
 
+  /* Create invisible DOM anchors inside #suite-container to preserve 100% exact order */
+  createSuiteAnchors() {
+    Object.values(this.appDefinitions).forEach((def) => {
+      if (def.isSuiteApp && def.suiteViewId) {
+        const viewEl = document.getElementById(def.suiteViewId);
+        if (viewEl && viewEl.parentNode) {
+          const anchorId = `os-anchor-${def.suiteViewId}`;
+          if (!document.getElementById(anchorId)) {
+            const anchor = document.createElement('div');
+            anchor.id = anchorId;
+            anchor.style.display = 'none';
+            viewEl.parentNode.insertBefore(anchor, viewEl);
+          }
+        }
+      }
+    });
+  }
+
   createDesktopDOM() {
-    // 1. Root Element
+    // Root Element
     this.root = document.createElement('div');
     this.root.id = 'orbit-os-root';
     this.root.className = `os-wallpaper-${this.activeWallpaper}`;
@@ -355,7 +369,7 @@ class OrbitOS {
     localStorage.setItem('orbit_active_mode', 'os');
     document.body.classList.add('orbit-os-active');
 
-    // Default open window
+    // Default open Tasks window if none open
     if (this.windows.size === 0) {
       this.openApp('tasks');
     }
@@ -370,17 +384,23 @@ class OrbitOS {
     localStorage.setItem('orbit_active_mode', 'suite');
     document.body.classList.remove('orbit-os-active');
 
-    // Return suite views back to suite container
-    this.windows.forEach((win, appId) => {
-      const def = this.appDefinitions[appId];
-      if (def && def.isSuiteApp && def.suiteViewId) {
+    // Return ALL embedded suite views back to their exact original anchor positions
+    Object.values(this.appDefinitions).forEach((def) => {
+      if (def.isSuiteApp && def.suiteViewId) {
         const viewEl = document.getElementById(def.suiteViewId);
-        const suiteContainer = document.getElementById('suite-container');
-        if (viewEl && suiteContainer) {
-          suiteContainer.appendChild(viewEl);
+        const anchor = document.getElementById(`os-anchor-${def.suiteViewId}`);
+        if (viewEl && anchor && anchor.parentNode) {
+          viewEl.style.display = ''; // CLEAR ANY INLINE DISPLAY
+          viewEl.classList.remove('os-embedded-view');
+          anchor.parentNode.insertBefore(viewEl, anchor);
         }
       }
     });
+
+    // Synchronize router state so ONLY the currently active app view in Workspace is shown
+    if (this.suite && this.suite.switchApp) {
+      this.suite.switchApp(this.suite.activeApp || 'hub', false);
+    }
 
     if (this.suite && this.suite.showToast) {
       this.suite.showToast('Zurück im klassischen Workspace 🗖', 'info');
@@ -452,6 +472,7 @@ class OrbitOS {
     if (def.isSuiteApp && def.suiteViewId) {
       const suiteView = document.getElementById(def.suiteViewId);
       if (suiteView) {
+        suiteView.classList.add('os-embedded-view');
         suiteView.style.display = 'block';
         bodyEl.appendChild(suiteView);
       }
@@ -459,8 +480,6 @@ class OrbitOS {
       this.mountLinuxTerminal(bodyEl);
     } else if (appId === 'calculator') {
       this.mountCalculator(bodyEl);
-    } else if (appId === 'matrix') {
-      this.mountMatrixRain(bodyEl);
     } else if (appId === 'settings') {
       this.mountSettings(bodyEl);
     }
@@ -533,17 +552,14 @@ class OrbitOS {
     const win = this.windows.get(appId);
     if (!win) return;
 
-    // Cleanup matrix if closing matrix window
-    if (appId === 'matrix' && win.matrixAnimId) {
-      cancelAnimationFrame(win.matrixAnimId);
-    }
-
     const def = this.appDefinitions[appId];
     if (def && def.isSuiteApp && def.suiteViewId) {
       const viewEl = document.getElementById(def.suiteViewId);
-      const suiteContainer = document.getElementById('suite-container');
-      if (viewEl && suiteContainer) {
-        suiteContainer.appendChild(viewEl);
+      const anchor = document.getElementById(`os-anchor-${def.suiteViewId}`);
+      if (viewEl && anchor && anchor.parentNode) {
+        viewEl.style.display = ''; // CLEAR INLINE DISPLAY
+        viewEl.classList.remove('os-embedded-view');
+        anchor.parentNode.insertBefore(viewEl, anchor);
       }
     }
 
@@ -662,99 +678,28 @@ class OrbitOS {
   }
 
   /* ==========================================================================
-     Authentic HTML5 Canvas Matrix Digital Rain
-     ========================================================================== */
-  mountMatrixRain(container) {
-    container.innerHTML = `
-      <div class="os-matrix-container">
-        <canvas class="os-matrix-canvas" id="os-matrix-cvs"></canvas>
-        <div class="os-matrix-banner">MATRIX DIGITAL RAIN // ESC to Exit</div>
-      </div>
-    `;
-
-    const canvas = container.querySelector('#os-matrix-cvs');
-    const ctx = canvas.getContext('2d');
-
-    const resize = () => {
-      canvas.width = container.clientWidth || 800;
-      canvas.height = container.clientHeight || 500;
-    };
-    resize();
-
-    // Half-width Katakana + Latin characters
-    const chars = 'ｦｱｳｴｵｶｷｹｺｻｼｽｾｿﾀﾂﾃﾅﾆﾇﾈﾊﾋﾎﾏﾐﾑﾒﾓﾔﾕﾗﾘﾜ1234567890ABCDEF@#$%&*+-=<>'.split('');
-    const fontSize = 14;
-    let columns = Math.floor(canvas.width / fontSize);
-    let drops = Array(columns).fill(1);
-
-    const render = () => {
-      // Black background with slight opacity for fading trails
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.055)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      ctx.font = `${fontSize}px monospace`;
-
-      for (let i = 0; i < drops.length; i++) {
-        const char = chars[Math.floor(Math.random() * chars.length)];
-        const x = i * fontSize;
-        const y = drops[i] * fontSize;
-
-        // Glowing white tip character
-        ctx.fillStyle = '#ffffff';
-        ctx.shadowColor = '#00ff66';
-        ctx.shadowBlur = 8;
-        ctx.fillText(char, x, y);
-
-        // Green trail character directly above
-        ctx.fillStyle = '#00ff66';
-        ctx.shadowBlur = 0;
-        ctx.fillText(char, x, y - fontSize);
-
-        if (y > canvas.height && Math.random() > 0.975) {
-          drops[i] = 0;
-        }
-        drops[i]++;
-      }
-
-      const winRecord = this.windows.get('matrix');
-      if (winRecord) {
-        winRecord.matrixAnimId = requestAnimationFrame(render);
-      }
-    };
-
-    const winRecord = this.windows.get('matrix');
-    if (winRecord) {
-      winRecord.matrixAnimId = requestAnimationFrame(render);
-    }
-
-    window.addEventListener('resize', () => {
-      resize();
-      columns = Math.floor(canvas.width / fontSize);
-      drops = Array(columns).fill(1);
-    });
-  }
-
-  /* ==========================================================================
-     Linux Superuser Terminal Engine with `sudo` & Admin Commands
+     Linux Superuser Terminal Engine with `sudo` & In-Terminal Canvas Matrix
      ========================================================================== */
   mountLinuxTerminal(container) {
     container.innerHTML = `
-      <div class="os-terminal-wrap">
+      <div class="os-terminal-wrap" style="position: relative;">
         <div class="os-terminal-output" id="os-term-out">
           <div><strong style="color: #38bdf8;">Linux orbit-os 6.8.0-orbit-generic x86_64</strong></div>
           <div style="color: #94a3b8; font-size: 11px;">OrbitOS GNU/Linux Shell • Type <span style="color: #facc15;">'help'</span> for list of commands.</div>
           <div style="color: #94a3b8; font-size: 11px; margin-bottom: 6px;">Type <span style="color: #ef4444; font-weight: bold;">'sudo su'</span> or <span style="color: #ef4444; font-weight: bold;">'sudo admin'</span> for system administrator console.</div>
         </div>
-        <div class="os-terminal-input-row">
+        <div class="os-terminal-input-row" id="os-term-row">
           <span class="os-terminal-prompt" id="os-term-prompt">rune@orbit:~$</span>
           <input type="text" class="os-terminal-input" id="os-term-in" autofocus autocomplete="off" spellcheck="false">
         </div>
       </div>
     `;
 
+    const wrap = container.querySelector('.os-terminal-wrap');
     const out = container.querySelector('#os-term-out');
     const input = container.querySelector('#os-term-in');
     const prompt = container.querySelector('#os-term-prompt');
+    const row = container.querySelector('#os-term-row');
 
     const print = (text, color = '#cbd5e1') => {
       const line = document.createElement('div');
@@ -780,6 +725,80 @@ class OrbitOS {
         prompt.style.color = '#34d399';
         input.type = 'text';
       }
+    };
+
+    // In-Terminal Matrix Rain Engine
+    const launchInTerminalMatrix = () => {
+      const matrixWrap = document.createElement('div');
+      matrixWrap.id = 'os-term-matrix-wrap';
+      matrixWrap.style.cssText = 'position: absolute; inset: 0; background: #000; z-index: 25; display: flex; flex-direction: column; overflow: hidden;';
+      matrixWrap.innerHTML = `
+        <canvas id="os-term-matrix-cvs" style="width: 100%; height: 100%; display: block;"></canvas>
+        <div style="position: absolute; top: 8px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); border: 1px solid #22c55e; color: #22c55e; padding: 4px 14px; border-radius: 20px; font-family: monospace; font-size: 11px; letter-spacing: 1px; pointer-events: none;">
+          MATRIX DIGITAL RAIN // Click or press any key to exit
+        </div>
+      `;
+      wrap.appendChild(matrixWrap);
+
+      const canvas = matrixWrap.querySelector('#os-term-matrix-cvs');
+      const ctx = canvas.getContext('2d');
+      canvas.width = wrap.clientWidth || 700;
+      canvas.height = wrap.clientHeight || 400;
+
+      const chars = 'ｦｱｳｴｵｶｷｹｺｻｼｽｾｿﾀﾂﾃﾅﾆﾇﾈﾊﾋﾎﾏﾐﾑﾒﾓﾔﾕﾗﾘﾜ1234567890ABCDEF@#$%&*+-=<>'.split('');
+      const fontSize = 14;
+      let columns = Math.floor(canvas.width / fontSize);
+      let drops = Array(columns).fill(1);
+
+      let animRunning = true;
+      const render = () => {
+        if (!animRunning) return;
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.055)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.font = `${fontSize}px monospace`;
+
+        for (let i = 0; i < drops.length; i++) {
+          const char = chars[Math.floor(Math.random() * chars.length)];
+          const x = i * fontSize;
+          const y = drops[i] * fontSize;
+
+          ctx.fillStyle = '#ffffff';
+          ctx.shadowColor = '#00ff66';
+          ctx.shadowBlur = 8;
+          ctx.fillText(char, x, y);
+
+          ctx.fillStyle = '#00ff66';
+          ctx.shadowBlur = 0;
+          ctx.fillText(char, x, y - fontSize);
+
+          if (y > canvas.height && Math.random() > 0.975) {
+            drops[i] = 0;
+          }
+          drops[i]++;
+        }
+
+        this.matrixAnimId = requestAnimationFrame(render);
+      };
+
+      this.matrixAnimId = requestAnimationFrame(render);
+
+      const exitMatrix = () => {
+        animRunning = false;
+        if (this.matrixAnimId) cancelAnimationFrame(this.matrixAnimId);
+        matrixWrap.remove();
+        window.removeEventListener('keydown', keyHandler);
+        print('[ <span class="os-term-tag-ok">OK</span> ] Exited Matrix mode.', '#22c55e');
+        input.focus();
+      };
+
+      const keyHandler = (ke) => {
+        ke.stopPropagation();
+        ke.preventDefault();
+        exitMatrix();
+      };
+
+      matrixWrap.addEventListener('click', exitMatrix);
+      window.addEventListener('keydown', keyHandler);
     };
 
     input.addEventListener('keydown', (e) => {
@@ -837,7 +856,6 @@ class OrbitOS {
         const parts = val.split(' ');
         const cmd = parts[0].toLowerCase();
         const arg1 = parts[1] ? parts[1].toLowerCase() : '';
-        const arg2 = parts[2] ? parts[2].toLowerCase() : '';
 
         // Execute Command
         if (cmd === 'sudo' || cmd === 'su') {
@@ -870,7 +888,7 @@ class OrbitOS {
     <span style="color: #ef4444;">passwd</span>              - Admin-PIN ändern
     <span style="color: #ef4444;">cat /etc/orbit/config.json</span> - Cloud-Konfiguration prüfen
   <strong style="color: #38bdf8;">Apps & Fun:</strong>
-    <span style="color: #a855f7;">matrix</span>              - Echtes HTML5 Canvas Matrix Digital Rain starten
+    <span style="color: #a855f7;">matrix</span>              - Echtes HTML5 Canvas Matrix Digital Rain starten (nur im Terminal)
     <span style="color: #a855f7;">tasks</span>               - Aufgabenliste anzeigen
     <span style="color: #a855f7;">calc &lt;math&gt;</span>         - Taschenrechner (z.B. calc 42*7)
     <span style="color: #a855f7;">wallpaper &lt;theme&gt;</span>   - Wallpaper wechseln (nebula, cyberpunk, midnight, aurora)
@@ -984,8 +1002,7 @@ Oct  8 10:24:15 orbit-os sudo[142]: rune : TTY=pts/0 ; PWD=/home/rune ; USER=roo
             print('passwd: Authentication token manipulation error (PIN must be at least 4 chars).', '#ef4444');
           }
         } else if (cmd === 'matrix') {
-          this.openApp('matrix');
-          print('[ <span class="os-term-tag-ok">OK</span> ] Matrix Digital Rain engine launched in window.', '#22c55e');
+          launchInTerminalMatrix();
         } else if (cmd === 'tasks') {
           const tasks = (this.suite && this.suite.tasks && this.suite.tasks.tasks) ? this.suite.tasks.tasks : [];
           print(`OrbitTask Database: <strong>${tasks.length}</strong> active task(s):`);
