@@ -1,20 +1,20 @@
 /**
  * OrbitSuite • Globale System- & Cloud-Konfiguration
  * 
- * Hier können die Supabase-Verbindungsdaten fest hinterlegt werden.
+ * Hier sind deine Supabase-Verbindungsdaten fest hinterlegt.
  * Dadurch ist die Cloud-Datenbank auf ALLEN Geräten (Handy, Tablet, Laptop)
  * sofort aktiv, ohne dass du den Schlüssel auf jedem Gerät erneut eingeben musst!
  * 
  * Die Werte können auch bequem über das geschützte Admin-Panel in der App
- * eingegeben und geändert werden (erreichbar über das Schloss-Symbol 🔒).
+ * eingesehen und geändert werden (erreichbar über das Schloss-Symbol 🔒).
  */
 window.ORBIT_CONFIG = {
-  // Deine Supabase Project URL (z. B. "https://xyzcompany.supabase.co")
-  supabaseUrl: '',
+  // Deine Supabase Project URL
+  supabaseUrl: 'https://hsbtkwiuoxehexbcykvn.supabase.co',
 
-  // Dein Supabase Anon Public Key (beginnt mit "eyJhbGciOi...")
-  supabaseKey: '',
+  // Dein Supabase Publishable Key
+  supabaseKey: 'sb_publishable_O3RjZyTjL_D9pF68PtxImg_ZDe-J1RM',
 
-  // Standard Admin-PIN (z. B. "1234" oder über das Admin-Panel anpassbar)
+  // Standard Admin-PIN (über das Admin-Panel im Browser anpassbar)
   defaultAdminPin: '1234'
 };

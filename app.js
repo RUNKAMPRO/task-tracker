@@ -11143,15 +11143,21 @@ END $$;`;
     }
 
     loadConfig() {
-      const url = localStorage.getItem(this.STORAGE_KEY_URL) || '';
-      const key = localStorage.getItem(this.STORAGE_KEY_KEY) || '';
+      const fileUrl = (window.ORBIT_CONFIG && window.ORBIT_CONFIG.supabaseUrl) || '';
+      const fileKey = (window.ORBIT_CONFIG && window.ORBIT_CONFIG.supabaseKey) || '';
+      const localUrl = localStorage.getItem(this.STORAGE_KEY_URL) || '';
+      const localKey = localStorage.getItem(this.STORAGE_KEY_KEY) || '';
+
+      const url = (localUrl || fileUrl).trim();
+      const key = (localKey || fileKey).trim();
+
       if (this.dom.cfgSupabaseUrl) this.dom.cfgSupabaseUrl.value = url;
       if (this.dom.cfgSupabaseKey) this.dom.cfgSupabaseKey.value = key;
+      return { url, key };
     }
 
     async initClient() {
-      const url = (localStorage.getItem(this.STORAGE_KEY_URL) || '').trim();
-      const key = (localStorage.getItem(this.STORAGE_KEY_KEY) || '').trim();
+      const { url, key } = this.loadConfig();
 
       if (!url || !key) {
         this.updateBadge('guest', 'Gast-Modus');
