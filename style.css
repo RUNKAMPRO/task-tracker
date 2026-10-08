@@ -1,3 +1,14 @@
+/* Universal Hidden Utility (High-Priority Visibility Enforcement) */
+.hidden,
+[hidden],
+#btn-suite-admin.hidden,
+.auth-view-guest.hidden,
+.auth-view-user.hidden,
+.auth-modal-footer.hidden {
+  display: none !important;
+  visibility: hidden !important;
+}
+
 /* ==========================================================================
    OrbitTask - Modern Dark Glassmorphism Design System
    ========================================================================== */
@@ -7835,4 +7846,21 @@ body {
 
 .admin-tab-panel.active {
   display: block;
+}
+
+/* Auth Modal View Transitions */
+.auth-view-guest {
+  display: block;
+  animation: fadeInDown 0.25s ease-out;
+}
+.auth-view-guest.hidden {
+  display: none !important;
+}
+
+.auth-view-user {
+  display: block;
+  animation: fadeInDown 0.25s ease-out;
+}
+.auth-view-user.hidden {
+  display: none !important;
 }

@@ -11345,11 +11345,17 @@ END $$;`;
 
     renderUserUI() {
       if (!this.user) return;
+      if (this.dom.viewGuest) {
+        this.dom.viewGuest.classList.add('hidden');
+        this.dom.viewGuest.style.display = 'none';
+      }
+      if (this.dom.viewUser) {
+        this.dom.viewUser.classList.remove('hidden');
+        this.dom.viewUser.style.display = 'block';
+      }
       if (this.suite.admin) {
         this.suite.admin.updateVisibility();
       }
-      if (this.dom.viewGuest) this.dom.viewGuest.classList.add('hidden');
-      if (this.dom.viewUser) this.dom.viewUser.classList.remove('hidden');
 
       const email = this.user.email || 'Benutzer';
       const name = (this.user.user_metadata && this.user.user_metadata.display_name) || email.split('@')[0];
@@ -11376,11 +11382,17 @@ END $$;`;
     }
 
     renderGuestUI() {
+      if (this.dom.viewGuest) {
+        this.dom.viewGuest.classList.remove('hidden');
+        this.dom.viewGuest.style.display = 'block';
+      }
+      if (this.dom.viewUser) {
+        this.dom.viewUser.classList.add('hidden');
+        this.dom.viewUser.style.display = 'none';
+      }
       if (this.suite.admin) {
         this.suite.admin.updateVisibility();
       }
-      if (this.dom.viewGuest) this.dom.viewGuest.classList.remove('hidden');
-      if (this.dom.viewUser) this.dom.viewUser.classList.add('hidden');
 
       if (this.dom.userNameDisplay) this.dom.userNameDisplay.textContent = 'Anmelden';
       if (this.dom.userAvatarIndicator) {
@@ -11934,17 +11946,26 @@ END $$;`;
     updateVisibility() {
       const isAuthorized = this.isAdminUser();
       if (this.dom.btnSuiteAdmin) {
-        this.dom.btnSuiteAdmin.classList.toggle('hidden', !isAuthorized);
-        if (isAuthorized && this.suite.sync && this.suite.sync.user) {
-          this.dom.btnSuiteAdmin.title = `Admin-Panel (Autorisiert: ${this.suite.sync.user.email})`;
+        if (isAuthorized) {
+          this.dom.btnSuiteAdmin.classList.remove('hidden');
+          this.dom.btnSuiteAdmin.style.display = 'flex';
+          if (this.suite.sync && this.suite.sync.user) {
+            this.dom.btnSuiteAdmin.title = `Admin-Panel (Autorisiert: ${this.suite.sync.user.email})`;
+          }
+        } else {
+          this.dom.btnSuiteAdmin.classList.add('hidden');
+          this.dom.btnSuiteAdmin.style.display = 'none';
         }
       }
       if (this.dom.btnOpenAdminFromModal) {
         const wrap = this.dom.btnOpenAdminFromModal.closest('.auth-modal-footer');
-        if (wrap) {
-          wrap.classList.toggle('hidden', !isAuthorized);
+        const target = wrap || this.dom.btnOpenAdminFromModal;
+        if (isAuthorized) {
+          target.classList.remove('hidden');
+          target.style.display = 'block';
         } else {
-          this.dom.btnOpenAdminFromModal.classList.toggle('hidden', !isAuthorized);
+          target.classList.add('hidden');
+          target.style.display = 'none';
         }
       }
       if (!isAuthorized && this.dom.adminModal && !this.dom.adminModal.classList.contains('hidden')) {

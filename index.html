@@ -21,8 +21,19 @@
   <link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png">
   <meta name="msapplication-TileColor" content="#0b0f19">
   <meta name="msapplication-TileImage" content="icons/icon-192.png">
-  <link rel="stylesheet" href="style.css?v=2.3.0">
+  <link rel="stylesheet" href="style.css?v=2.4.0">
   <style id="critical-auth-styles">
+    /* Fail-Safe Immediate Visibility Overrides */
+    .hidden, [hidden], #btn-suite-admin.hidden, .auth-view-guest.hidden, .auth-view-user.hidden, .auth-modal-footer.hidden {
+      display: none !important;
+    }
+    #btn-suite-admin {
+      display: none;
+    }
+    .auth-view-user {
+      display: none;
+    }
+
     .suite-user-btn {
       display: inline-flex !important;
       align-items: center !important;
@@ -311,7 +322,7 @@
         </button>
 
         <!-- Admin Panel Trigger (Protected by PIN) -->
-        <button class="btn-icon suite-control-btn hidden" id="btn-suite-admin" title="Admin-Panel (Cloud &amp; Datenbank)" aria-label="Admin-Panel" onclick="if(window.orbitSuite&amp;&amp;window.orbitSuite.admin){window.orbitSuite.admin.openModal();}else{var m=document.getElementById('admin-modal');if(m)m.classList.remove('hidden');}">
+        <button class="btn-icon suite-control-btn hidden" id="btn-suite-admin" style="display: none;" title="Admin-Panel (Cloud &amp; Datenbank)" aria-label="Admin-Panel" onclick="if(window.orbitSuite&amp;&amp;window.orbitSuite.admin){window.orbitSuite.admin.openModal();}else{var m=document.getElementById('admin-modal');if(m)m.classList.remove('hidden');}">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
             <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
@@ -2371,7 +2382,7 @@
           </div>
 
           <!-- Logged In View -->
-          <div class="auth-view-user hidden" id="auth-view-user">
+          <div class="auth-view-user hidden" id="auth-view-user" style="display: none;">
             <div class="user-profile-card">
               <div class="profile-avatar-large" id="profile-avatar-large">U</div>
               <div class="profile-details">
@@ -2469,7 +2480,7 @@
         </div>
 
         <!-- Discreet Admin Link Footer -->
-        <div class="auth-modal-footer hidden">
+        <div class="auth-modal-footer hidden" style="display: none;">
           <button type="button" class="btn-text-admin-link" id="btn-open-admin-from-modal" onclick="var m1=document.getElementById('auth-modal');if(m1)m1.classList.add('hidden');if(window.orbitSuite&amp;&amp;window.orbitSuite.admin){window.orbitSuite.admin.openModal();}else{var m2=document.getElementById('admin-modal');if(m2)m2.classList.remove('hidden');}">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
             <span>Admin-Panel (Datenbank-Konfiguration)</span>
@@ -2682,8 +2693,8 @@
   <!-- Global Confetti Canvas -->
   <canvas id="confetti-canvas" class="confetti-canvas"></canvas>
 
-  <script src="config.js?v=2.3.0"></script>
-  <script src="app.js?v=2.3.0"></script>
+  <script src="config.js?v=2.4.0"></script>
+  <script src="app.js?v=2.4.0"></script>
   <script>
     // Fail-safe direct click binding for Cloud Sync
     (function() {
