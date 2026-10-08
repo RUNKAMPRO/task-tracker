@@ -1084,8 +1084,11 @@ Oct  8 10:24:15 orbit-os sudo[142]: rune : TTY=pts/0 ; PWD=/home/rune ; USER=roo
               .catch(() => {
                 print('[OFFLINE] Server auf Port 8765 nicht erreichbar. Starte "Folienwerk starten.bat"', '#ef4444');
               });
+          } else if (arg1 === 'repo') {
+            print('Öffne dein GitHub Repo: https://github.com/RUNKAMPRO/Folienwerk', '#38bdf8');
+            window.open('https://github.com/RUNKAMPRO/Folienwerk', '_blank');
           } else {
-            print('Verwendung: folienwerk [open | status]', '#94a3b8');
+            print('Verwendung: folienwerk [open | status | repo]', '#94a3b8');
           }
         } else if (cmd === 'spotify') {
           if (!this.spotify) {
@@ -1582,11 +1585,15 @@ Oct  8 10:24:15 orbit-os sudo[142]: rune : TTY=pts/0 ; PWD=/home/rune ; USER=roo
           <div style="display:flex; align-items:center; gap:10px;">
             <div style="width:28px; height:28px; border-radius:8px; background:linear-gradient(135deg, #e11d48, #f43f5e); display:flex; align-items:center; justify-content:center; font-size:16px;">📑</div>
             <div>
-              <div style="font-weight:700; font-size:13px; letter-spacing:-0.01em;">Folienwerk <span style="font-size:10px; color:#f43f5e; font-weight:700; background:rgba(225,29,72,0.15); border:1px solid rgba(225,29,72,0.3); padding:1px 6px; border-radius:10px; margin-left:4px;">OTTO GROUP</span></div>
-              <div style="font-size:11px; color:#94a3b8;" id="os-fw-url-display">http://localhost:8765</div>
+              <div style="font-weight:700; font-size:13px; letter-spacing:-0.01em;">Folienwerk <span style="font-size:10px; color:#f43f5e; font-weight:700; background:rgba(225,29,72,0.15); border:1px solid rgba(225,29,72,0.3); padding:1px 6px; border-radius:10px; margin-left:4px;">RUNKAMPRO</span></div>
+              <div style="font-size:11px; color:#94a3b8;" id="os-fw-url-display">http://localhost:8765 &bull; <a href="https://github.com/RUNKAMPRO/Folienwerk" target="_blank" style="color:#f43f5e; text-decoration:none;">github.com/RUNKAMPRO/Folienwerk ↗</a></div>
             </div>
           </div>
           <div style="display:flex; align-items:center; gap:8px;">
+            <a href="https://github.com/RUNKAMPRO/Folienwerk" target="_blank" style="padding:5px 10px; font-size:11px; border-radius:6px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); color:#fff; text-decoration:none; display:flex; align-items:center; gap:5px;" title="GitHub Repository öffnen">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+              <span>GitHub Repo</span>
+            </a>
             <span class="status-badge" id="os-fw-status" style="font-size:11px; padding:3px 8px; border-radius:12px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#94a3b8; display:flex; align-items:center; gap:5px;">
               <span id="os-fw-status-dot" style="width:7px; height:7px; border-radius:50%; background:#f59e0b; display:inline-block;"></span>
               <span id="os-fw-status-text">Prüfe Server...</span>
