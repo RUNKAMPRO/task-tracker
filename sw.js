@@ -2,7 +2,7 @@
 // OrbitSuite Service Worker (Offline & Instant PWA Caching Engine)
 // ==============================================================================
 
-const CACHE_VERSION = 'orbitsuite-v3.7.2';
+const CACHE_VERSION = 'orbitsuite-v3.7.3';
 const STATIC_CACHE_NAME = `orbitsuite-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE_NAME = `orbitsuite-runtime-${CACHE_VERSION}`;
 
