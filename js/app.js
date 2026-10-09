@@ -7812,6 +7812,14 @@ btnRandom: document.getElementById('btn-riddle-random'),
           cell.className = `queens-cell reg-${reg}`;
           cell.dataset.r = r;
           cell.dataset.c = c;
+          cell.dataset.reg = reg;
+
+          cell.addEventListener('pointerenter', () => {
+            gridEl.dataset.hoverReg = reg;
+          });
+          cell.addEventListener('pointerleave', () => {
+            if (gridEl.dataset.hoverReg === String(reg)) delete gridEl.dataset.hoverReg;
+          });
 
           // Heavy region borders between different colored regions
           if (r === 0 || board.regions[r - 1][c] !== reg) cell.classList.add('border-top');
@@ -8397,6 +8405,8 @@ btnRandom: document.getElementById('btn-riddle-random'),
           const isGiven = puzzle.givens[r][c] !== null;
 
           cell.className = `tango-cell ${isGiven ? 'given' : ''}`;
+          cell.dataset.r = r;
+          cell.dataset.c = c;
 
 
 
@@ -12486,17 +12496,34 @@ END $$;`;
       let localHash = localStorage.getItem('orbitsuite_admin_pin_hash');
       if (localHash) return localHash;
 
-      // 2. Check Supabase cloud sync for system admin PIN hash if available
+      // 2. Check Supabase cloud sync for system admin PIN hash in orbit_system_config
       if (this.suite && this.suite.sync && this.suite.sync.client) {
         try {
           const { data } = await this.suite.sync.client
-            .from('orbit_sync')
-            .select('payload')
-            .eq('app', 'system_admin_pin')
+            .from('orbit_system_config')
+            .select('value')
+            .eq('key', 'admin_pin_hash')
             .maybeSingle();
-          if (data && data.payload && data.payload.hash) {
-            localStorage.setItem('orbitsuite_admin_pin_hash', data.payload.hash);
-            return data.payload.hash;
+          if (data && data.value && data.value.hash) {
+            localStorage.setItem('orbitsuite_admin_pin_hash', data.value.hash);
+            return data.value.hash;
+          }
+        } catch (e) {
+          // fallback to user settings
+        }
+
+        try {
+          // Also check current user settings if logged into Supabase
+          if (this.suite.sync.currentUser) {
+            const { data } = await this.suite.sync.client
+              .from('orbit_sync')
+              .select('settings')
+              .eq('user_id', this.suite.sync.currentUser.id)
+              .maybeSingle();
+            if (data && data.settings && data.settings.admin_pin_hash) {
+              localStorage.setItem('orbitsuite_admin_pin_hash', data.settings.admin_pin_hash);
+              return data.settings.admin_pin_hash;
+            }
           }
         } catch (e) {
           // silent fallback
@@ -12600,11 +12627,27 @@ END $$;`;
           localStorage.setItem(this.STORAGE_KEY_ADMIN_PIN, entered);
           if (this.suite && this.suite.sync && this.suite.sync.client) {
             try {
-              await this.suite.sync.client.from('orbit_sync').upsert({
-                app: 'system_admin_pin',
-                payload: { hash: newHash, updated_at: new Date().toISOString() },
+              await this.suite.sync.client.from('orbit_system_config').upsert({
+                key: 'admin_pin_hash',
+                value: { hash: newHash, updated_at: new Date().toISOString() },
                 updated_at: new Date().toISOString()
               });
+            } catch (e) {}
+            try {
+              if (this.suite.sync.currentUser) {
+                const userId = this.suite.sync.currentUser.id;
+                const { data } = await this.suite.sync.client
+                  .from('orbit_sync')
+                  .select('settings')
+                  .eq('user_id', userId)
+                  .maybeSingle();
+                const curSettings = (data && data.settings) ? data.settings : {};
+                curSettings.admin_pin_hash = newHash;
+                await this.suite.sync.client
+                  .from('orbit_sync')
+                  .update({ settings: curSettings, updated_at: new Date().toISOString() })
+                  .eq('user_id', userId);
+              }
             } catch (e) {}
           }
           this.isAdminUnlocked = true;
@@ -12750,18 +12793,37 @@ END $$;`;
       localStorage.setItem('orbitsuite_admin_pin_hash', pinHash);
       localStorage.setItem(this.STORAGE_KEY_ADMIN_PIN, newPin);
 
-      // Cloud Sync via Supabase
+      // Cloud Sync via Supabase (orbit_system_config + user settings)
       if (this.suite && this.suite.sync && this.suite.sync.client) {
         try {
           await this.suite.sync.client
-            .from('orbit_sync')
+            .from('orbit_system_config')
             .upsert({
-              app: 'system_admin_pin',
-              payload: { hash: pinHash, updated_at: new Date().toISOString() },
+              key: 'admin_pin_hash',
+              value: { hash: pinHash, updated_at: new Date().toISOString() },
               updated_at: new Date().toISOString()
             });
         } catch (e) {
-          console.warn('Could not sync admin pin hash to cloud:', e);
+          console.warn('Could not sync admin pin hash to orbit_system_config:', e);
+        }
+
+        try {
+          if (this.suite.sync.currentUser) {
+            const userId = this.suite.sync.currentUser.id;
+            const { data } = await this.suite.sync.client
+              .from('orbit_sync')
+              .select('settings')
+              .eq('user_id', userId)
+              .maybeSingle();
+            const curSettings = (data && data.settings) ? data.settings : {};
+            curSettings.admin_pin_hash = pinHash;
+            await this.suite.sync.client
+              .from('orbit_sync')
+              .update({ settings: curSettings, updated_at: new Date().toISOString() })
+              .eq('user_id', userId);
+          }
+        } catch (e) {
+          console.warn('Could not sync admin pin hash to user settings:', e);
         }
       }
 

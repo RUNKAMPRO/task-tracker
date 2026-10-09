@@ -5091,6 +5091,26 @@ body:not(.orbit-os-active) .suite-app-view:not(.active) {
   border-left: 2.5px solid rgba(255, 255, 255, 0.45);
 }
 
+/* Queens Region Highlighting on Hover/Focus */
+.queens-grid[data-hover-reg] .queens-cell {
+  opacity: 0.82;
+  transition: opacity 0.12s ease, filter 0.12s ease;
+}
+.queens-grid[data-hover-reg="0"] .queens-cell[data-reg="0"],
+.queens-grid[data-hover-reg="1"] .queens-cell[data-reg="1"],
+.queens-grid[data-hover-reg="2"] .queens-cell[data-reg="2"],
+.queens-grid[data-hover-reg="3"] .queens-cell[data-reg="3"],
+.queens-grid[data-hover-reg="4"] .queens-cell[data-reg="4"],
+.queens-grid[data-hover-reg="5"] .queens-cell[data-reg="5"],
+.queens-grid[data-hover-reg="6"] .queens-cell[data-reg="6"],
+.queens-grid[data-hover-reg="7"] .queens-cell[data-reg="7"],
+.queens-grid[data-hover-reg="8"] .queens-cell[data-reg="8"],
+.queens-grid[data-hover-reg="9"] .queens-cell[data-reg="9"] {
+  opacity: 1 !important;
+  filter: brightness(1.25) saturate(1.15);
+  box-shadow: inset 0 0 12px rgba(255, 255, 255, 0.22);
+}
+
 /* Region Color Themes - High-Contrast Vibrant Modern Palette */
 .reg-0 { background-color: #1e40af; } /* Sapphire Blue */
 .reg-1 { background-color: #065f46; } /* Emerald Green */
