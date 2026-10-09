@@ -7510,6 +7510,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
       }
 
       this.renderQueens();
+      this.checkHintCompletion('queens');
 
       // Check if solved immediately (no delay on win)
       const board = this.getActiveQueensBoard();
@@ -7777,6 +7778,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
             this.dom.queensFeedback.textContent = '';
           }
           this.renderQueens();
+          this.checkHintCompletion('queens');
 
           const b = this.getActiveQueensBoard();
           const s = b ? b.size : 6;
@@ -8014,6 +8016,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
       }
 
       this.renderTango();
+      this.checkHintCompletion('tango');
 
       // Check if solved immediately
       const size = puzzle ? puzzle.size : 6;
@@ -9572,6 +9575,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
       }
 
       this.renderSudoku();
+      this.checkHintCompletion('sudoku');
 
       // Check if solved immediately
       const errors = this.getSudokuErrors();
@@ -9856,7 +9860,7 @@ init() {
         <div class="hint-icon-box">💡</div>
         <div class="hint-content-box">
           <div class="hint-title-row">
-            <span class="hint-tag">Taktischer Lösungsschritt</span>
+            <span class="hint-tag">${hint.tag || 'Logische Deduktion'}</span>
             <span class="hint-status-badge" id="${game}-hint-status">Warte auf Umsetzung...</span>
             <button class="hint-close-btn" id="${game}-hint-close" title="Hinweis schließen">✕</button>
           </div>
@@ -9896,23 +9900,27 @@ init() {
     }
 
     applyHintBeacon(game, highlight) {
-      let cell = null;
-      if (game === 'queens') {
-        cell = this.dom.queensGrid?.querySelector(`.queens-cell[data-r="${highlight.r}"][data-c="${highlight.c}"]`);
-      } else if (game === 'tango') {
-        cell = this.dom.tangoGrid?.querySelector(`.tango-cell[data-r="${highlight.r}"][data-c="${highlight.c}"]`);
-      } else if (game === 'sudoku') {
-        cell = this.dom.sudokuGrid?.querySelector(`.sudoku-cell[data-r="${highlight.r}"][data-c="${highlight.c}"]`);
-      } else if (game === 'zip') {
-        cell = this.dom.zipGrid?.querySelector(`.zip-cell[data-r="${highlight.r}"][data-c="${highlight.c}"]`);
-      } else if (game === 'crossclimb' && highlight) {
-        if (highlight.rungIndex !== undefined) {
-          cell = this.dom.crossclimbLadderList?.querySelector(`.crossclimb-rung-card[data-rung-index="${highlight.rungIndex}"]`);
+      if (!highlight) return;
+      const targets = Array.isArray(highlight) ? highlight : [highlight];
+      targets.forEach(hl => {
+        let cell = null;
+        if (game === 'queens') {
+          cell = this.dom.queensGrid?.querySelector(`.queens-cell[data-r="${hl.r}"][data-c="${hl.c}"]`);
+        } else if (game === 'tango') {
+          cell = this.dom.tangoGrid?.querySelector(`.tango-cell[data-r="${hl.r}"][data-c="${hl.c}"]`);
+        } else if (game === 'sudoku') {
+          cell = this.dom.sudokuGrid?.querySelector(`.sudoku-cell[data-r="${hl.r}"][data-c="${hl.c}"]`);
+        } else if (game === 'zip') {
+          cell = this.dom.zipGrid?.querySelector(`.zip-cell[data-r="${hl.r}"][data-c="${hl.c}"]`);
+        } else if (game === 'crossclimb' && hl) {
+          if (hl.rungIndex !== undefined) {
+            cell = this.dom.crossclimbLadderList?.querySelector(`.crossclimb-rung-card[data-rung-index="${hl.rungIndex}"]`);
+          }
         }
-      }
-      if (cell) {
-        cell.classList.add('hint-target-beacon');
-      }
+        if (cell) {
+          cell.classList.add('hint-target-beacon');
+        }
+      });
     }
 
     checkHintCompletion(game) {
@@ -9987,172 +9995,519 @@ init() {
         if (!board) return null;
         const size = board.size;
         const solution = board.solution;
+        const regionNames = ['Blau', 'Grün', 'Bernstein', 'Lila', 'Rubinrot', 'Cyan', 'Schiefergrau', 'Bronze', 'Indigo', 'Waldgrün'];
+        const getRegName = (regId) => `Farbzone ${regId + 1} (${regionNames[regId % regionNames.length] || `Zone ${regId + 1}`})`;
 
-        // 1. Check if user placed an invalid / conflicting queen
+        // 1. Gather all currently placed queens
+        const placedQueens = [];
         for (let r = 0; r < size; r++) {
           for (let c = 0; c < size; c++) {
             if (this.queensUserGrid[r][c] === 'Q') {
-              const isCorrect = solution.some(q => {
-                const sr = Array.isArray(q) ? q[0] : q.r;
-                const sc = Array.isArray(q) ? q[1] : q.c;
-                return sr === r && sc === c;
-              });
-              if (!isCorrect) {
+              placedQueens.push({ r, c, reg: board.regions[r][c] });
+            }
+          }
+        }
+
+        // Helper: Is cell available for a new queen?
+        const isCellAvailable = (r, c) => {
+          if (this.queensUserGrid[r][c] === 'X' || this.queensUserGrid[r][c] === 'Q') return false;
+          if (placedQueens.some(q => q.r === r)) return false;
+          if (placedQueens.some(q => q.c === c)) return false;
+          if (placedQueens.some(q => q.reg === board.regions[r][c])) return false;
+          if (placedQueens.some(q => Math.abs(q.r - r) <= 1 && Math.abs(q.c - c) <= 1)) return false;
+          return true;
+        };
+
+        // --- STEP 1: CONFLICTS & RULE VIOLATIONS ---
+        // 1.1 Direct clashes between placed queens
+        for (let i = 0; i < placedQueens.length; i++) {
+          for (let j = i + 1; j < placedQueens.length; j++) {
+            const q1 = placedQueens[i];
+            const q2 = placedQueens[j];
+            if (q1.r === q2.r) {
+              return {
+                key: `queens_clash_row_${q1.r}`,
+                tag: 'Regelverstoß',
+                reason: `In Zeile ${q1.r + 1} stehen 2 Kronen (Spalte ${q1.c + 1} und Spalte ${q2.c + 1}). Die Spielregel besagt: Jede Zeile darf genau EINE Krone enthalten!`,
+                action: `Entferne die überflüssige Krone auf Zeile ${q2.r + 1}, Spalte ${q2.c + 1}.`,
+                highlight: { r: q2.r, c: q2.c },
+                checkFulfilled: () => this.queensUserGrid[q2.r][q2.c] !== 'Q'
+              };
+            }
+            if (q1.c === q2.c) {
+              return {
+                key: `queens_clash_col_${q1.c}`,
+                tag: 'Regelverstoß',
+                reason: `In Spalte ${q1.c + 1} stehen 2 Kronen (Zeile ${q1.r + 1} und Zeile ${q2.r + 1}). Jede Spalte darf nur genau EINE Krone enthalten!`,
+                action: `Entferne die überflüssige Krone auf Zeile ${q2.r + 1}, Spalte ${q2.c + 1}.`,
+                highlight: { r: q2.r, c: q2.c },
+                checkFulfilled: () => this.queensUserGrid[q2.r][q2.c] !== 'Q'
+              };
+            }
+            if (q1.reg === q2.reg) {
+              return {
+                key: `queens_clash_reg_${q1.reg}`,
+                tag: 'Regelverstoß',
+                reason: `In der ${getRegName(q1.reg)} stehen bereits 2 Kronen. Jede Farbzone darf nur genau EINE Krone enthalten!`,
+                action: `Entferne die zweite Krone aus dieser Farbzone (z. B. auf Zeile ${q2.r + 1}, Spalte ${q2.c + 1}).`,
+                highlight: { r: q2.r, c: q2.c },
+                checkFulfilled: () => this.queensUserGrid[q2.r][q2.c] !== 'Q'
+              };
+            }
+            if (Math.abs(q1.r - q2.r) <= 1 && Math.abs(q1.c - q2.c) <= 1) {
+              return {
+                key: `queens_clash_touch_${q1.r}_${q1.c}`,
+                tag: 'Regelverstoß',
+                reason: `Die Kronen bei (Zeile ${q1.r + 1}, Spalte ${q1.c + 1}) und (Zeile ${q2.r + 1}, Spalte ${q2.c + 1}) berühren sich. Kronen dürfen niemals benachbart sein – auch nicht diagonal!`,
+                action: `Entferne die angrenzende Krone bei Zeile ${q2.r + 1}, Spalte ${q2.c + 1}.`,
+                highlight: { r: q2.r, c: q2.c },
+                checkFulfilled: () => this.queensUserGrid[q2.r][q2.c] !== 'Q'
+              };
+            }
+          }
+        }
+
+        // 1.2 Queen placed on an incorrect cell (dead end)
+        for (const q of placedQueens) {
+          const isCorrect = solution.some(s => {
+            const sr = Array.isArray(s) ? s[0] : s.r;
+            const sc = Array.isArray(s) ? s[1] : s.c;
+            return sr === q.r && sc === q.c;
+          });
+          if (!isCorrect) {
+            return {
+              key: `queens_wrong_${q.r}_${q.c}`,
+              tag: 'Sackgasse erkannt',
+              reason: `Die Krone auf Zeile ${q.r + 1}, Spalte ${q.c + 1} führt zu einer Sackgasse, da sie Pflichtfelder für andere Zeilen oder Farbzonen blockiert.`,
+              action: `Entferne diese Krone auf Zeile ${q.r + 1}, Spalte ${q.c + 1}.`,
+              highlight: { r: q.r, c: q.c },
+              checkFulfilled: () => this.queensUserGrid[q.r][q.c] !== 'Q'
+            };
+          }
+        }
+
+        // 1.3 Erroneous 'X' blocking a required solution cell
+        for (const s of solution) {
+          const sr = Array.isArray(s) ? s[0] : s.r;
+          const sc = Array.isArray(s) ? s[1] : s.c;
+          if (this.queensUserGrid[sr][sc] === 'X') {
+            return {
+              key: `queens_wrong_x_${sr}_${sc}`,
+              tag: 'Fehlendes Lösungsfeld',
+              reason: `Auf Zeile ${sr + 1}, Spalte ${sc + 1} wurde fälschlicherweise ein ✕ gesetzt. Doch Zeile ${sr + 1} und die ${getRegName(board.regions[sr][sc])} benötigen zwingend hier ihre Krone!`,
+              action: `Entferne das ✕ bei Zeile ${sr + 1}, Spalte ${sc + 1}.`,
+              highlight: { r: sr, c: sc },
+              checkFulfilled: () => this.queensUserGrid[sr][sc] !== 'X'
+            };
+          }
+        }
+
+        // Compute candidates per unfulfilled unit
+        const rowsWithoutQueen = [];
+        for (let r = 0; r < size; r++) {
+          if (!placedQueens.some(q => q.r === r)) rowsWithoutQueen.push(r);
+        }
+        const colsWithoutQueen = [];
+        for (let c = 0; c < size; c++) {
+          if (!placedQueens.some(q => q.c === c)) colsWithoutQueen.push(c);
+        }
+        const regsWithoutQueen = [];
+        for (let reg = 0; reg < size; reg++) {
+          if (!placedQueens.some(q => q.reg === reg)) regsWithoutQueen.push(reg);
+        }
+
+        const rowCandidates = Array(size).fill(null).map(() => []);
+        const colCandidates = Array(size).fill(null).map(() => []);
+        const regCandidates = Array(size).fill(null).map(() => []);
+
+        for (let r = 0; r < size; r++) {
+          for (let c = 0; c < size; c++) {
+            if (isCellAvailable(r, c)) {
+              rowCandidates[r].push({ r, c });
+              colCandidates[c].push({ r, c });
+              regCandidates[board.regions[r][c]].push({ r, c });
+            }
+          }
+        }
+
+        // 1.4 Starved units (units with 0 candidate cells)
+        for (const r of rowsWithoutQueen) {
+          if (rowCandidates[r].length === 0) {
+            const solCell = solution.find(s => (Array.isArray(s) ? s[0] === r : s.r === r));
+            const sc = Array.isArray(solCell) ? solCell[1] : solCell?.c;
+            if (sc !== undefined) {
+              return {
+                key: `queens_starved_row_${r}`,
+                tag: 'Zeile blockiert',
+                reason: `In Zeile ${r + 1} gibt es kein einziges freies Feld mehr für eine Krone! Ein ✕ wurde fälschlicherweise auf einem Lösungsfeld gesetzt.`,
+                action: `Entferne das ✕ bei Zeile ${r + 1}, Spalte ${sc + 1}.`,
+                highlight: { r, c: sc },
+                checkFulfilled: () => this.queensUserGrid[r][sc] !== 'X'
+              };
+            }
+          }
+        }
+
+        for (const c of colsWithoutQueen) {
+          if (colCandidates[c].length === 0) {
+            const solCell = solution.find(s => (Array.isArray(s) ? s[1] === c : s.c === c));
+            const sr = Array.isArray(solCell) ? solCell[0] : solCell?.r;
+            if (sr !== undefined) {
+              return {
+                key: `queens_starved_col_${c}`,
+                tag: 'Spalte blockiert',
+                reason: `In Spalte ${c + 1} gibt es kein einziges freies Feld mehr für eine Krone! Ein ✕ blockiert das Lösungsfeld.`,
+                action: `Entferne das ✕ bei Zeile ${sr + 1}, Spalte ${c + 1}.`,
+                highlight: { r: sr, c },
+                checkFulfilled: () => this.queensUserGrid[sr][c] !== 'X'
+              };
+            }
+          }
+        }
+
+        for (const reg of regsWithoutQueen) {
+          if (regCandidates[reg].length === 0) {
+            const solCell = solution.find(s => {
+              const sr = Array.isArray(s) ? s[0] : s.r;
+              const sc = Array.isArray(s) ? s[1] : s.c;
+              return board.regions[sr][sc] === reg;
+            });
+            const sr = Array.isArray(solCell) ? solCell[0] : solCell?.r;
+            const sc = Array.isArray(solCell) ? solCell[1] : solCell?.c;
+            if (sr !== undefined && sc !== undefined) {
+              return {
+                key: `queens_starved_reg_${reg}`,
+                tag: 'Farbzone blockiert',
+                reason: `In der ${getRegName(reg)} gibt es kein freies Feld mehr für die vorgeschriebene Krone!`,
+                action: `Entferne das blockierende ✕ bei Zeile ${sr + 1}, Spalte ${sc + 1}.`,
+                highlight: { r: sr, c: sc },
+                checkFulfilled: () => this.queensUserGrid[sr][sc] !== 'X'
+              };
+            }
+          }
+        }
+
+        // --- STEP 2: SINGLE CANDIDATE IN ROW (USER REQUEST SPECIFIC DEDUCTION) ---
+        for (const r of rowsWithoutQueen) {
+          if (rowCandidates[r].length === 1) {
+            const { c } = rowCandidates[r][0];
+            const xCols = [];
+            for (let ci = 0; ci < size; ci++) {
+              if (this.queensUserGrid[r][ci] === 'X') xCols.push(ci + 1);
+            }
+            const detail = xCols.length === size - 1
+              ? `haben alle anderen ${size - 1} Felder ein ✕ (Spalten ${xCols.join(', ')})`
+              : `sind alle anderen Positionen durch ✕ oder angrenzende Kronen blockiert`;
+            return {
+              key: `queens_single_row_${r}_${c}`,
+              tag: 'Eindeutige Zeilen-Deduktion',
+              reason: `In Zeile ${r + 1} ${detail} außer Spalte ${c + 1}. Da jede Zeile genau eine Krone enthalten muss, MUSS die Krone zwingend auf Spalte ${c + 1} stehen!`,
+              action: `Setze die Krone 👑 auf Zeile ${r + 1}, Spalte ${c + 1}.`,
+              highlight: { r, c },
+              checkFulfilled: () => this.queensUserGrid[r][c] === 'Q'
+            };
+          }
+        }
+
+        // --- STEP 3: SINGLE CANDIDATE IN COLUMN ---
+        for (const c of colsWithoutQueen) {
+          if (colCandidates[c].length === 1) {
+            const { r } = colCandidates[c][0];
+            const xRows = [];
+            for (let ri = 0; ri < size; ri++) {
+              if (this.queensUserGrid[ri][c] === 'X') xRows.push(ri + 1);
+            }
+            const detail = xRows.length === size - 1
+              ? `haben alle anderen ${size - 1} Felder ein ✕ (Zeilen ${xRows.join(', ')})`
+              : `sind alle anderen Positionen blockiert`;
+            return {
+              key: `queens_single_col_${r}_${c}`,
+              tag: 'Eindeutige Spalten-Deduktion',
+              reason: `In Spalte ${c + 1} ${detail} außer Zeile ${r + 1}. Da jede Spalte genau eine Krone enthalten muss, gehört die Krone zwingend auf Zeile ${r + 1}!`,
+              action: `Setze die Krone 👑 auf Zeile ${r + 1}, Spalte ${c + 1}.`,
+              highlight: { r, c },
+              checkFulfilled: () => this.queensUserGrid[r][c] === 'Q'
+            };
+          }
+        }
+
+        // --- STEP 4: SINGLE CANDIDATE IN COLOR REGION ---
+        for (const reg of regsWithoutQueen) {
+          if (regCandidates[reg].length === 1) {
+            const { r, c } = regCandidates[reg][0];
+            return {
+              key: `queens_single_reg_${reg}_${r}_${c}`,
+              tag: 'Eindeutige Zonen-Deduktion',
+              reason: `In der ${getRegName(reg)} sind alle Felder bis auf Zeile ${r + 1}, Spalte ${c + 1} mit ✕ ausgeschlossen oder gesperrt. Da jede Farbzone genau eine Krone benötigt, muss sie hierhin!`,
+              action: `Platziere die Krone 👑 auf Zeile ${r + 1}, Spalte ${c + 1}.`,
+              highlight: { r, c },
+              checkFulfilled: () => this.queensUserGrid[r][c] === 'Q'
+            };
+          }
+        }
+
+        // --- STEP 5: MISSING 'X' AROUND PLACED QUEENS ---
+        for (const q of placedQueens) {
+          // 8 adjacent neighbors
+          for (let dr = -1; dr <= 1; dr++) {
+            for (let dc = -1; dc <= 1; dc++) {
+              if (dr === 0 && dc === 0) continue;
+              const nr = q.r + dr, nc = q.c + dc;
+              if (nr >= 0 && nr < size && nc >= 0 && nc < size) {
+                if (this.queensUserGrid[nr][nc] === null) {
+                  return {
+                    key: `queens_touch_${nr}_${nc}`,
+                    tag: 'Abstandsregel',
+                    reason: `Kronen dürfen sich niemals berühren (auch nicht diagonal!). Da bei Zeile ${q.r + 1}, Spalte ${q.c + 1} eine Krone steht, scheidet das Nachbarfeld bei Zeile ${nr + 1}, Spalte ${nc + 1} sicher aus.`,
+                    action: `Markiere Zeile ${nr + 1}, Spalte ${nc + 1} mit einem ✕.`,
+                    highlight: { r: nr, c: nc },
+                    checkFulfilled: () => this.queensUserGrid[nr][nc] === 'X'
+                  };
+                }
+              }
+            }
+          }
+          // Same row
+          for (let c = 0; c < size; c++) {
+            if (c !== q.c && this.queensUserGrid[q.r][c] === null) {
+              return {
+                key: `queens_row_elim_${q.r}_${c}`,
+                tag: 'Zeilenausschluss',
+                reason: `In Zeile ${q.r + 1} steht bei Spalte ${q.c + 1} bereits die Krone. Kein weiteres Feld dieser Zeile darf eine Krone enthalten!`,
+                action: `Setze auf Zeile ${q.r + 1}, Spalte ${c + 1} ein ✕.`,
+                highlight: { r: q.r, c },
+                checkFulfilled: () => this.queensUserGrid[q.r][c] === 'X'
+              };
+            }
+          }
+          // Same col
+          for (let r = 0; r < size; r++) {
+            if (r !== q.r && this.queensUserGrid[r][q.c] === null) {
+              return {
+                key: `queens_col_elim_${r}_${q.c}`,
+                tag: 'Spaltenausschluss',
+                reason: `In Spalte ${q.c + 1} steht bei Zeile ${q.r + 1} bereits die Krone. Alle übrigen Felder in dieser Spalte scheiden aus.`,
+                action: `Setze auf Zeile ${r + 1}, Spalte ${q.c + 1} ein ✕.`,
+                highlight: { r, c: q.c },
+                checkFulfilled: () => this.queensUserGrid[r][q.c] === 'X'
+              };
+            }
+          }
+          // Same region
+          for (let r = 0; r < size; r++) {
+            for (let c = 0; c < size; c++) {
+              if (board.regions[r][c] === q.reg && (r !== q.r || c !== q.c) && this.queensUserGrid[r][c] === null) {
                 return {
-                  key: `queens_wrong_${r}_${c}`,
-                  reason: `Die Krone bei Zeile ${r + 1}, Spalte ${c + 1} widerspricht den Spielregeln oder der Gesamtlösung.`,
-                  action: `Entferne diese fehlerhafte Krone (Klick oder Rechtsklick), um das Board wieder in einen konsistenten Zustand zu bringen.`,
+                  key: `queens_reg_elim_${r}_${c}`,
+                  tag: 'Zonenausschluss',
+                  reason: `In der ${getRegName(q.reg)} steht bereits eine Krone. Daher scheiden alle restlichen Felder dieser Farbzone aus.`,
+                  action: `Setze auf Zeile ${r + 1}, Spalte ${c + 1} ein ✕.`,
                   highlight: { r, c },
-                  checkFulfilled: () => this.queensUserGrid[r][c] !== 'Q'
+                  checkFulfilled: () => this.queensUserGrid[r][c] === 'X'
                 };
               }
             }
           }
         }
 
-        // 2. Check if a region has only 1 remaining candidate cell
-        for (let regId = 0; regId < size; regId++) {
-          let hasQueenInReg = false;
-          const freeCandidates = [];
-          for (let r = 0; r < size; r++) {
-            for (let c = 0; c < size; c++) {
-              if (board.regions[r][c] === regId) {
-                if (this.queensUserGrid[r][c] === 'Q') {
-                  hasQueenInReg = true;
-                  break;
-                }
-                if (this.queensUserGrid[r][c] !== 'X') {
-                  let touches = false;
-                  for (let dr = -1; dr <= 1; dr++) {
-                    for (let dc = -1; dc <= 1; dc++) {
-                      if (dr === 0 && dc === 0) continue;
-                      const nr = r + dr, nc = c + dc;
-                      if (nr >= 0 && nr < size && nc >= 0 && nc < size && this.queensUserGrid[nr][nc] === 'Q') {
-                        touches = true;
-                      }
-                    }
-                  }
-                  if (!touches) freeCandidates.push({ r, c });
+        // --- STEP 6: LINE-REGION CONFINEMENT & POINTING ---
+        // 6.1 Region confined to a single Row -> Eliminate other cells in that Row
+        for (const reg of regsWithoutQueen) {
+          const cands = regCandidates[reg];
+          if (cands.length > 1) {
+            const firstR = cands[0].r;
+            if (cands.every(pt => pt.r === firstR)) {
+              for (let c = 0; c < size; c++) {
+                if (board.regions[firstR][c] !== reg && this.queensUserGrid[firstR][c] === null) {
+                  return {
+                    key: `queens_pointing_reg_row_${firstR}_${c}`,
+                    tag: 'Logische Ausrichtung',
+                    reason: `Alle verbleibenden Möglichkeiten für die ${getRegName(reg)} liegen ausnahmslos in Zeile ${firstR + 1}. Die Krone von Zeile ${firstR + 1} MUSS also in dieser Farbzone stehen. Daher kann kein anderes Feld in Zeile ${firstR + 1} außerhalb der Zone eine Krone sein!`,
+                    action: `Setze auf Zeile ${firstR + 1}, Spalte ${c + 1} ein ✕.`,
+                    highlight: { r: firstR, c },
+                    checkFulfilled: () => this.queensUserGrid[firstR][c] === 'X'
+                  };
                 }
               }
             }
-            if (hasQueenInReg) break;
-          }
-          if (!hasQueenInReg && freeCandidates.length === 1) {
-            const { r, c } = freeCandidates[0];
-            return {
-              key: `queens_reg_${regId}_${r}_${c}`,
-              reason: `In der Farbzone ${regId + 1} gibt es nur noch ein einziges unblockiertes Feld. Jede Farbzone benötigt genau 1 Krone!`,
-              action: `Platziere die Krone 👑 bei Zeile ${r + 1}, Spalte ${c + 1}.`,
-              highlight: { r, c },
-              checkFulfilled: () => this.queensUserGrid[r][c] === 'Q'
-            };
           }
         }
 
-        // 3. Check if a row has only 1 remaining free cell
+        // 6.2 Region confined to a single Column -> Eliminate other cells in that Column
+        for (const reg of regsWithoutQueen) {
+          const cands = regCandidates[reg];
+          if (cands.length > 1) {
+            const firstC = cands[0].c;
+            if (cands.every(pt => pt.c === firstC)) {
+              for (let r = 0; r < size; r++) {
+                if (board.regions[r][firstC] !== reg && this.queensUserGrid[r][firstC] === null) {
+                  return {
+                    key: `queens_pointing_reg_col_${r}_${firstC}`,
+                    tag: 'Logische Ausrichtung',
+                    reason: `Alle verbleibenden Möglichkeiten für die ${getRegName(reg)} liegen in Spalte ${firstC + 1}. Die Spalten-Krone von Spalte ${firstC + 1} muss also zwingend in dieser Zone liegen. Felder außerhalb der Zone scheiden daher aus!`,
+                    action: `Setze auf Zeile ${r + 1}, Spalte ${firstC + 1} ein ✕.`,
+                    highlight: { r, c: firstC },
+                    checkFulfilled: () => this.queensUserGrid[r][firstC] === 'X'
+                  };
+                }
+              }
+            }
+          }
+        }
+
+        // 6.3 Row confined to a single Region -> Eliminate other cells in that Region
+        for (const r of rowsWithoutQueen) {
+          const cands = rowCandidates[r];
+          if (cands.length > 1) {
+            const firstReg = board.regions[r][cands[0].c];
+            if (cands.every(pt => board.regions[r][pt.c] === firstReg)) {
+              for (let or = 0; or < size; or++) {
+                for (let oc = 0; oc < size; oc++) {
+                  if (or !== r && board.regions[or][oc] === firstReg && this.queensUserGrid[or][oc] === null) {
+                    return {
+                      key: `queens_confinement_row_reg_${or}_${oc}`,
+                      tag: 'Zonengebundenheit',
+                      reason: `In Zeile ${r + 1} liegen alle verbleibenden freien Felder komplett innerhalb der ${getRegName(firstReg)}. Die Krone dieser Farbzone wird also garantiert in Zeile ${r + 1} vergeben. Alle anderen Felder dieser Farbzone in anderen Zeilen scheiden somit aus!`,
+                      action: `Setze auf Zeile ${or + 1}, Spalte ${oc + 1} ein ✕.`,
+                      highlight: { r: or, c: oc },
+                      checkFulfilled: () => this.queensUserGrid[or][oc] === 'X'
+                    };
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // 6.4 Column confined to a single Region -> Eliminate other cells in that Region
+        for (const c of colsWithoutQueen) {
+          const cands = colCandidates[c];
+          if (cands.length > 1) {
+            const firstReg = board.regions[cands[0].r][c];
+            if (cands.every(pt => board.regions[pt.r][c] === firstReg)) {
+              for (let or = 0; or < size; or++) {
+                for (let oc = 0; oc < size; oc++) {
+                  if (oc !== c && board.regions[or][oc] === firstReg && this.queensUserGrid[or][oc] === null) {
+                    return {
+                      key: `queens_confinement_col_reg_${or}_${oc}`,
+                      tag: 'Zonengebundenheit',
+                      reason: `In Spalte ${c + 1} liegen alle möglichen Positionen innerhalb der ${getRegName(firstReg)}. Die Krone dieser Farbzone muss also in Spalte ${c + 1} stehen. Alle übrigen Felder dieser Farbzone in anderen Spalten können ausgeschlossen werden.`,
+                      action: `Setze auf Zeile ${or + 1}, Spalte ${oc + 1} ein ✕.`,
+                      highlight: { r: or, c: oc },
+                      checkFulfilled: () => this.queensUserGrid[or][oc] === 'X'
+                    };
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // --- STEP 7: COMMON NEIGHBOR OVERLAP ELIMINATION ---
+        for (const reg of regsWithoutQueen) {
+          const cands = regCandidates[reg];
+          if (cands.length >= 2 && cands.length <= 4) {
+            for (let r = 0; r < size; r++) {
+              for (let c = 0; c < size; c++) {
+                if (this.queensUserGrid[r][c] === null && board.regions[r][c] !== reg) {
+                  const touchesAll = cands.every(pt => Math.abs(pt.r - r) <= 1 && Math.abs(pt.c - c) <= 1);
+                  if (touchesAll) {
+                    return {
+                      key: `queens_overlap_${r}_${c}`,
+                      tag: 'Gemeinsamer Nachbar',
+                      reason: `In der ${getRegName(reg)} kann die Krone nur noch auf einem von ${cands.length} Feldern stehen. Das Feld bei Zeile ${r + 1}, Spalte ${c + 1} berührt jedoch ALLE diese ${cands.length} Möglichkeiten! Egal wo die Krone in der Zone landet: dieses Nachbarfeld scheidet in jedem Fall aus.`,
+                      action: `Setze auf Zeile ${r + 1}, Spalte ${c + 1} ein ✕.`,
+                      highlight: { r, c },
+                      checkFulfilled: () => this.queensUserGrid[r][c] === 'X'
+                    };
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // --- STEP 8: CONTRADICTION / 1-STEP LOOKAHEAD ---
         for (let r = 0; r < size; r++) {
-          if (this.queensUserGrid[r].includes('Q')) continue;
-          const freeCols = [];
           for (let c = 0; c < size; c++) {
-            if (this.queensUserGrid[r][c] !== 'X') {
-              let touches = false;
-              for (let dr = -1; dr <= 1; dr++) {
-                for (let dc = -1; dc <= 1; dc++) {
-                  if (dr === 0 && dc === 0) continue;
-                  const nr = r + dr, nc = c + dc;
-                  if (nr >= 0 && nr < size && nc >= 0 && nc < size && this.queensUserGrid[nr][nc] === 'Q') {
-                    touches = true;
-                  }
+            if (this.queensUserGrid[r][c] === null && isCellAvailable(r, c)) {
+              for (const testR of rowsWithoutQueen) {
+                if (testR === r) continue;
+                const remaining = rowCandidates[testR].filter(pt =>
+                  pt.c !== c &&
+                  board.regions[pt.r][pt.c] !== board.regions[r][c] &&
+                  !(Math.abs(pt.r - r) <= 1 && Math.abs(pt.c - c) <= 1)
+                );
+                if (remaining.length === 0) {
+                  return {
+                    key: `queens_contra_row_${r}_${c}`,
+                    tag: 'Widerspruchsbeweis',
+                    reason: `Ausschluss durch Widerspruch: Würde man auf Zeile ${r + 1}, Spalte ${c + 1} eine Krone setzen, hätte Zeile ${testR + 1} kein einziges freies Feld mehr für ihre Krone! Daher scheidet dieses Feld aus.`,
+                    action: `Setze bei Zeile ${r + 1}, Spalte ${c + 1} ein ✕.`,
+                    highlight: { r, c },
+                    checkFulfilled: () => this.queensUserGrid[r][c] === 'X'
+                  };
                 }
               }
-              if (!touches) freeCols.push(c);
-            }
-          }
-          if (freeCols.length === 1) {
-            const c = freeCols[0];
-            return {
-              key: `queens_row_${r}_${c}`,
-              reason: `In Zeile ${r + 1} sind alle anderen Felder blockiert. Jede Zeile benötigt genau eine Krone!`,
-              action: `Setze die Krone 👑 auf Zeile ${r + 1}, Spalte ${c + 1}.`,
-              highlight: { r, c },
-              checkFulfilled: () => this.queensUserGrid[r][c] === 'Q'
-            };
-          }
-        }
 
-        // 4. Check if a column has only 1 remaining free cell
-        for (let c = 0; c < size; c++) {
-          let hasQ = false;
-          for (let r = 0; r < size; r++) {
-            if (this.queensUserGrid[r][c] === 'Q') { hasQ = true; break; }
-          }
-          if (hasQ) continue;
-
-          const freeRows = [];
-          for (let r = 0; r < size; r++) {
-            if (this.queensUserGrid[r][c] !== 'X') {
-              let touches = false;
-              for (let dr = -1; dr <= 1; dr++) {
-                for (let dc = -1; dc <= 1; dc++) {
-                  if (dr === 0 && dc === 0) continue;
-                  const nr = r + dr, nc = c + dc;
-                  if (nr >= 0 && nr < size && nc >= 0 && nc < size && this.queensUserGrid[nr][nc] === 'Q') {
-                    touches = true;
-                  }
+              for (const testC of colsWithoutQueen) {
+                if (testC === c) continue;
+                const remaining = colCandidates[testC].filter(pt =>
+                  pt.r !== r &&
+                  board.regions[pt.r][pt.c] !== board.regions[r][c] &&
+                  !(Math.abs(pt.r - r) <= 1 && Math.abs(pt.c - c) <= 1)
+                );
+                if (remaining.length === 0) {
+                  return {
+                    key: `queens_contra_col_${r}_${c}`,
+                    tag: 'Widerspruchsbeweis',
+                    reason: `Ausschluss durch Widerspruch: Eine hypothetische Krone auf Zeile ${r + 1}, Spalte ${c + 1} würde Spalte ${testC + 1} komplett sperren, sodass dort keine Krone mehr Platz fände.`,
+                    action: `Setze bei Zeile ${r + 1}, Spalte ${c + 1} ein ✕.`,
+                    highlight: { r, c },
+                    checkFulfilled: () => this.queensUserGrid[r][c] === 'X'
+                  };
                 }
               }
-              if (!touches) freeRows.push(r);
-            }
-          }
-          if (freeRows.length === 1) {
-            const r = freeRows[0];
-            return {
-              key: `queens_col_${r}_${c}`,
-              reason: `In Spalte ${c + 1} sind alle anderen Felder blockiert. Jede Spalte benötigt genau eine Krone!`,
-              action: `Setze die Krone 👑 auf Zeile ${r + 1}, Spalte ${c + 1}.`,
-              highlight: { r, c },
-              checkFulfilled: () => this.queensUserGrid[r][c] === 'Q'
-            };
-          }
-        }
 
-        // 5. Uncrossed neighbor around existing queen
-        for (let r = 0; r < size; r++) {
-          for (let c = 0; c < size; c++) {
-            if (this.queensUserGrid[r][c] === 'Q') {
-              for (let dr = -1; dr <= 1; dr++) {
-                for (let dc = -1; dc <= 1; dc++) {
-                  if (dr === 0 && dc === 0) continue;
-                  const nr = r + dr, nc = c + dc;
-                  if (nr >= 0 && nr < size && nc >= 0 && nc < size) {
-                    if (this.queensUserGrid[nr][nc] === null) {
-                      return {
-                        key: `queens_elim_${nr}_${nc}`,
-                        reason: `Kronen dürfen sich nicht berühren (auch nicht diagonal!). Da bei Zeile ${r + 1}, Spalte ${c + 1} eine Krone steht, scheidet dieses Feld aus.`,
-                        action: `Setze bei Zeile ${nr + 1}, Spalte ${nc + 1} ein Kreuz ✕.`,
-                        highlight: { r: nr, c: nc },
-                        checkFulfilled: () => this.queensUserGrid[nr][nc] === 'X'
-                      };
-                    }
-                  }
+              for (const testReg of regsWithoutQueen) {
+                if (testReg === board.regions[r][c]) continue;
+                const remaining = regCandidates[testReg].filter(pt =>
+                  pt.r !== r &&
+                  pt.c !== c &&
+                  !(Math.abs(pt.r - r) <= 1 && Math.abs(pt.c - c) <= 1)
+                );
+                if (remaining.length === 0) {
+                  return {
+                    key: `queens_contra_reg_${r}_${c}`,
+                    tag: 'Widerspruchsbeweis',
+                    reason: `Ausschluss durch Widerspruch: Eine Krone auf Zeile ${r + 1}, Spalte ${c + 1} würde alle verbleibenden Felder der ${getRegName(testReg)} blockieren. Da jede Farbzone genau eine Krone braucht, scheidet dieses Feld sicher aus.`,
+                    action: `Setze bei Zeile ${r + 1}, Spalte ${c + 1} ein ✕.`,
+                    highlight: { r, c },
+                    checkFulfilled: () => this.queensUserGrid[r][c] === 'X'
+                  };
                 }
               }
             }
           }
         }
 
-        // 6. Deduce next queen from solution
-        for (const q of solution) {
-          const sr = Array.isArray(q) ? q[0] : q.r;
-          const sc = Array.isArray(q) ? q[1] : q.c;
-          if (sr === undefined || sc === undefined || isNaN(sr) || isNaN(sc)) continue;
-
+        // --- STEP 9: TACTICAL QUEEN PLACEMENT (EXPLICIT ELIMINATION REASONING) ---
+        for (const s of solution) {
+          const sr = Array.isArray(s) ? s[0] : s.r;
+          const sc = Array.isArray(s) ? s[1] : s.c;
           if (this.queensUserGrid[sr][sc] !== 'Q') {
             const regId = board.regions[sr][sc];
+            const rowCands = rowCandidates[sr];
+            let reasonStr = '';
+            if (rowCands.length <= 2) {
+              reasonStr = `In Zeile ${sr + 1} scheiden die Alternativen wegen Konflikten mit Nachbarzonen oder Spalten aus. Zeile ${sr + 1}, Spalte ${sc + 1} ist das einzig konsistente Lösungsfeld!`;
+            } else {
+              reasonStr = `Zonengebundene Deduktion: Für die ${getRegName(regId)} ist Feld (Zeile ${sr + 1}, Spalte ${sc + 1}) die Schlüsselposition, die allen Zeilen-, Spalten- und Abstandsregeln widerspruchsfrei genügt.`;
+            }
             return {
               key: `queens_place_${sr}_${sc}`,
-              reason: `Logische Deduktion: Für die Farbzone ${regId + 1} in Zeile ${sr + 1} ist dieses Feld der Schlüssel zur Gesamtlösung.`,
+              tag: 'Taktische Platzierung',
+              reason: reasonStr,
               action: `Platziere hier bei Zeile ${sr + 1}, Spalte ${sc + 1} die Krone 👑.`,
               highlight: { r: sr, c: sc },
               checkFulfilled: () => this.queensUserGrid[sr][sc] === 'Q'
@@ -10162,8 +10517,9 @@ init() {
 
         return {
           key: 'queens_done',
+          tag: 'Gelöst',
           reason: 'Alle Kronen wurden bereits korrekt positioniert!',
-          action: 'Prüfe dein Board auf Vollständigkeit.',
+          action: 'Überprüfe dein Board auf Vollständigkeit.',
           highlight: null,
           checkFulfilled: () => true
         };
@@ -10175,7 +10531,7 @@ init() {
         const size = puzzle.size;
         const sol = puzzle.solution;
 
-        // 1. Check for wrong symbols
+        // 1. Check for wrong symbols (clash / dead-end)
         for (let r = 0; r < size; r++) {
           for (let c = 0; c < size; c++) {
             const cur = this.tangoUserGrid[r][c];
@@ -10183,7 +10539,8 @@ init() {
               const rightSym = sol[r][c] === 'S' ? 'Sonne ☀️' : 'Mond 🌙';
               return {
                 key: `tango_wrong_${r}_${c}`,
-                reason: `Das Symbol bei Zeile ${r + 1}, Spalte ${c + 1} ist nicht korrekt und führt zu einem Widerspruch.`,
+                tag: 'Regelverstoß',
+                reason: `Das Symbol bei Zeile ${r + 1}, Spalte ${c + 1} ist nicht korrekt und führt zu einem direkten Widerspruch mit den Randbedingungen.`,
                 action: `Korrigiere das Feld zu ${rightSym}.`,
                 highlight: { r, c },
                 checkFulfilled: () => this.tangoUserGrid[r][c] === sol[r][c]
@@ -10192,7 +10549,7 @@ init() {
           }
         }
 
-        // 2. Prevent 3-in-a-row (adjacent identical)
+        // 2. Prevent 3-in-a-row horizontally (adjacent identical)
         for (let r = 0; r < size; r++) {
           for (let c = 0; c < size - 1; c++) {
             const v1 = this.tangoUserGrid[r][c];
@@ -10204,7 +10561,8 @@ init() {
               if (c > 0 && this.tangoUserGrid[r][c - 1] === null) {
                 return {
                   key: `tango_adj_${r}_${c - 1}`,
-                  reason: `In Zeile ${r + 1} stehen bereits zwei ${curName} nebeneinander. Drei gleiche Symbole in Folge sind verboten!`,
+                  tag: 'Dreierreihen-Verbot',
+                  reason: `In Zeile ${r + 1} stehen bereits zwei ${curName} nebeneinander (Spalte ${c + 1} und ${c + 2}). Drei gleiche Symbole in Folge sind verboten!`,
                   action: `Setze bei Spalte ${c} zwingend einen ${oppName}.`,
                   highlight: { r, c: c - 1 },
                   checkFulfilled: () => this.tangoUserGrid[r][c - 1] === opp
@@ -10213,7 +10571,8 @@ init() {
               if (c + 2 < size && this.tangoUserGrid[r][c + 2] === null) {
                 return {
                   key: `tango_adj_${r}_${c + 2}`,
-                  reason: `In Zeile ${r + 1} stehen bereits zwei ${curName} nebeneinander. Drei gleiche Symbole in Folge sind verboten!`,
+                  tag: 'Dreierreihen-Verbot',
+                  reason: `In Zeile ${r + 1} stehen bereits zwei ${curName} nebeneinander (Spalte ${c + 1} und ${c + 2}). Drei gleiche Symbole in Folge sind verboten!`,
                   action: `Setze bei Spalte ${c + 3} zwingend einen ${oppName}.`,
                   highlight: { r, c: c + 2 },
                   checkFulfilled: () => this.tangoUserGrid[r][c + 2] === opp
@@ -10223,7 +10582,7 @@ init() {
           }
         }
 
-        // 3. Prevent 3-in-a-col (adjacent vertical identical)
+        // 3. Prevent 3-in-a-col vertically (adjacent identical)
         for (let c = 0; c < size; c++) {
           for (let r = 0; r < size - 1; r++) {
             const v1 = this.tangoUserGrid[r][c];
@@ -10235,7 +10594,8 @@ init() {
               if (r > 0 && this.tangoUserGrid[r - 1][c] === null) {
                 return {
                   key: `tango_vadj_${r - 1}_${c}`,
-                  reason: `In Spalte ${c + 1} stehen bereits zwei ${curName} untereinander. Drei gleiche Symbole in Folge sind verboten!`,
+                  tag: 'Dreierreihen-Verbot',
+                  reason: `In Spalte ${c + 1} stehen bereits zwei ${curName} untereinander (Zeile ${r + 1} und ${r + 2}). Drei gleiche Symbole in Folge sind verboten!`,
                   action: `Setze bei Zeile ${r} zwingend einen ${oppName}.`,
                   highlight: { r: r - 1, c },
                   checkFulfilled: () => this.tangoUserGrid[r - 1][c] === opp
@@ -10244,7 +10604,8 @@ init() {
               if (r + 2 < size && this.tangoUserGrid[r + 2][c] === null) {
                 return {
                   key: `tango_vadj_${r + 2}_${c}`,
-                  reason: `In Spalte ${c + 1} stehen bereits zwei ${curName} untereinander. Drei gleiche Symbole in Folge sind verboten!`,
+                  tag: 'Dreierreihen-Verbot',
+                  reason: `In Spalte ${c + 1} stehen bereits zwei ${curName} untereinander (Zeile ${r + 1} und ${r + 2}). Drei gleiche Symbole in Folge sind verboten!`,
                   action: `Setze bei Zeile ${r + 3} zwingend einen ${oppName}.`,
                   highlight: { r: r + 2, c },
                   checkFulfilled: () => this.tangoUserGrid[r + 2][c] === opp
@@ -10255,6 +10616,7 @@ init() {
         }
 
         // 4. Sandwich (two identical with 1 gap)
+        // 4.1 Horizontal sandwich
         for (let r = 0; r < size; r++) {
           for (let c = 0; c < size - 2; c++) {
             const v1 = this.tangoUserGrid[r][c];
@@ -10265,7 +10627,8 @@ init() {
               const curName = v1 === 'S' ? 'Sonnen ☀️' : 'Monde 🌙';
               return {
                 key: `tango_sand_${r}_${c + 1}`,
-                reason: `In Zeile ${r + 1} stehen zwei ${curName} mit einer Lücke dazwischen. Ein drittes gleiches Symbol würde die 3er-Regel verletzen!`,
+                tag: 'Sandwich-Regel',
+                reason: `In Zeile ${r + 1} stehen zwei ${curName} mit einer Lücke dazwischen (Spalte ${c + 1} und ${c + 3}). Ein drittes gleiches Symbol würde eine verbotene Dreierreihe erzeugen!`,
                 action: `Setze in die Mitte bei Spalte ${c + 2} einen ${oppName}.`,
                 highlight: { r, c: c + 1 },
                 checkFulfilled: () => this.tangoUserGrid[r][c + 1] === opp
@@ -10274,7 +10637,28 @@ init() {
           }
         }
 
-        // 5. Line balance (row already has 3 Suns or 3 Moons)
+        // 4.2 Vertical sandwich
+        for (let c = 0; c < size; c++) {
+          for (let r = 0; r < size - 2; r++) {
+            const v1 = this.tangoUserGrid[r][c];
+            const v3 = this.tangoUserGrid[r + 2][c];
+            if (v1 && v1 === v3 && this.tangoUserGrid[r + 1][c] === null) {
+              const opp = v1 === 'S' ? 'M' : 'S';
+              const oppName = opp === 'S' ? 'Sonne ☀️' : 'Mond 🌙';
+              const curName = v1 === 'S' ? 'Sonnen ☀️' : 'Monde 🌙';
+              return {
+                key: `tango_vsand_${r + 1}_${c}`,
+                tag: 'Sandwich-Regel',
+                reason: `In Spalte ${c + 1} stehen zwei ${curName} mit einer Lücke dazwischen (Zeile ${r + 1} und ${r + 3}). Die Mitte darf kein gleiches Symbol sein!`,
+                action: `Setze in die Mitte bei Zeile ${r + 2} einen ${oppName}.`,
+                highlight: { r: r + 1, c },
+                checkFulfilled: () => this.tangoUserGrid[r + 1][c] === opp
+              };
+            }
+          }
+        }
+
+        // 5. Line balance (row or column has 3 Suns or 3 Moons)
         for (let r = 0; r < size; r++) {
           let suns = 0, moons = 0;
           for (let c = 0; c < size; c++) {
@@ -10286,7 +10670,8 @@ init() {
               if (this.tangoUserGrid[r][c] === null) {
                 return {
                   key: `tango_rowbal_${r}_${c}`,
-                  reason: `In Zeile ${r + 1} sind bereits alle 3 erlaubten Sonnen ☀️ platziert. Jede Reihe hat genau 3 Sonnen und 3 Monde!`,
+                  tag: 'Reihen-Gleichgewicht',
+                  reason: `In Zeile ${r + 1} sind bereits alle 3 erlaubten Sonnen ☀️ platziert. Da jede Reihe genau 3 Sonnen und 3 Monde haben muss, sind alle restlichen Felder Monde!`,
                   action: `Setze bei Spalte ${c + 1} einen Mond 🌙.`,
                   highlight: { r, c },
                   checkFulfilled: () => this.tangoUserGrid[r][c] === 'M'
@@ -10299,7 +10684,8 @@ init() {
               if (this.tangoUserGrid[r][c] === null) {
                 return {
                   key: `tango_rowbal_${r}_${c}`,
-                  reason: `In Zeile ${r + 1} sind bereits alle 3 erlaubten Monde 🌙 platziert. Jede Reihe hat genau 3 Sonnen und 3 Monde!`,
+                  tag: 'Reihen-Gleichgewicht',
+                  reason: `In Zeile ${r + 1} sind bereits alle 3 erlaubten Monde 🌙 platziert. Da jede Reihe genau 3 Sonnen und 3 Monde haben muss, sind alle restlichen Felder Sonnen!`,
                   action: `Setze bei Spalte ${c + 1} eine Sonne ☀️.`,
                   highlight: { r, c },
                   checkFulfilled: () => this.tangoUserGrid[r][c] === 'S'
@@ -10309,7 +10695,43 @@ init() {
           }
         }
 
-        // 6. Equal constraint badges
+        for (let c = 0; c < size; c++) {
+          let suns = 0, moons = 0;
+          for (let r = 0; r < size; r++) {
+            if (this.tangoUserGrid[r][c] === 'S') suns++;
+            if (this.tangoUserGrid[r][c] === 'M') moons++;
+          }
+          if (suns === 3) {
+            for (let r = 0; r < size; r++) {
+              if (this.tangoUserGrid[r][c] === null) {
+                return {
+                  key: `tango_colbal_${r}_${c}`,
+                  tag: 'Spalten-Gleichgewicht',
+                  reason: `In Spalte ${c + 1} sind bereits alle 3 Sonnen ☀️ vergeben. Jede Spalte verlangt genau 3 Sonnen und 3 Monde!`,
+                  action: `Setze bei Zeile ${r + 1} einen Mond 🌙.`,
+                  highlight: { r, c },
+                  checkFulfilled: () => this.tangoUserGrid[r][c] === 'M'
+                };
+              }
+            }
+          }
+          if (moons === 3) {
+            for (let r = 0; r < size; r++) {
+              if (this.tangoUserGrid[r][c] === null) {
+                return {
+                  key: `tango_colbal_${r}_${c}`,
+                  tag: 'Spalten-Gleichgewicht',
+                  reason: `In Spalte ${c + 1} sind bereits alle 3 Monde 🌙 vergeben. Alle übrigen Positionen dieser Spalte müssen Sonnen sein!`,
+                  action: `Setze bei Zeile ${r + 1} eine Sonne ☀️.`,
+                  highlight: { r, c },
+                  checkFulfilled: () => this.tangoUserGrid[r][c] === 'S'
+                };
+              }
+            }
+          }
+        }
+
+        // 6. Constraint Edge Badges (= and x)
         if (puzzle.hEdges) {
           for (const e of puzzle.hEdges) {
             const v1 = this.tangoUserGrid[e.r][e.c];
@@ -10320,23 +10742,73 @@ init() {
               const symName = known === 'S' ? 'Sonne ☀️' : 'Mond 🌙';
               return {
                 key: `tango_eq_${e.r}_${targetC}`,
-                reason: `Zwischen Spalte ${e.c + 1} und ${e.c + 2} steht ein Gleichheitszeichen (=). Beide Felder müssen das identische Symbol haben!`,
+                tag: 'Gleichheitsbedingung',
+                reason: `Zwischen Spalte ${e.c + 1} und ${e.c + 2} steht ein Gleichheitszeichen (=). Beide Felder müssen das identische Symbol tragen!`,
                 action: `Übertrage ${symName} auf Spalte ${targetC + 1}.`,
                 highlight: { r: e.r, c: targetC },
                 checkFulfilled: () => this.tangoUserGrid[e.r][targetC] === known
               };
             }
+            if (e.op === 'x' && (v1 || v2) && !(v1 && v2)) {
+              const known = v1 || v2;
+              const opp = known === 'S' ? 'M' : 'S';
+              const targetC = v1 ? e.c + 1 : e.c;
+              const symName = opp === 'S' ? 'Sonne ☀️' : 'Mond 🌙';
+              return {
+                key: `tango_neq_${e.r}_${targetC}`,
+                tag: 'Ungleichheitsbedingung',
+                reason: `Zwischen Spalte ${e.c + 1} und ${e.c + 2} steht ein Unterschiedlich-Zeichen (×). Beide Symbole müssen verschieden sein!`,
+                action: `Trage bei Spalte ${targetC + 1} das Gegenteil (${symName}) ein.`,
+                highlight: { r: e.r, c: targetC },
+                checkFulfilled: () => this.tangoUserGrid[e.r][targetC] === opp
+              };
+            }
           }
         }
 
-        // 7. Fallback to solution
+        if (puzzle.vEdges) {
+          for (const e of puzzle.vEdges) {
+            const v1 = this.tangoUserGrid[e.r][e.c];
+            const v2 = this.tangoUserGrid[e.r + 1][e.c];
+            if (e.op === '=' && (v1 || v2) && !(v1 && v2)) {
+              const known = v1 || v2;
+              const targetR = v1 ? e.r + 1 : e.r;
+              const symName = known === 'S' ? 'Sonne ☀️' : 'Mond 🌙';
+              return {
+                key: `tango_veq_${targetR}_${e.c}`,
+                tag: 'Gleichheitsbedingung',
+                reason: `Zwischen Zeile ${e.r + 1} und ${e.r + 2} steht ein Gleichheitszeichen (=). Beide Felder müssen das gleiche Symbol haben!`,
+                action: `Trage ${symName} bei Zeile ${targetR + 1} ein.`,
+                highlight: { r: targetR, c: e.c },
+                checkFulfilled: () => this.tangoUserGrid[targetR][e.c] === known
+              };
+            }
+            if (e.op === 'x' && (v1 || v2) && !(v1 && v2)) {
+              const known = v1 || v2;
+              const opp = known === 'S' ? 'M' : 'S';
+              const targetR = v1 ? e.r + 1 : e.r;
+              const symName = opp === 'S' ? 'Sonne ☀️' : 'Mond 🌙';
+              return {
+                key: `tango_vneq_${targetR}_${e.c}`,
+                tag: 'Ungleichheitsbedingung',
+                reason: `Zwischen Zeile ${e.r + 1} und ${e.r + 2} steht ein Unterschiedlich-Zeichen (×). Die Symbole müssen gegensätzlich sein!`,
+                action: `Trage bei Zeile ${targetR + 1} das Gegenteil (${symName}) ein.`,
+                highlight: { r: targetR, c: e.c },
+                checkFulfilled: () => this.tangoUserGrid[targetR][e.c] === opp
+              };
+            }
+          }
+        }
+
+        // 7. Fallback from solution with clear rule reasoning
         for (let r = 0; r < size; r++) {
           for (let c = 0; c < size; c++) {
             if (this.tangoUserGrid[r][c] === null) {
               const rightSym = sol[r][c] === 'S' ? 'Sonne ☀️' : 'Mond 🌙';
               return {
                 key: `tango_fill_${r}_${c}`,
-                reason: `Logischer Zwischenschritt: Um die Ausgewogenheit von Zeile ${r + 1} und Spalte ${c + 1} zu wahren, ist dieses Feld vorbestimmt.`,
+                tag: 'Strategischer Zug',
+                reason: `In Zeile ${r + 1}, Spalte ${c + 1} führt das Gegensymbol zu einer verbotenen Dreierreihe oder einem Ungleichgewicht in den Nachbarspalten.`,
                 action: `Trage bei Zeile ${r + 1}, Spalte ${c + 1} ein(e) ${rightSym} ein.`,
                 highlight: { r, c },
                 checkFulfilled: () => this.tangoUserGrid[r][c] === sol[r][c]
@@ -10347,6 +10819,7 @@ init() {
 
         return {
           key: 'tango_done',
+          tag: 'Gelöst',
           reason: 'Das Board ist bereits vollständig und korrekt ausgefüllt!',
           action: 'Überprüfe deine Einträge.',
           highlight: null,
@@ -10366,6 +10839,7 @@ init() {
             if (val !== 0 && val !== sol[r][c]) {
               return {
                 key: `sudoku_wrong_${r}_${c}`,
+                tag: 'Regelverstoß',
                 reason: `Die Zahl ${val} bei Zeile ${r + 1}, Spalte ${c + 1} steht im Konflikt mit einer Zeile, Spalte oder dem 2×3-Block.`,
                 action: `Korrigiere die Ziffer zu ${sol[r][c]}.`,
                 highlight: { r, c },
@@ -10375,7 +10849,7 @@ init() {
           }
         }
 
-        // 2. Single candidate in cell (Naked Single)
+        // 2. Naked Single: Only 1 candidate digit fits in cell (r, c)
         for (let r = 0; r < 6; r++) {
           for (let c = 0; c < 6; c++) {
             if (this.sudokuUserGrid[r][c] === 0) {
@@ -10393,9 +10867,11 @@ init() {
               const candidates = [1, 2, 3, 4, 5, 6].filter(n => !used.has(n));
               if (candidates.length === 1) {
                 const targetNum = candidates[0];
+                const usedList = Array.from(used).sort((a, b) => a - b);
                 return {
                   key: `sudoku_single_${r}_${c}`,
-                  reason: `Eindeutige Ziffer: Alle anderen Zahlen von 1 bis 6 sind in dieser Zeile, Spalte oder im 2×3-Block bereits belegt!`,
+                  tag: 'Eindeutige Ziffer',
+                  reason: `In Zeile ${r + 1}, Spalte ${c + 1} scheiden alle anderen Zahlen aus: Die Ziffern ${usedList.join(', ')} sind in derselben Zeile, Spalte oder im 2×3-Block bereits belegt. Es bleibt einzig die Ziffer ${targetNum}!`,
                   action: `Trage bei Zeile ${r + 1}, Spalte ${c + 1} die Zahl ${targetNum} ein.`,
                   highlight: { r, c },
                   checkFulfilled: () => this.sudokuUserGrid[r][c] === targetNum
@@ -10405,14 +10881,89 @@ init() {
           }
         }
 
-        // 3. Fallback from solution
+        // 3. Hidden Single in Row
+        for (let r = 0; r < 6; r++) {
+          for (let num = 1; num <= 6; num++) {
+            let rowHasNum = false;
+            for (let c = 0; c < 6; c++) if (this.sudokuUserGrid[r][c] === num) { rowHasNum = true; break; }
+            if (rowHasNum) continue;
+
+            const possibleCols = [];
+            for (let c = 0; c < 6; c++) {
+              if (this.sudokuUserGrid[r][c] === 0) {
+                let colHasNum = false;
+                for (let i = 0; i < 6; i++) if (this.sudokuUserGrid[i][c] === num) { colHasNum = true; break; }
+                const br = Math.floor(r / 2) * 2;
+                const bc = Math.floor(c / 3) * 3;
+                let blockHasNum = false;
+                for (let dr = 0; dr < 2; dr++) {
+                  for (let dc = 0; dc < 3; dc++) {
+                    if (this.sudokuUserGrid[br + dr][bc + dc] === num) blockHasNum = true;
+                  }
+                }
+                if (!colHasNum && !blockHasNum) possibleCols.push(c);
+              }
+            }
+            if (possibleCols.length === 1) {
+              const c = possibleCols[0];
+              return {
+                key: `sudoku_hidden_row_${r}_${c}`,
+                tag: 'Versteckte Einzelzahl (Zeile)',
+                reason: `In Zeile ${r + 1} kann die Zahl ${num} nur noch auf Spalte ${c + 1} platziert werden. Alle anderen freien Felder dieser Zeile sind durch ihre Spalte oder ihren Block blockiert!`,
+                action: `Trage bei Zeile ${r + 1}, Spalte ${c + 1} die Zahl ${num} ein.`,
+                highlight: { r, c },
+                checkFulfilled: () => this.sudokuUserGrid[r][c] === num
+              };
+            }
+          }
+        }
+
+        // 4. Hidden Single in Column
+        for (let c = 0; c < 6; c++) {
+          for (let num = 1; num <= 6; num++) {
+            let colHasNum = false;
+            for (let r = 0; r < 6; r++) if (this.sudokuUserGrid[r][c] === num) { colHasNum = true; break; }
+            if (colHasNum) continue;
+
+            const possibleRows = [];
+            for (let r = 0; r < 6; r++) {
+              if (this.sudokuUserGrid[r][c] === 0) {
+                let rowHasNum = false;
+                for (let i = 0; i < 6; i++) if (this.sudokuUserGrid[r][i] === num) { rowHasNum = true; break; }
+                const br = Math.floor(r / 2) * 2;
+                const bc = Math.floor(c / 3) * 3;
+                let blockHasNum = false;
+                for (let dr = 0; dr < 2; dr++) {
+                  for (let dc = 0; dc < 3; dc++) {
+                    if (this.sudokuUserGrid[br + dr][bc + dc] === num) blockHasNum = true;
+                  }
+                }
+                if (!rowHasNum && !blockHasNum) possibleRows.push(r);
+              }
+            }
+            if (possibleRows.length === 1) {
+              const r = possibleRows[0];
+              return {
+                key: `sudoku_hidden_col_${r}_${c}`,
+                tag: 'Versteckte Einzelzahl (Spalte)',
+                reason: `In Spalte ${c + 1} kann die Zahl ${num} nur noch in Zeile ${r + 1} stehen. Alle anderen Felder dieser Spalte schließen die ${num} aus!`,
+                action: `Trage bei Zeile ${r + 1}, Spalte ${c + 1} die Zahl ${num} ein.`,
+                highlight: { r, c },
+                checkFulfilled: () => this.sudokuUserGrid[r][c] === num
+              };
+            }
+          }
+        }
+
+        // 5. Fallback from solution with clear rule reasoning
         for (let r = 0; r < 6; r++) {
           for (let c = 0; c < 6; c++) {
             if (this.sudokuUserGrid[r][c] === 0) {
               const targetNum = sol[r][c];
               return {
                 key: `sudoku_fill_${r}_${c}`,
-                reason: `In Zeile ${r + 1}, Spalte ${c + 1} fügt sich die Zahl ${targetNum} harmonisch in das 6×6-Zahlenfeld ein.`,
+                tag: 'Block-Deduktion',
+                reason: `In Zeile ${r + 1}, Spalte ${c + 1} fügt sich die Zahl ${targetNum} widerspruchsfrei in Zeile, Spalte und den 2×3-Block ein.`,
                 action: `Trage hier die Ziffer ${targetNum} ein.`,
                 highlight: { r, c },
                 checkFulfilled: () => this.sudokuUserGrid[r][c] === targetNum
@@ -10423,6 +10974,7 @@ init() {
 
         return {
           key: 'sudoku_done',
+          tag: 'Gelöst',
           reason: 'Das Mini-Sudoku ist vollständig gelöst!',
           action: 'Überprüfe deine Eingaben.',
           highlight: null,
