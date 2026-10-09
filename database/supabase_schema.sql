@@ -56,3 +56,28 @@ BEGIN
 EXCEPTION
   WHEN duplicate_object THEN NULL;
 END $$;
+
+-- 5. System-Konfigurationstabelle (z.B. Master-PIN Hash, globale Parameter)
+CREATE TABLE IF NOT EXISTS public.orbit_system_config (
+    key TEXT PRIMARY KEY,
+    value JSONB NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- RLS aktivieren für lückenlose Absicherung
+ALTER TABLE public.orbit_system_config ENABLE ROW LEVEL SECURITY;
+
+-- Anonymous und authentifizierte Benutzer können Konfigurationen lesen
+DROP POLICY IF EXISTS "System-Konfiguration ist öffentlich lesbar" ON public.orbit_system_config;
+CREATE POLICY "System-Konfiguration ist öffentlich lesbar"
+    ON public.orbit_system_config FOR SELECT
+    TO anon, authenticated
+    USING (true);
+
+-- Nur autorisierte Administratoren dürfen System-Konfigurationen verändern
+DROP POLICY IF EXISTS "Nur Administratoren dürfen System-Konfiguration modifizieren" ON public.orbit_system_config;
+CREATE POLICY "Nur Administratoren dürfen System-Konfiguration modifizieren"
+    ON public.orbit_system_config FOR ALL
+    TO authenticated
+    USING (auth.jwt() ->> 'email' IN (SELECT email FROM auth.users WHERE raw_user_meta_data->>'role' = 'admin'))
+    WITH CHECK (auth.jwt() ->> 'email' IN (SELECT email FROM auth.users WHERE raw_user_meta_data->>'role' = 'admin'));

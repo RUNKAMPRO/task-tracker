@@ -160,8 +160,16 @@ class OrbitOS {
 
   safeEvaluateMath(exprStr) {
     if (!exprStr || typeof exprStr !== 'string') return 0;
-    // Replace visual operators
-    let sanitized = exprStr.replace(/×/g, '*').replace(/÷/g, '/').trim();
+    // Replace visual operators and normalize comma
+    let sanitized = exprStr
+      .replace(/×/g, '*')
+      .replace(/÷/g, '/')
+      .replace(/−/g, '-')
+      .replace(/,/g, '.')
+      .trim();
+    // Strip trailing operators (e.g. "15 +" -> "15")
+    sanitized = sanitized.replace(/[+\-*/%]+$/, '').trim();
+    if (!sanitized) return 0;
     // Strict whitelist: only allow digits, whitespace, decimal point, parentheses, and math operators (+, -, *, /, %)
     if (!/^[0-9\s\.\+\-\*/\(\)\%]+$/.test(sanitized)) {
       throw new Error('Ungueltiger mathematischer Ausdruck (nur Zahlen und Operatoren erlaubt).');
@@ -672,6 +680,11 @@ class OrbitOS {
     const win = this.windows.get(appId);
     if (!win) return;
 
+    if (appId === 'calculator' && this._calcCleanup) {
+      this._calcCleanup();
+      this._calcCleanup = null;
+    }
+
     const def = this.appDefinitions[appId];
     if (def && def.isSuiteApp && def.suiteViewId) {
       const viewEl = document.getElementById(def.suiteViewId);
@@ -703,7 +716,7 @@ class OrbitOS {
     const el = win.element;
     const header = el.querySelector('.os-window-header');
 
-    el.addEventListener('mousedown', () => this.bringToFront(win.appId));
+    el.addEventListener('pointerdown', () => this.bringToFront(win.appId));
 
     // Double click header to maximize / restore
     header.addEventListener('dblclick', (e) => {
@@ -728,15 +741,17 @@ class OrbitOS {
       }
     });
 
+    // Pointer Events for window dragging (unified mouse, pen & touch)
     let isDragging = false;
     let dragStartX = 0;
     let dragStartY = 0;
     let initialX = 0;
     let initialY = 0;
 
-    header.addEventListener('mousedown', (e) => {
+    header.addEventListener('pointerdown', (e) => {
       if (e.target.closest('.os-action-btn, .os-ctrl-dot') || el.classList.contains('maximized')) return;
       isDragging = true;
+      try { header.setPointerCapture(e.pointerId); } catch (_) {}
       document.body.classList.add('os-window-dragging');
       dragStartX = e.clientX;
       dragStartY = e.clientY;
@@ -745,25 +760,35 @@ class OrbitOS {
       this.bringToFront(win.appId);
     });
 
-    window.addEventListener('mousemove', (e) => {
+    header.addEventListener('pointermove', (e) => {
       if (!isDragging) return;
       const deltaX = e.clientX - dragStartX;
       const deltaY = e.clientY - dragStartY;
 
-      const newLeft = Math.max(0, Math.min(window.innerWidth - 100, initialX + deltaX));
-      const newTop = Math.max(0, Math.min(window.innerHeight - 80, initialY + deltaY));
+      // Viewport Bounding: Title bar can NEVER escape above screen (top >= 0) or below (top <= innerHeight - 44)
+      const minLeft = -el.offsetWidth + 80;
+      const maxLeft = window.innerWidth - 80;
+      const minTop = 0;
+      const maxTop = window.innerHeight - 44;
+
+      const newLeft = Math.max(minLeft, Math.min(maxLeft, initialX + deltaX));
+      const newTop = Math.max(minTop, Math.min(maxTop, initialY + deltaY));
 
       el.style.left = `${newLeft}px`;
       el.style.top = `${newTop}px`;
     });
 
-    window.addEventListener('mouseup', () => {
+    const endDrag = (e) => {
       if (isDragging) {
         isDragging = false;
+        try { header.releasePointerCapture(e.pointerId); } catch (_) {}
         document.body.classList.remove('os-window-dragging');
       }
-    });
+    };
+    header.addEventListener('pointerup', endDrag);
+    header.addEventListener('pointercancel', endDrag);
 
+    // Pointer Events for window resizing (unified mouse, pen & touch)
     const handles = el.querySelectorAll('.os-resize-handle');
     handles.forEach((handle) => {
       let isResizing = false;
@@ -775,10 +800,11 @@ class OrbitOS {
       let startTop = 0;
       const dir = handle.dataset.dir;
 
-      handle.addEventListener('mousedown', (e) => {
+      handle.addEventListener('pointerdown', (e) => {
         if (el.classList.contains('maximized')) return;
         e.stopPropagation();
         isResizing = true;
+        try { handle.setPointerCapture(e.pointerId); } catch (_) {}
         document.body.classList.add('os-window-resizing');
         startX = e.clientX;
         startY = e.clientY;
@@ -789,13 +815,19 @@ class OrbitOS {
         this.bringToFront(win.appId);
       });
 
-      window.addEventListener('mousemove', (e) => {
+      handle.addEventListener('pointermove', (e) => {
         if (!isResizing) return;
         const dx = e.clientX - startX;
         const dy = e.clientY - startY;
 
-        if (dir.includes('e')) el.style.width = `${Math.max(280, startW + dx)}px`;
-        if (dir.includes('s')) el.style.height = `${Math.max(180, startH + dy)}px`;
+        if (dir.includes('e')) {
+          const maxW = window.innerWidth - startLeft - 10;
+          el.style.width = `${Math.min(maxW, Math.max(280, startW + dx))}px`;
+        }
+        if (dir.includes('s')) {
+          const maxH = window.innerHeight - startTop - 48;
+          el.style.height = `${Math.min(maxH, Math.max(180, startH + dy))}px`;
+        }
         if (dir.includes('w')) {
           const newW = Math.max(280, startW - dx);
           el.style.width = `${newW}px`;
@@ -803,21 +835,25 @@ class OrbitOS {
         }
         if (dir.includes('n')) {
           const newH = Math.max(180, startH - dy);
+          const newTop = Math.max(0, startTop + (startH - newH));
           el.style.height = `${newH}px`;
-          el.style.top = `${startTop + (startH - newH)}px`;
+          el.style.top = `${newTop}px`;
         }
       });
 
-      window.addEventListener('mouseup', () => {
+      const endResize = (e) => {
         if (isResizing) {
           isResizing = false;
+          try { handle.releasePointerCapture(e.pointerId); } catch (_) {}
           document.body.classList.remove('os-window-resizing');
         }
-      });
+      };
+      handle.addEventListener('pointerup', endResize);
+      handle.addEventListener('pointercancel', endResize);
     });
   }
 
-  /* ==========================================================================
+  /* =====* ==========================================================================
      Linux Superuser Terminal Engine with `sudo` & In-Terminal Canvas Matrix
      ========================================================================== */
   mountLinuxTerminal(container) {
@@ -964,17 +1000,23 @@ class OrbitOS {
       window.addEventListener('keydown', keyHandler);
     };
 
-    input.addEventListener('keydown', (e) => {
+    input.addEventListener('keydown', async (e) => {
       if (e.key === 'Enter') {
         const val = input.value.trim();
         input.value = '';
 
-        // Handle Password Prompt for SUDO
+                // Handle Password Prompt for SUDO
         if (this.terminalState.isPromptingPassword) {
-          const expectedPin = localStorage.getItem('orbitsuite_admin_pin') || 
-            (window.ORBIT_CONFIG && window.ORBIT_CONFIG.defaultAdminPin) || '1234';
+          let isPinValid = false;
+          if (window.orbitApp && window.orbitApp.adminManager && window.orbitApp.adminManager.verifyPin) {
+            isPinValid = await window.orbitApp.adminManager.verifyPin(val);
+          } else {
+            const expectedPin = localStorage.getItem('orbitsuite_admin_pin') || 
+              (window.ORBIT_CONFIG && window.ORBIT_CONFIG.defaultAdminPin);
+            isPinValid = expectedPin ? (val === expectedPin) : false;
+          }
 
-          if (val === expectedPin) {
+          if (isPinValid) {
             this.terminalState.isRoot = true;
             this.terminalState.isPromptingPassword = false;
             this.terminalState.failedAttempts = 0;
@@ -1178,6 +1220,18 @@ Oct  8 10:24:15 orbit-os sudo[142]: rune : TTY=pts/0 ; PWD=/home/rune ; USER=roo
           const newPin = prompt('Neuen 4-stelligen Admin-PIN eingeben:');
           if (newPin && newPin.trim().length >= 4) {
             localStorage.setItem('orbitsuite_admin_pin', newPin.trim());
+            if (window.orbitApp && window.orbitApp.adminManager && window.orbitApp.adminManager.hashPin) {
+              window.orbitApp.adminManager.hashPin(newPin.trim()).then(h => {
+                localStorage.setItem('orbitsuite_admin_pin_hash', h);
+                if (window.orbitApp.sync && window.orbitApp.sync.client) {
+                  window.orbitApp.sync.client.from('orbit_sync').upsert({
+                    app: 'system_admin_pin',
+                    payload: { hash: h, updated_at: new Date().toISOString() },
+                    updated_at: new Date().toISOString()
+                  }).catch(() => {});
+                }
+              });
+            }
             print(`[ <span class="os-term-tag-ok">OK</span> ] passwd: password updated successfully.`, '#22c55e');
           } else {
             print('passwd: Authentication token manipulation error (PIN must be at least 4 chars).', '#ef4444');
@@ -1655,64 +1709,447 @@ Oct  8 10:24:15 orbit-os sudo[142]: rune : TTY=pts/0 ; PWD=/home/rune ; USER=roo
   }
 
   mountCalculator(container) {
+    if (this._calcCleanup) {
+      this._calcCleanup();
+      this._calcCleanup = null;
+    }
+
     container.innerHTML = `
-      <div class="os-calc-wrap">
-        <div class="os-calc-display" id="os-calc-val">0</div>
+      <div class="os-calc-wrap" id="os-calc-main-wrap" tabindex="0">
+        <div class="os-calc-screen" id="os-calc-screen" title="Rechtsklick für Rechner-Aktionen (Kopieren, Einfügen, Wurzel, Quadrieren, Kehrwert, Vorzeichen)">
+          <div class="os-calc-toast" id="os-calc-toast">Kopiert!</div>
+          <div class="os-calc-history" id="os-calc-history"></div>
+          <div class="os-calc-display" id="os-calc-val">0</div>
+        </div>
         <div class="os-calc-grid">
-          <button class="os-calc-btn op" data-calc="C">C</button>
-          <button class="os-calc-btn op" data-calc="DEL">⌫</button>
-          <button class="os-calc-btn op" data-calc="%">%</button>
-          <button class="os-calc-btn op" data-calc="/">÷</button>
+          <button class="os-calc-btn op" data-calc="C" title="Löschen (Esc / C)">C</button>
+          <button class="os-calc-btn op" data-calc="DEL" title="Rücktaste (Backspace)">⌫</button>
+          <button class="os-calc-btn op" data-calc="%" title="Prozent (%)">%</button>
+          <button class="os-calc-btn op" data-calc="/" title="Geteilt (/)">÷</button>
 
           <button class="os-calc-btn" data-calc="7">7</button>
           <button class="os-calc-btn" data-calc="8">8</button>
           <button class="os-calc-btn" data-calc="9">9</button>
-          <button class="os-calc-btn op" data-calc="*">×</button>
+          <button class="os-calc-btn op" data-calc="*" title="Mal (*)">×</button>
 
           <button class="os-calc-btn" data-calc="4">4</button>
           <button class="os-calc-btn" data-calc="5">5</button>
           <button class="os-calc-btn" data-calc="6">6</button>
-          <button class="os-calc-btn op" data-calc="-">−</button>
+          <button class="os-calc-btn op" data-calc="-" title="Minus (-)">−</button>
 
           <button class="os-calc-btn" data-calc="1">1</button>
           <button class="os-calc-btn" data-calc="2">2</button>
           <button class="os-calc-btn" data-calc="3">3</button>
-          <button class="os-calc-btn op" data-calc="+">+</button>
+          <button class="os-calc-btn op" data-calc="+" title="Plus (+)">+</button>
 
           <button class="os-calc-btn" data-calc="0" style="grid-column: span 2;">0</button>
-          <button class="os-calc-btn" data-calc=".">.</button>
-          <button class="os-calc-btn equals" data-calc="=">=</button>
+          <button class="os-calc-btn" data-calc="." title="Komma (. / ,)">.</button>
+          <button class="os-calc-btn equals" data-calc="=" title="Ergebnis (Enter / =)">=</button>
         </div>
       </div>
     `;
 
+    const wrap = container.querySelector('#os-calc-main-wrap');
     const display = container.querySelector('#os-calc-val');
-    let expr = '0';
+    const historyEl = container.querySelector('#os-calc-history');
+    const toastEl = container.querySelector('#os-calc-toast');
 
+    let expr = '0';
+    let justEvaluated = false;
+    let toastTimer = null;
+
+    const showToast = (msg) => {
+      if (!toastEl) return;
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1500);
+    };
+
+    const formatNumber = (num) => {
+      if (typeof num !== 'number' || isNaN(num) || !isFinite(num)) return 'Error';
+      if (Number.isInteger(num)) return String(num);
+      return parseFloat(num.toPrecision(12)).toString();
+    };
+
+    const updateDisplay = () => {
+      const formatted = expr.replace(/\*/g, ' × ').replace(/\//g, ' ÷ ').replace(/\+/g, ' + ').replace(/-/g, ' − ');
+      display.textContent = formatted.length > 20 ? formatted.slice(-20) : formatted;
+    };
+
+    const pressButtonVisual = (val) => {
+      const btn = container.querySelector(`.os-calc-btn[data-calc="${val}"]`);
+      if (btn) {
+        btn.classList.add('active-press');
+        setTimeout(() => btn.classList.remove('active-press'), 120);
+      }
+    };
+
+    const evaluate = () => {
+      pressButtonVisual('=');
+      try {
+        const val = this.safeEvaluateMath(expr);
+        this._calcLastAns = val;
+        historyEl.textContent = `${expr.replace(/\*/g, '×').replace(/\//g, '÷')} =`;
+        expr = formatNumber(val);
+        justEvaluated = true;
+        if (this.suite && this.suite.sound) this.suite.sound.playClick();
+      } catch (e) {
+        historyEl.textContent = '';
+        expr = 'Error';
+        justEvaluated = true;
+        if (this.suite && this.suite.sound) this.suite.sound.playError();
+      }
+      updateDisplay();
+    };
+
+    const handleInput = (val) => {
+      if (val === 'C') {
+        pressButtonVisual('C');
+        expr = '0';
+        historyEl.textContent = '';
+        justEvaluated = false;
+        if (this.suite && this.suite.sound) this.suite.sound.playPop();
+      } else if (val === 'DEL') {
+        pressButtonVisual('DEL');
+        if (expr === 'Error' || expr.length <= 1) {
+          expr = '0';
+        } else {
+          expr = expr.slice(0, -1);
+        }
+        justEvaluated = false;
+        if (this.suite && this.suite.sound) this.suite.sound.playClick();
+      } else if (val === '=') {
+        evaluate();
+        return;
+      } else if (['+', '-', '*', '/', '%'].includes(val)) {
+        pressButtonVisual(val);
+        justEvaluated = false;
+        if (['+', '-', '*', '/', '%'].includes(expr.slice(-1))) {
+          expr = expr.slice(0, -1) + val;
+        } else {
+          expr += val;
+        }
+        if (this.suite && this.suite.sound) this.suite.sound.playClick();
+      } else if (val === '.') {
+        pressButtonVisual('.');
+        if (justEvaluated) {
+          expr = '0.';
+          justEvaluated = false;
+        } else {
+          const parts = expr.split(/[+\-*/%]/);
+          const lastPart = parts[parts.length - 1];
+          if (!lastPart.includes('.')) {
+            expr += '.';
+          }
+        }
+        if (this.suite && this.suite.sound) this.suite.sound.playClick();
+      } else {
+        // Digits 0-9
+        pressButtonVisual(val);
+        if (justEvaluated || expr === '0') {
+          expr = val;
+          justEvaluated = false;
+        } else {
+          expr += val;
+        }
+        if (this.suite && this.suite.sound) this.suite.sound.playClick();
+      }
+      updateDisplay();
+    };
+
+    // Button clicks
     container.querySelectorAll('.os-calc-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
-        const val = btn.dataset.calc;
-        if (val === 'C') {
-          expr = '0';
-        } else if (val === 'DEL') {
-          expr = expr.length > 1 ? expr.slice(0, -1) : '0';
-        } else if (val === '=') {
-          try {
-            expr = String(this.safeEvaluateMath(expr));
-          } catch (e) {
-            expr = 'Error';
-          }
-        } else {
-          if (expr === '0' && val !== '.') expr = val;
-          else expr += val;
-        }
-        display.textContent = expr;
+        handleInput(btn.dataset.calc);
       });
     });
+
+    // Keyboard listener for Calculator
+    const keydownHandler = (e) => {
+      if (!this.windows.has('calculator') || this.activeWindowId !== 'calculator') return;
+
+      const activeEl = document.activeElement;
+      if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable)) {
+        return;
+      }
+
+      // Clipboard shortcuts
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C')) {
+        e.preventDefault();
+        navigator.clipboard.writeText(expr).then(() => {
+          showToast('📋 Wert kopiert');
+          if (this.suite && this.suite.sound) this.suite.sound.playPop();
+        }).catch(() => showToast('📋 Kopiert'));
+        return;
+      }
+
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V')) {
+        e.preventDefault();
+        navigator.clipboard.readText().then(text => {
+          if (!text) return;
+          const cleaned = text.trim().replace(/,/g, '.').replace(/×/g, '*').replace(/÷/g, '/');
+          if (/^[0-9\s\.\+\-\*/\(\)\%]+$/.test(cleaned)) {
+            if (expr === '0' || justEvaluated) expr = cleaned;
+            else expr += cleaned;
+            justEvaluated = false;
+            updateDisplay();
+            showToast('📥 Eingefügt');
+            if (this.suite && this.suite.sound) this.suite.sound.playPop();
+          } else {
+            showToast('⚠️ Ungültig');
+          }
+        }).catch(() => showToast('⚠️ Keine Berechtigung'));
+        return;
+      }
+
+      if (e.key >= '0' && e.key <= '9') {
+        e.preventDefault();
+        handleInput(e.key);
+      } else if (e.key === '.' || e.key === ',') {
+        e.preventDefault();
+        handleInput('.');
+      } else if (e.key === '+' || e.key === '-') {
+        e.preventDefault();
+        handleInput(e.key);
+      } else if (e.key === '*' || e.key.toLowerCase() === 'x') {
+        e.preventDefault();
+        handleInput('*');
+      } else if (e.key === '/' || e.key === ':') {
+        e.preventDefault();
+        handleInput('/');
+      } else if (e.key === '%') {
+        e.preventDefault();
+        handleInput('%');
+      } else if (e.key === 'Enter' || e.key === '=') {
+        e.preventDefault();
+        handleInput('=');
+      } else if (e.key === 'Backspace') {
+        e.preventDefault();
+        handleInput('DEL');
+      } else if (e.key === 'Escape' || e.key === 'Delete' || e.key.toLowerCase() === 'c') {
+        e.preventDefault();
+        handleInput('C');
+      }
+    };
+
+    window.addEventListener('keydown', keydownHandler);
+
+    // Right-Click Context Menu for Calculator
+    let activeCtxMenu = null;
+    const closeCtxMenu = () => {
+      if (activeCtxMenu) {
+        activeCtxMenu.remove();
+        activeCtxMenu = null;
+      }
+    };
+
+    wrap.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      closeCtxMenu();
+
+      const menu = document.createElement('div');
+      menu.className = 'os-calc-context-menu';
+
+      const ansPreview = (this._calcLastAns !== undefined && this._calcLastAns !== null)
+        ? ` (${formatNumber(this._calcLastAns)})`
+        : '';
+
+      menu.innerHTML = `
+        <div class="os-calc-ctx-item" data-action="copy">
+          <span class="os-calc-ctx-icon">📋</span>
+          <span class="os-calc-ctx-label">Kopieren</span>
+          <span class="os-calc-ctx-shortcut">Ctrl+C</span>
+        </div>
+        <div class="os-calc-ctx-item" data-action="paste">
+          <span class="os-calc-ctx-icon">📥</span>
+          <span class="os-calc-ctx-label">Einfügen</span>
+          <span class="os-calc-ctx-shortcut">Ctrl+V</span>
+        </div>
+        <div class="os-calc-ctx-divider"></div>
+        <div class="os-calc-ctx-item" data-action="negate">
+          <span class="os-calc-ctx-icon">±</span>
+          <span class="os-calc-ctx-label">Vorzeichen wechseln (±)</span>
+        </div>
+        <div class="os-calc-ctx-item" data-action="square">
+          <span class="os-calc-ctx-icon">𝑥²</span>
+          <span class="os-calc-ctx-label">Quadrieren (x²)</span>
+        </div>
+        <div class="os-calc-ctx-item" data-action="sqrt">
+          <span class="os-calc-ctx-icon">√</span>
+          <span class="os-calc-ctx-label">Quadratwurzel (√x)</span>
+        </div>
+        <div class="os-calc-ctx-item" data-action="reciprocal">
+          <span class="os-calc-ctx-icon">¹/𝑥</span>
+          <span class="os-calc-ctx-label">Kehrwert (1/x)</span>
+        </div>
+        <div class="os-calc-ctx-item" data-action="percent">
+          <span class="os-calc-ctx-icon">%</span>
+          <span class="os-calc-ctx-label">Prozent (%)</span>
+        </div>
+        <div class="os-calc-ctx-divider"></div>
+        <div class="os-calc-ctx-item" data-action="ans">
+          <span class="os-calc-ctx-icon">🕒</span>
+          <span class="os-calc-ctx-label">Letztes Ergebnis${ansPreview}</span>
+        </div>
+        <div class="os-calc-ctx-item" data-action="clear">
+          <span class="os-calc-ctx-icon">🗑️</span>
+          <span class="os-calc-ctx-label">Alles löschen (C)</span>
+          <span class="os-calc-ctx-shortcut">Esc</span>
+        </div>
+      `;
+
+      document.body.appendChild(menu);
+      activeCtxMenu = menu;
+
+      // Position clamping
+      const rect = menu.getBoundingClientRect();
+      let left = e.clientX;
+      let top = e.clientY;
+      if (left + rect.width > window.innerWidth - 10) left = window.innerWidth - rect.width - 10;
+      if (top + rect.height > window.innerHeight - 10) top = window.innerHeight - rect.height - 10;
+      menu.style.left = `${Math.max(10, left)}px`;
+      menu.style.top = `${Math.max(10, top)}px`;
+
+      menu.querySelectorAll('.os-calc-ctx-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const action = item.dataset.action;
+          closeCtxMenu();
+
+          if (action === 'copy') {
+            navigator.clipboard.writeText(expr).then(() => {
+              showToast('📋 Wert kopiert');
+              if (this.suite && this.suite.sound) this.suite.sound.playPop();
+            }).catch(() => showToast('📋 Kopiert'));
+          } else if (action === 'paste') {
+            navigator.clipboard.readText().then(text => {
+              if (!text) return;
+              const cleaned = text.trim().replace(/,/g, '.').replace(/×/g, '*').replace(/÷/g, '/');
+              if (/^[0-9\s\.\+\-\*/\(\)\%]+$/.test(cleaned)) {
+                if (expr === '0' || justEvaluated) expr = cleaned;
+                else expr += cleaned;
+                justEvaluated = false;
+                updateDisplay();
+                showToast('📥 Eingefügt');
+                if (this.suite && this.suite.sound) this.suite.sound.playPop();
+              } else {
+                showToast('⚠️ Ungültig');
+              }
+            }).catch(() => showToast('⚠️ Keine Berechtigung'));
+          } else if (action === 'negate') {
+            try {
+              const val = this.safeEvaluateMath(expr);
+              const neg = -val;
+              historyEl.textContent = `negate(${val}) =`;
+              expr = formatNumber(neg);
+              justEvaluated = true;
+              updateDisplay();
+              if (this.suite && this.suite.sound) this.suite.sound.playClick();
+            } catch (err) {
+              expr = 'Error';
+              updateDisplay();
+            }
+          } else if (action === 'square') {
+            try {
+              const val = this.safeEvaluateMath(expr);
+              const sq = val * val;
+              this._calcLastAns = sq;
+              historyEl.textContent = `sqr(${val}) =`;
+              expr = formatNumber(sq);
+              justEvaluated = true;
+              updateDisplay();
+              if (this.suite && this.suite.sound) this.suite.sound.playClick();
+            } catch (err) {
+              expr = 'Error';
+              updateDisplay();
+            }
+          } else if (action === 'sqrt') {
+            try {
+              const val = this.safeEvaluateMath(expr);
+              if (val < 0) {
+                expr = 'Error';
+                showToast('⚠️ Wurzel aus Negativzahl');
+              } else {
+                const sqr = Math.sqrt(val);
+                this._calcLastAns = sqr;
+                historyEl.textContent = `√(${val}) =`;
+                expr = formatNumber(sqr);
+                justEvaluated = true;
+              }
+              updateDisplay();
+              if (this.suite && this.suite.sound) this.suite.sound.playClick();
+            } catch (err) {
+              expr = 'Error';
+              updateDisplay();
+            }
+          } else if (action === 'reciprocal') {
+            try {
+              const val = this.safeEvaluateMath(expr);
+              if (val === 0) {
+                expr = 'Error';
+                showToast('⚠️ Division durch 0');
+              } else {
+                const rec = 1 / val;
+                this._calcLastAns = rec;
+                historyEl.textContent = `1/(${val}) =`;
+                expr = formatNumber(rec);
+                justEvaluated = true;
+              }
+              updateDisplay();
+              if (this.suite && this.suite.sound) this.suite.sound.playClick();
+            } catch (err) {
+              expr = 'Error';
+              updateDisplay();
+            }
+          } else if (action === 'percent') {
+            try {
+              const val = this.safeEvaluateMath(expr);
+              const pct = val / 100;
+              this._calcLastAns = pct;
+              historyEl.textContent = `${val}% =`;
+              expr = formatNumber(pct);
+              justEvaluated = true;
+              updateDisplay();
+              if (this.suite && this.suite.sound) this.suite.sound.playClick();
+            } catch (err) {
+              expr = 'Error';
+              updateDisplay();
+            }
+          } else if (action === 'ans') {
+            if (this._calcLastAns !== undefined && this._calcLastAns !== null) {
+              const ansStr = formatNumber(this._calcLastAns);
+              if (expr === '0' || justEvaluated) expr = ansStr;
+              else expr += ansStr;
+              justEvaluated = false;
+              updateDisplay();
+              showToast(`🕒 Ans (${ansStr})`);
+              if (this.suite && this.suite.sound) this.suite.sound.playClick();
+            } else {
+              showToast('⚠️ Kein vorheriges Ergebnis');
+            }
+          } else if (action === 'clear') {
+            handleInput('C');
+          }
+        });
+      });
+    });
+
+    const docClickListener = (e) => {
+      if (activeCtxMenu && !activeCtxMenu.contains(e.target)) {
+        closeCtxMenu();
+      }
+    };
+    document.addEventListener('pointerdown', docClickListener);
+
+    this._calcCleanup = () => {
+      window.removeEventListener('keydown', keydownHandler);
+      document.removeEventListener('pointerdown', docClickListener);
+      closeCtxMenu();
+    };
   }
 
 
-  mountFolienwerk(container) {
+  mountFolienwerk  mountFolienwerk(container) {
     container.innerHTML = `
       <div class="os-folienwerk-wrap" style="display:flex; flex-direction:column; height:100%; background:#0f1117; color:#fff; overflow:hidden;">
         <!-- Folienwerk Top Header -->

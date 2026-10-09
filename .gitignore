@@ -1,0 +1,23 @@
+# Operating System Files
+.DS_Store
+Thumbs.db
+desktop.ini
+*.tmp
+
+# Editor & IDE Settings
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Runtime Logs
+*.log
+npm-debug.log*
+
+# Python scratch & byte code
+__pycache__/
+*.py[cod]
+*$py.class
+apply_updates.py
+check_paths.py
+verify_syntax.py

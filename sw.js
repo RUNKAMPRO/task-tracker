@@ -2,7 +2,7 @@
 // OrbitSuite Service Worker (Offline & Instant PWA Caching Engine)
 // ==============================================================================
 
-const CACHE_VERSION = 'orbitsuite-v3.6.2';
+const CACHE_VERSION = 'orbitsuite-v3.7.0';
 const STATIC_CACHE_NAME = `orbitsuite-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE_NAME = `orbitsuite-runtime-${CACHE_VERSION}`;
 
@@ -17,13 +17,18 @@ const PRECACHE_ASSETS = [
   './js/orbit-os.js',
   './js/spotify-service.js',
   './manifest.webmanifest',
-  './manifest.json',
   './favicon.ico',
   './icons/orbitsuite_icon.png',
   './icons/apple-touch-icon.png',
   './icons/icon-192.png',
   './icons/icon-512.png',
-  './icons/icon-maskable.png'
+  './icons/icon-maskable.png',
+  './data/puzzles/queens_data.json',
+  './data/puzzles/tango_data.json',
+  './data/puzzles/sudoku_data.json',
+  './data/puzzles/zip_data.json',
+  './data/puzzles/pinpoint_data.json',
+  './data/puzzles/crossclimb_data.json'
 ];
 
 // 1. Install Event: Precaching static assets
@@ -65,7 +70,7 @@ self.addEventListener('fetch', event => {
   }
 
   // Skip live dynamic APIs: Supabase DB, Spotify API, or local Folienwerk port
-  if (url.hostname.includes('supabase.co') || url.hostname.includes('spotify.com') || url.port === '8765') {
+  if (url.hostname.includes('supabase.co') || url.hostname.includes('spotify.com') || url.hostname.includes('googleapis.com') || url.port === '8765') {
     return;
   }
 

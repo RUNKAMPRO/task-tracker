@@ -1653,6 +1653,8 @@
               </div>
             </div>
 
+            <div class="game-active-hint-card hidden" id="queens-active-hint"></div>
+
             <div class="queens-interactive-layout">
               <div class="queens-grid-container">
                 <div class="queens-grid" id="queens-grid">
@@ -1720,6 +1722,8 @@
                 </button>
               </div>
             </div>
+
+            <div class="game-active-hint-card hidden" id="tango-active-hint"></div>
 
             <div class="tango-interactive-layout">
               <div class="tango-grid-container">
@@ -1790,6 +1794,8 @@
                 </button>
               </div>
             </div>
+
+            <div class="game-active-hint-card hidden" id="pinpoint-active-hint"></div>
 
             <div class="pinpoint-interactive-layout">
               <div class="pinpoint-clues-column" id="pinpoint-clues-list">
@@ -1869,6 +1875,8 @@
               </div>
             </div>
 
+            <div class="game-active-hint-card hidden" id="crossclimb-active-hint"></div>
+
             <div class="crossclimb-interactive-layout">
               <div class="crossclimb-ladder" id="crossclimb-ladder-list">
                 <!-- 5 Ladder Rungs rendered dynamically -->
@@ -1935,6 +1943,8 @@
               </div>
             </div>
 
+            <div class="game-active-hint-card hidden" id="zip-active-hint"></div>
+
             <div class="zip-interactive-layout">
               <div class="zip-grid-container">
                 <div class="zip-grid" id="zip-grid">
@@ -2000,6 +2010,8 @@
                 </button>
               </div>
             </div>
+
+            <div class="game-active-hint-card hidden" id="sudoku-active-hint"></div>
 
             <div class="sudoku-interactive-layout">
               <div class="sudoku-board-column">
@@ -2646,7 +2658,7 @@
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
               <span>Entsperren</span>
             </button>
-            <p class="admin-pin-hint">&#128161; Standard-PIN: <code>1234</code> (kann nach dem Entsperren ge&auml;ndert werden)</p>
+            <p class="admin-pin-hint" id="admin-pin-status-hint">&#128274; Master-PIN gesch&uuml;tzt &bull; Ger&auml;te&uuml;bergreifend synchronisiert</p>
           </form>
         </div>
       </div>
@@ -2764,7 +2776,7 @@
             <div class="setup-info-card">
               <div class="info-card-badge">SICHERHEIT</div>
               <h3>Master Admin-PIN &auml;ndern</h3>
-              <p>Vergib eine eigene PIN, damit nur du Zugriff auf das Admin-Panel und die Datenbank-Konfiguration hast.</p>
+              <p>Vergib deine pers&ouml;nliche Master-PIN. Sie wird mit SHA-256 gesalzen verschl&uuml;sselt, in Supabase gesichert und auf allen deinen Ger&auml;ten synchronisiert.</p>
             </div>
 
             <form class="admin-pin-change-form" id="admin-pin-change-form" onsubmit="return false;">

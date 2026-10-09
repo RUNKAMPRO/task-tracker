@@ -4701,7 +4701,11 @@ class OrbitRiddleGenerator {
   static generateQueens(level, customSeed = null, customSize = null) {
     const seed = customSeed || `queens_level_${level}`;
     const rng = this.createPrng(seed);
-    const size = customSize || (level <= 5 ? 6 : (level <= 10 ? 8 : 10));
+    // Balanced difficulty curve:
+    // Levels <= 24: 6x6 grid
+    // Levels 25-34: 7x7 grid
+    // Levels 35+: 8x8 grid (avoids unplayable 10x10 mazes)
+    const size = customSize || (level <= 24 ? 6 : (level <= 34 ? 7 : 8));
 
     let queens = null;
     for (let attempt = 0; attempt < 1500; attempt++) {
@@ -4741,10 +4745,17 @@ class OrbitRiddleGenerator {
       regionCells[i] = [{ r, c }];
     });
 
+        // Create logical footholds: cap 1-2 regions at 2-3 cells so player has immediate deduction paths!
+    const regionCaps = Array(size).fill(size * 2);
+    regionCaps[0] = 2; // small domino foothold
+    if (size >= 7) regionCaps[1] = 3; // second foothold for larger boards
+
     let unassigned = size * size - size;
+    let relaxedCaps = false;
     while (unassigned > 0) {
       const candidates = [];
       for (let i = 0; i < size; i++) {
+        if (!relaxedCaps && regionCells[i].length >= regionCaps[i]) continue;
         const nbrs = [];
         regionCells[i].forEach(({ r, c }) => {
           [[-1, 0], [1, 0], [0, -1], [0, 1]].forEach(([dr, dc]) => {
@@ -4760,7 +4771,13 @@ class OrbitRiddleGenerator {
           candidates.push({ size: regionCells[i].length, region: i, nbrs });
         }
       }
-      if (candidates.length === 0) break;
+      if (candidates.length === 0) {
+        if (!relaxedCaps) {
+          relaxedCaps = true;
+          continue;
+        }
+        break;
+      }
       candidates.sort((a, b) => a.size - b.size);
       const chosen = candidates[0];
       const targetCell = chosen.nbrs[Math.floor(rng() * chosen.nbrs.length)];
@@ -5396,6 +5413,7 @@ class OrbitRiddleApp {
 
       // Hints System State (Max 3 per puzzle, 10s cooldown, duplicate protection)
       this.hintsRemaining = { queens: 3, tango: 3, pinpoint: 3, crossclimb: 3, zip: 3, sudoku: 3 };
+      this.activeGameHint = { queens: null, tango: null, pinpoint: null, crossclimb: null, zip: null, sudoku: null };
       this.lastHint = { queens: null, tango: null, pinpoint: null, crossclimb: null, zip: null, sudoku: null };
       this.hintCooldown = { queens: 0, tango: 0, pinpoint: 0, crossclimb: 0, zip: 0, sudoku: 0 };
       this.hintCooldownTimers = {};
@@ -6174,16 +6192,16 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
       let puzzle = null;
       if (game === 'queens') {
-        if (level <= 5 && level <= this.queensData.length) puzzle = this.queensData[level - 1];
+        if (level <= this.queensData.length) puzzle = this.queensData[level - 1];
         else puzzle = OrbitRiddleGenerator.generateQueens(level);
       } else if (game === 'tango') {
-        if (level <= 5 && level <= this.tangoData.length) puzzle = this.tangoData[level - 1];
+        if (level <= this.tangoData.length) puzzle = this.tangoData[level - 1];
         else puzzle = OrbitRiddleGenerator.generateTango(level);
       } else if (game === 'sudoku') {
-        if (level <= 5 && level <= this.sudokuData.length) puzzle = this.sudokuData[level - 1];
+        if (level <= this.sudokuData.length) puzzle = this.sudokuData[level - 1];
         else puzzle = OrbitRiddleGenerator.generateSudoku(level);
       } else if (game === 'zip') {
-        if (level <= 5 && level <= this.zipData.length) puzzle = this.zipData[level - 1];
+        if (level <= this.zipData.length) puzzle = this.zipData[level - 1];
         else puzzle = OrbitRiddleGenerator.generateZip(level);
       } else if (game === 'crossclimb') {
         puzzle = OrbitRiddleGenerator.generateCrossclimb(level, this.crossclimbData);
@@ -6342,9 +6360,11 @@ btnRandom: document.getElementById('btn-riddle-random'),
       if (game === 'queens') {
         this.resetQueensBoard(true);
         this.renderQueens();
+      this.checkHintCompletion("queens");
       } else if (game === 'tango') {
         this.resetTangoBoard();
         this.renderTango();
+      this.checkHintCompletion("tango");
       } else if (game === 'pinpoint') {
         this.resetPinpoint();
         this.renderPinpoint();
@@ -6354,9 +6374,11 @@ btnRandom: document.getElementById('btn-riddle-random'),
       } else if (game === 'zip') {
         this.resetZip();
         this.renderZip();
+      this.checkHintCompletion("zip");
       } else if (game === 'sudoku') {
         this.resetSudoku();
         this.renderSudoku();
+      this.checkHintCompletion("sudoku");
       }
 
       this.updateGameBanner(game);
@@ -7434,6 +7456,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
         }
       }
 
+      this.checkHintCompletion("queens");
       return changed;
     }
 
@@ -8188,6 +8211,153 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
 
 
+    positionTangoConstraints(container, puzzle) {
+
+
+
+
+      if (!container || !puzzle) return;
+
+
+
+
+      const hBadges = container.querySelectorAll('.tango-constraint-h');
+
+
+
+
+      hBadges.forEach(badge => {
+
+
+
+
+        const r = parseInt(badge.dataset.r, 10);
+
+
+
+
+        const c = parseInt(badge.dataset.c, 10);
+
+
+
+
+        const c1 = container.querySelector(`.tango-cell[data-r="${r}"][data-c="${c}"]`);
+
+
+
+
+        const c2 = container.querySelector(`.tango-cell[data-r="${r}"][data-c="${c + 1}"]`);
+
+
+
+
+        if (c1 && c2) {
+
+
+
+
+          const left = (c1.offsetLeft + c1.offsetWidth + c2.offsetLeft) / 2;
+
+
+
+
+          const top = c1.offsetTop + c1.offsetHeight / 2;
+
+
+
+
+          badge.style.left = `${left}px`;
+
+
+
+
+          badge.style.top = `${top}px`;
+
+
+
+
+        }
+
+
+
+
+      });
+
+
+
+
+
+      const vBadges = container.querySelectorAll('.tango-constraint-v');
+
+
+
+
+      vBadges.forEach(badge => {
+
+
+
+
+        const r = parseInt(badge.dataset.r, 10);
+
+
+
+
+        const c = parseInt(badge.dataset.c, 10);
+
+
+
+
+        const c1 = container.querySelector(`.tango-cell[data-r="${r}"][data-c="${c}"]`);
+
+
+
+
+        const c2 = container.querySelector(`.tango-cell[data-r="${r + 1}"][data-c="${c}"]`);
+
+
+
+
+        if (c1 && c2) {
+
+
+
+
+          const left = c1.offsetLeft + c1.offsetWidth / 2;
+
+
+
+
+          const top = (c1.offsetTop + c1.offsetHeight + c2.offsetTop) / 2;
+
+
+
+
+          badge.style.left = `${left}px`;
+
+
+
+
+          badge.style.top = `${top}px`;
+
+
+
+
+        }
+
+
+
+
+      });
+
+
+
+
+    }
+
+
+
+
+
     renderTango() {
 
       this.renderTangoBanner();
@@ -8248,53 +8418,41 @@ btnRandom: document.getElementById('btn-riddle-random'),
 
 
 
-      // Overlay horizontal constraint badges
-
+      // Overlay horizontal constraint badges with coordinate metadata
       puzzle.hEdges.forEach(e => {
-
         const badge = document.createElement('div');
-
         badge.className = 'tango-constraint-h';
-
-        badge.textContent = e.op === '=' ? '=' : '✕';
-
-        // Position between (e.r, e.c) and (e.r, e.c + 1)
-
-        const cellW = 58 + 12; // cell + gap
-
-        badge.style.left = `${(e.c + 1) * cellW - 6}px`;
-
-        badge.style.top = `${e.r * cellW + 29}px`;
-
+        badge.dataset.r = e.r;
+        badge.dataset.c = e.c;
+        const sym = document.createElement('span');
+        sym.textContent = e.op === '=' ? '=' : '✕';
+        badge.appendChild(sym);
         container.appendChild(badge);
-
       });
 
-
-
-      // Overlay vertical constraint badges
-
+      // Overlay vertical constraint badges with coordinate metadata
       puzzle.vEdges.forEach(e => {
-
         const badge = document.createElement('div');
-
         badge.className = 'tango-constraint-v';
-
-        badge.textContent = e.op === '=' ? '=' : '✕';
-
-        const cellW = 58 + 12;
-
-        badge.style.left = `${e.c * cellW + 29}px`;
-
-        badge.style.top = `${(e.r + 1) * cellW - 6}px`;
-
+        badge.dataset.r = e.r;
+        badge.dataset.c = e.c;
+        const sym = document.createElement('span');
+        sym.textContent = e.op === '=' ? '=' : '✕';
+        badge.appendChild(sym);
         container.appendChild(badge);
-
       });
-
-
 
       gridEl.appendChild(container);
+      this.positionTangoConstraints(container, puzzle);
+
+      // Attach ResizeObserver to keep constraint badges 100% aligned under all responsive sizes
+      if (window.ResizeObserver) {
+        if (this._tangoResizeObserver) this._tangoResizeObserver.disconnect();
+        this._tangoResizeObserver = new ResizeObserver(() => {
+          this.positionTangoConstraints(container, puzzle);
+        });
+        this._tangoResizeObserver.observe(container);
+      }
 
     }
 
@@ -9607,6 +9765,7 @@ init() {
     // ==========================================
 
     resetGameHints(game) {
+      this.clearActiveHint(game);
       if (!this.hintsRemaining) this.hintsRemaining = {};
       if (!this.lastHint) this.lastHint = {};
       if (!this.hintCooldown) this.hintCooldown = {};
@@ -9678,6 +9837,98 @@ init() {
       }
     }
 
+    renderActiveHintCard(game, hint) {
+      const container = document.getElementById(`${game}-active-hint`);
+      if (!container || !hint) return;
+
+      container.className = 'game-active-hint-card';
+      container.innerHTML = `
+        <div class="hint-icon-box">💡</div>
+        <div class="hint-content-box">
+          <div class="hint-title-row">
+            <span class="hint-tag">Taktischer Lösungsschritt</span>
+            <span class="hint-status-badge" id="${game}-hint-status">Warte auf Umsetzung...</span>
+            <button class="hint-close-btn" id="${game}-hint-close" title="Hinweis schließen">✕</button>
+          </div>
+          <div class="hint-reasoning">${hint.reason}</div>
+          <div class="hint-action">👉 ${hint.action}</div>
+        </div>
+      `;
+
+      container.classList.remove('hidden');
+
+      const closeBtn = document.getElementById(`${game}-hint-close`);
+      if (closeBtn) {
+        closeBtn.onclick = () => this.clearActiveHint(game);
+      }
+
+      this.clearHintBeacons(game);
+      if (hint.highlight) {
+        this.applyHintBeacon(game, hint.highlight);
+      }
+    }
+
+    clearActiveHint(game) {
+      if (this.activeGameHint) this.activeGameHint[game] = null;
+      this.clearHintBeacons(game);
+      const container = document.getElementById(`${game}-active-hint`);
+      if (container) {
+        container.classList.add('hidden');
+        container.innerHTML = '';
+        container.classList.remove('fulfilled');
+      }
+    }
+
+    clearHintBeacons(game) {
+      const root = document.getElementById(`panel-game-${game}`);
+      if (!root) return;
+      root.querySelectorAll('.hint-target-beacon').forEach(el => el.classList.remove('hint-target-beacon'));
+    }
+
+    applyHintBeacon(game, highlight) {
+      let cell = null;
+      if (game === 'queens') {
+        cell = this.dom.queensGrid?.querySelector(`.queens-cell[data-r="${highlight.r}"][data-c="${highlight.c}"]`);
+      } else if (game === 'tango') {
+        cell = this.dom.tangoGrid?.querySelector(`.tango-cell[data-r="${highlight.r}"][data-c="${highlight.c}"]`);
+      } else if (game === 'sudoku') {
+        cell = this.dom.sudokuGrid?.querySelector(`.sudoku-cell[data-r="${highlight.r}"][data-c="${highlight.c}"]`);
+      } else if (game === 'zip') {
+        cell = this.dom.zipGrid?.querySelector(`.zip-cell[data-r="${highlight.r}"][data-c="${highlight.c}"]`);
+      } else if (game === 'crossclimb' && highlight) {
+        if (highlight.rungIndex !== undefined) {
+          cell = this.dom.crossclimbLadderList?.querySelector(`.crossclimb-rung-card[data-rung-index="${highlight.rungIndex}"]`);
+        }
+      }
+      if (cell) {
+        cell.classList.add('hint-target-beacon');
+      }
+    }
+
+    checkHintCompletion(game) {
+      const hint = this.activeGameHint ? this.activeGameHint[game] : null;
+      if (!hint || !hint.checkFulfilled) return;
+
+      const isFulfilled = hint.checkFulfilled();
+      if (isFulfilled) {
+        const container = document.getElementById(`${game}-active-hint`);
+        const statusBadge = document.getElementById(`${game}-hint-status`);
+        if (container) {
+          container.classList.add('fulfilled');
+        }
+        if (statusBadge) {
+          statusBadge.textContent = '✓ Umgesetzt!';
+        }
+        this.clearHintBeacons(game);
+        if (this.suite && this.suite.sound) {
+          this.suite.sound.playSuccess();
+        }
+        setTimeout(() => {
+          this.clearActiveHint(game);
+        }, 1400);
+      }
+    }
+
     useHint(game) {
       const remaining = this.hintsRemaining ? (this.hintsRemaining[game] ?? 3) : 3;
       const cd = this.hintCooldown ? (this.hintCooldown[game] || 0) : 0;
@@ -9698,58 +9949,26 @@ init() {
         return;
       }
 
-      // Check if duplicate: "wenn der gleiche hinweis 2-mal gegeben werden würde, dann zählt er kein 2. mal"
       const prevHint = this.lastHint ? this.lastHint[game] : null;
       const isDuplicate = prevHint && prevHint.key === hint.key;
 
       if (isDuplicate) {
-        // Gleicher Hinweis: Zählt NICHT ab!
         this.suite.sound.playPop();
-        this.suite.showToast(`💡 Erinnerung: ${hint.text} (Gleicher Hinweis – zählt nicht ab! Noch ${remaining} übrig)`, 'info');
       } else {
-        // Neuer Hinweis: Zählt 1 Hinweis ab!
         this.hintsRemaining[game] = Math.max(0, remaining - 1);
         this.lastHint[game] = hint;
-        this.suite.sound.playSuccess();
-        this.suite.showToast(`💡 Hinweis (${this.hintsRemaining[game]} übrig): ${hint.text}`, 'success');
+        this.suite.sound.playPop();
       }
 
-      // Highlight target element if present
-      if (hint.highlight) {
-        this.highlightHintCell(game, hint.highlight);
-      }
+      this.activeGameHint[game] = hint;
+      this.renderActiveHintCard(game, hint);
 
-      // Start 10-second cooldown
       this.startHintCooldown(game, 10);
       this.updateHintButtonUI(game);
     }
 
     highlightHintCell(game, highlight) {
-      let cell = null;
-      if (game === 'queens') {
-        cell = this.dom.queensGrid?.querySelector(`.queens-cell[data-r="${highlight.r}"][data-c="${highlight.c}"]`);
-      } else if (game === 'tango') {
-        cell = this.dom.tangoGrid?.querySelector(`.tango-cell[data-r="${highlight.r}"][data-c="${highlight.c}"]`);
-      } else if (game === 'sudoku') {
-        cell = this.dom.sudokuGrid?.querySelector(`.sudoku-cell[data-r="${highlight.r}"][data-c="${highlight.c}"]`);
-      } else if (game === 'zip') {
-        cell = this.dom.zipGrid?.querySelector(`.zip-cell[data-r="${highlight.r}"][data-c="${highlight.c}"]`);
-      } else if (game === 'crossclimb' && highlight) {
-        if (highlight.rungIndex !== undefined) {
-          cell = this.dom.crossclimbLadderList?.querySelector(`.crossclimb-rung-card[data-rung-index="${highlight.rungIndex}"]`);
-        } else if (highlight.rungType === 'decke') {
-          cell = this.dom.crossclimbLadderList?.querySelector('.crossclimb-end-card.decke');
-        } else if (highlight.rungType === 'boden') {
-          cell = this.dom.crossclimbLadderList?.querySelector('.crossclimb-end-card.boden');
-        }
-      }
-
-      if (cell) {
-        cell.classList.add('hint-highlight-pulse');
-        setTimeout(() => {
-          cell.classList.remove('hint-highlight-pulse');
-        }, 3600);
-      }
+      this.applyHintBeacon(game, highlight);
     }
 
     computeGameHint(game) {
@@ -9757,9 +9976,9 @@ init() {
         const board = this.getActiveQueensBoard();
         if (!board) return null;
         const size = board.size;
-        const solution = board.solution; // Array of [r, c]
+        const solution = board.solution;
 
-        // 1. Check if user placed an incorrect queen
+        // 1. Check if user placed an invalid / conflicting queen
         for (let r = 0; r < size; r++) {
           for (let c = 0; c < size; c++) {
             if (this.queensUserGrid[r][c] === 'Q') {
@@ -9771,29 +9990,173 @@ init() {
               if (!isCorrect) {
                 return {
                   key: `queens_wrong_${r}_${c}`,
-                  text: `Die Krone bei Zeile ${r + 1}, Spalte ${c + 1} ist an der falschen Stelle. Entferne sie!`,
-                  highlight: { r, c }
+                  reason: `Die Krone bei Zeile ${r + 1}, Spalte ${c + 1} widerspricht den Spielregeln oder der Gesamtlösung.`,
+                  action: `Entferne diese fehlerhafte Krone (Klick oder Rechtsklick), um das Board wieder in einen konsistenten Zustand zu bringen.`,
+                  highlight: { r, c },
+                  checkFulfilled: () => this.queensUserGrid[r][c] !== 'Q'
                 };
               }
             }
           }
         }
 
-        // 2. Find a missing queen from solution
+        // 2. Check if a region has only 1 remaining candidate cell
+        for (let regId = 0; regId < size; regId++) {
+          let hasQueenInReg = false;
+          const freeCandidates = [];
+          for (let r = 0; r < size; r++) {
+            for (let c = 0; c < size; c++) {
+              if (board.regions[r][c] === regId) {
+                if (this.queensUserGrid[r][c] === 'Q') {
+                  hasQueenInReg = true;
+                  break;
+                }
+                if (this.queensUserGrid[r][c] !== 'X') {
+                  let touches = false;
+                  for (let dr = -1; dr <= 1; dr++) {
+                    for (let dc = -1; dc <= 1; dc++) {
+                      if (dr === 0 && dc === 0) continue;
+                      const nr = r + dr, nc = c + dc;
+                      if (nr >= 0 && nr < size && nc >= 0 && nc < size && this.queensUserGrid[nr][nc] === 'Q') {
+                        touches = true;
+                      }
+                    }
+                  }
+                  if (!touches) freeCandidates.push({ r, c });
+                }
+              }
+            }
+            if (hasQueenInReg) break;
+          }
+          if (!hasQueenInReg && freeCandidates.length === 1) {
+            const { r, c } = freeCandidates[0];
+            return {
+              key: `queens_reg_${regId}_${r}_${c}`,
+              reason: `In der Farbzone ${regId + 1} gibt es nur noch ein einziges unblockiertes Feld. Jede Farbzone benötigt genau 1 Krone!`,
+              action: `Platziere die Krone 👑 bei Zeile ${r + 1}, Spalte ${c + 1}.`,
+              highlight: { r, c },
+              checkFulfilled: () => this.queensUserGrid[r][c] === 'Q'
+            };
+          }
+        }
+
+        // 3. Check if a row has only 1 remaining free cell
+        for (let r = 0; r < size; r++) {
+          if (this.queensUserGrid[r].includes('Q')) continue;
+          const freeCols = [];
+          for (let c = 0; c < size; c++) {
+            if (this.queensUserGrid[r][c] !== 'X') {
+              let touches = false;
+              for (let dr = -1; dr <= 1; dr++) {
+                for (let dc = -1; dc <= 1; dc++) {
+                  if (dr === 0 && dc === 0) continue;
+                  const nr = r + dr, nc = c + dc;
+                  if (nr >= 0 && nr < size && nc >= 0 && nc < size && this.queensUserGrid[nr][nc] === 'Q') {
+                    touches = true;
+                  }
+                }
+              }
+              if (!touches) freeCols.push(c);
+            }
+          }
+          if (freeCols.length === 1) {
+            const c = freeCols[0];
+            return {
+              key: `queens_row_${r}_${c}`,
+              reason: `In Zeile ${r + 1} sind alle anderen Felder blockiert. Jede Zeile benötigt genau eine Krone!`,
+              action: `Setze die Krone 👑 auf Zeile ${r + 1}, Spalte ${c + 1}.`,
+              highlight: { r, c },
+              checkFulfilled: () => this.queensUserGrid[r][c] === 'Q'
+            };
+          }
+        }
+
+        // 4. Check if a column has only 1 remaining free cell
+        for (let c = 0; c < size; c++) {
+          let hasQ = false;
+          for (let r = 0; r < size; r++) {
+            if (this.queensUserGrid[r][c] === 'Q') { hasQ = true; break; }
+          }
+          if (hasQ) continue;
+
+          const freeRows = [];
+          for (let r = 0; r < size; r++) {
+            if (this.queensUserGrid[r][c] !== 'X') {
+              let touches = false;
+              for (let dr = -1; dr <= 1; dr++) {
+                for (let dc = -1; dc <= 1; dc++) {
+                  if (dr === 0 && dc === 0) continue;
+                  const nr = r + dr, nc = c + dc;
+                  if (nr >= 0 && nr < size && nc >= 0 && nc < size && this.queensUserGrid[nr][nc] === 'Q') {
+                    touches = true;
+                  }
+                }
+              }
+              if (!touches) freeRows.push(r);
+            }
+          }
+          if (freeRows.length === 1) {
+            const r = freeRows[0];
+            return {
+              key: `queens_col_${r}_${c}`,
+              reason: `In Spalte ${c + 1} sind alle anderen Felder blockiert. Jede Spalte benötigt genau eine Krone!`,
+              action: `Setze die Krone 👑 auf Zeile ${r + 1}, Spalte ${c + 1}.`,
+              highlight: { r, c },
+              checkFulfilled: () => this.queensUserGrid[r][c] === 'Q'
+            };
+          }
+        }
+
+        // 5. Uncrossed neighbor around existing queen
+        for (let r = 0; r < size; r++) {
+          for (let c = 0; c < size; c++) {
+            if (this.queensUserGrid[r][c] === 'Q') {
+              for (let dr = -1; dr <= 1; dr++) {
+                for (let dc = -1; dc <= 1; dc++) {
+                  if (dr === 0 && dc === 0) continue;
+                  const nr = r + dr, nc = c + dc;
+                  if (nr >= 0 && nr < size && nc >= 0 && nc < size) {
+                    if (this.queensUserGrid[nr][nc] === null) {
+                      return {
+                        key: `queens_elim_${nr}_${nc}`,
+                        reason: `Kronen dürfen sich nicht berühren (auch nicht diagonal!). Da bei Zeile ${r + 1}, Spalte ${c + 1} eine Krone steht, scheidet dieses Feld aus.`,
+                        action: `Setze bei Zeile ${nr + 1}, Spalte ${nc + 1} ein Kreuz ✕.`,
+                        highlight: { r: nr, c: nc },
+                        checkFulfilled: () => this.queensUserGrid[nr][nc] === 'X'
+                      };
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // 6. Deduce next queen from solution
         for (const q of solution) {
           const sr = Array.isArray(q) ? q[0] : q.r;
           const sc = Array.isArray(q) ? q[1] : q.c;
           if (sr === undefined || sc === undefined || isNaN(sr) || isNaN(sc)) continue;
 
           if (this.queensUserGrid[sr][sc] !== 'Q') {
+            const regId = board.regions[sr][sc];
             return {
               key: `queens_place_${sr}_${sc}`,
-              text: `In Zeile ${sr + 1}, Spalte ${sc + 1} gehört sicher eine Krone 👑!`,
-              highlight: { r: sr, c: sc }
+              reason: `Logische Deduktion: Für die Farbzone ${regId + 1} in Zeile ${sr + 1} ist dieses Feld der Schlüssel zur Gesamtlösung.`,
+              action: `Platziere hier bei Zeile ${sr + 1}, Spalte ${sc + 1} die Krone 👑.`,
+              highlight: { r: sr, c: sc },
+              checkFulfilled: () => this.queensUserGrid[sr][sc] === 'Q'
             };
           }
         }
-        return { key: 'queens_done', text: 'Alle Kronen sind bereits richtig platziert!', highlight: null };
+
+        return {
+          key: 'queens_done',
+          reason: 'Alle Kronen wurden bereits korrekt positioniert!',
+          action: 'Prüfe dein Board auf Vollständigkeit.',
+          highlight: null,
+          checkFulfilled: () => true
+        };
       }
 
       if (game === 'tango') {
@@ -9802,7 +10165,7 @@ init() {
         const size = puzzle.size;
         const sol = puzzle.solution;
 
-        // 1. Check if any entered cell is wrong
+        // 1. Check for wrong symbols
         for (let r = 0; r < size; r++) {
           for (let c = 0; c < size; c++) {
             const cur = this.tangoUserGrid[r][c];
@@ -9810,27 +10173,175 @@ init() {
               const rightSym = sol[r][c] === 'S' ? 'Sonne ☀️' : 'Mond 🌙';
               return {
                 key: `tango_wrong_${r}_${c}`,
-                text: `In Zeile ${r + 1}, Spalte ${c + 1} gehört ein(e) ${rightSym}!`,
-                highlight: { r, c }
+                reason: `Das Symbol bei Zeile ${r + 1}, Spalte ${c + 1} ist nicht korrekt und führt zu einem Widerspruch.`,
+                action: `Korrigiere das Feld zu ${rightSym}.`,
+                highlight: { r, c },
+                checkFulfilled: () => this.tangoUserGrid[r][c] === sol[r][c]
               };
             }
           }
         }
 
-        // 2. Find an empty cell
+        // 2. Prevent 3-in-a-row (adjacent identical)
+        for (let r = 0; r < size; r++) {
+          for (let c = 0; c < size - 1; c++) {
+            const v1 = this.tangoUserGrid[r][c];
+            const v2 = this.tangoUserGrid[r][c + 1];
+            if (v1 && v1 === v2) {
+              const opp = v1 === 'S' ? 'M' : 'S';
+              const oppName = opp === 'S' ? 'Sonne ☀️' : 'Mond 🌙';
+              const curName = v1 === 'S' ? 'Sonnen ☀️' : 'Monde 🌙';
+              if (c > 0 && this.tangoUserGrid[r][c - 1] === null) {
+                return {
+                  key: `tango_adj_${r}_${c - 1}`,
+                  reason: `In Zeile ${r + 1} stehen bereits zwei ${curName} nebeneinander. Drei gleiche Symbole in Folge sind verboten!`,
+                  action: `Setze bei Spalte ${c} zwingend einen ${oppName}.`,
+                  highlight: { r, c: c - 1 },
+                  checkFulfilled: () => this.tangoUserGrid[r][c - 1] === opp
+                };
+              }
+              if (c + 2 < size && this.tangoUserGrid[r][c + 2] === null) {
+                return {
+                  key: `tango_adj_${r}_${c + 2}`,
+                  reason: `In Zeile ${r + 1} stehen bereits zwei ${curName} nebeneinander. Drei gleiche Symbole in Folge sind verboten!`,
+                  action: `Setze bei Spalte ${c + 3} zwingend einen ${oppName}.`,
+                  highlight: { r, c: c + 2 },
+                  checkFulfilled: () => this.tangoUserGrid[r][c + 2] === opp
+                };
+              }
+            }
+          }
+        }
+
+        // 3. Prevent 3-in-a-col (adjacent vertical identical)
+        for (let c = 0; c < size; c++) {
+          for (let r = 0; r < size - 1; r++) {
+            const v1 = this.tangoUserGrid[r][c];
+            const v2 = this.tangoUserGrid[r + 1][c];
+            if (v1 && v1 === v2) {
+              const opp = v1 === 'S' ? 'M' : 'S';
+              const oppName = opp === 'S' ? 'Sonne ☀️' : 'Mond 🌙';
+              const curName = v1 === 'S' ? 'Sonnen ☀️' : 'Monde 🌙';
+              if (r > 0 && this.tangoUserGrid[r - 1][c] === null) {
+                return {
+                  key: `tango_vadj_${r - 1}_${c}`,
+                  reason: `In Spalte ${c + 1} stehen bereits zwei ${curName} untereinander. Drei gleiche Symbole in Folge sind verboten!`,
+                  action: `Setze bei Zeile ${r} zwingend einen ${oppName}.`,
+                  highlight: { r: r - 1, c },
+                  checkFulfilled: () => this.tangoUserGrid[r - 1][c] === opp
+                };
+              }
+              if (r + 2 < size && this.tangoUserGrid[r + 2][c] === null) {
+                return {
+                  key: `tango_vadj_${r + 2}_${c}`,
+                  reason: `In Spalte ${c + 1} stehen bereits zwei ${curName} untereinander. Drei gleiche Symbole in Folge sind verboten!`,
+                  action: `Setze bei Zeile ${r + 3} zwingend einen ${oppName}.`,
+                  highlight: { r: r + 2, c },
+                  checkFulfilled: () => this.tangoUserGrid[r + 2][c] === opp
+                };
+              }
+            }
+          }
+        }
+
+        // 4. Sandwich (two identical with 1 gap)
+        for (let r = 0; r < size; r++) {
+          for (let c = 0; c < size - 2; c++) {
+            const v1 = this.tangoUserGrid[r][c];
+            const v3 = this.tangoUserGrid[r][c + 2];
+            if (v1 && v1 === v3 && this.tangoUserGrid[r][c + 1] === null) {
+              const opp = v1 === 'S' ? 'M' : 'S';
+              const oppName = opp === 'S' ? 'Sonne ☀️' : 'Mond 🌙';
+              const curName = v1 === 'S' ? 'Sonnen ☀️' : 'Monde 🌙';
+              return {
+                key: `tango_sand_${r}_${c + 1}`,
+                reason: `In Zeile ${r + 1} stehen zwei ${curName} mit einer Lücke dazwischen. Ein drittes gleiches Symbol würde die 3er-Regel verletzen!`,
+                action: `Setze in die Mitte bei Spalte ${c + 2} einen ${oppName}.`,
+                highlight: { r, c: c + 1 },
+                checkFulfilled: () => this.tangoUserGrid[r][c + 1] === opp
+              };
+            }
+          }
+        }
+
+        // 5. Line balance (row already has 3 Suns or 3 Moons)
+        for (let r = 0; r < size; r++) {
+          let suns = 0, moons = 0;
+          for (let c = 0; c < size; c++) {
+            if (this.tangoUserGrid[r][c] === 'S') suns++;
+            if (this.tangoUserGrid[r][c] === 'M') moons++;
+          }
+          if (suns === 3) {
+            for (let c = 0; c < size; c++) {
+              if (this.tangoUserGrid[r][c] === null) {
+                return {
+                  key: `tango_rowbal_${r}_${c}`,
+                  reason: `In Zeile ${r + 1} sind bereits alle 3 erlaubten Sonnen ☀️ platziert. Jede Reihe hat genau 3 Sonnen und 3 Monde!`,
+                  action: `Setze bei Spalte ${c + 1} einen Mond 🌙.`,
+                  highlight: { r, c },
+                  checkFulfilled: () => this.tangoUserGrid[r][c] === 'M'
+                };
+              }
+            }
+          }
+          if (moons === 3) {
+            for (let c = 0; c < size; c++) {
+              if (this.tangoUserGrid[r][c] === null) {
+                return {
+                  key: `tango_rowbal_${r}_${c}`,
+                  reason: `In Zeile ${r + 1} sind bereits alle 3 erlaubten Monde 🌙 platziert. Jede Reihe hat genau 3 Sonnen und 3 Monde!`,
+                  action: `Setze bei Spalte ${c + 1} eine Sonne ☀️.`,
+                  highlight: { r, c },
+                  checkFulfilled: () => this.tangoUserGrid[r][c] === 'S'
+                };
+              }
+            }
+          }
+        }
+
+        // 6. Equal constraint badges
+        if (puzzle.hEdges) {
+          for (const e of puzzle.hEdges) {
+            const v1 = this.tangoUserGrid[e.r][e.c];
+            const v2 = this.tangoUserGrid[e.r][e.c + 1];
+            if (e.op === '=' && (v1 || v2) && !(v1 && v2)) {
+              const known = v1 || v2;
+              const targetC = v1 ? e.c + 1 : e.c;
+              const symName = known === 'S' ? 'Sonne ☀️' : 'Mond 🌙';
+              return {
+                key: `tango_eq_${e.r}_${targetC}`,
+                reason: `Zwischen Spalte ${e.c + 1} und ${e.c + 2} steht ein Gleichheitszeichen (=). Beide Felder müssen das identische Symbol haben!`,
+                action: `Übertrage ${symName} auf Spalte ${targetC + 1}.`,
+                highlight: { r: e.r, c: targetC },
+                checkFulfilled: () => this.tangoUserGrid[e.r][targetC] === known
+              };
+            }
+          }
+        }
+
+        // 7. Fallback to solution
         for (let r = 0; r < size; r++) {
           for (let c = 0; c < size; c++) {
             if (this.tangoUserGrid[r][c] === null) {
               const rightSym = sol[r][c] === 'S' ? 'Sonne ☀️' : 'Mond 🌙';
               return {
                 key: `tango_fill_${r}_${c}`,
-                text: `Tipp: In Zeile ${r + 1}, Spalte ${c + 1} gehört ein(e) ${rightSym}!`,
-                highlight: { r, c }
+                reason: `Logischer Zwischenschritt: Um die Ausgewogenheit von Zeile ${r + 1} und Spalte ${c + 1} zu wahren, ist dieses Feld vorbestimmt.`,
+                action: `Trage bei Zeile ${r + 1}, Spalte ${c + 1} ein(e) ${rightSym} ein.`,
+                highlight: { r, c },
+                checkFulfilled: () => this.tangoUserGrid[r][c] === sol[r][c]
               };
             }
           }
         }
-        return { key: 'tango_done', text: 'Das Tango-Board ist vollständig!', highlight: null };
+
+        return {
+          key: 'tango_done',
+          reason: 'Das Board ist bereits vollständig und korrekt ausgefüllt!',
+          action: 'Überprüfe deine Einträge.',
+          highlight: null,
+          checkFulfilled: () => true
+        };
       }
 
       if (game === 'sudoku') {
@@ -9838,34 +10349,119 @@ init() {
         if (!puzzle) return null;
         const sol = puzzle.solution;
 
-        // 1. Check for wrong numbers
+        // 1. Wrong numbers
         for (let r = 0; r < 6; r++) {
           for (let c = 0; c < 6; c++) {
             const val = this.sudokuUserGrid[r][c];
             if (val !== 0 && val !== sol[r][c]) {
               return {
                 key: `sudoku_wrong_${r}_${c}`,
-                text: `Die Zahl ${val} in Zeile ${r + 1}, Spalte ${c + 1} ist falsch. Richtig ist ${sol[r][c]}!`,
-                highlight: { r, c }
+                reason: `Die Zahl ${val} bei Zeile ${r + 1}, Spalte ${c + 1} steht im Konflikt mit einer Zeile, Spalte oder dem 2×3-Block.`,
+                action: `Korrigiere die Ziffer zu ${sol[r][c]}.`,
+                highlight: { r, c },
+                checkFulfilled: () => this.sudokuUserGrid[r][c] === sol[r][c]
               };
             }
           }
         }
 
-        // 2. Find empty cell
+        // 2. Single candidate in cell (Naked Single)
         for (let r = 0; r < 6; r++) {
           for (let c = 0; c < 6; c++) {
             if (this.sudokuUserGrid[r][c] === 0) {
+              const used = new Set();
+              for (let i = 0; i < 6; i++) if (this.sudokuUserGrid[r][i]) used.add(this.sudokuUserGrid[r][i]);
+              for (let i = 0; i < 6; i++) if (this.sudokuUserGrid[i][c]) used.add(this.sudokuUserGrid[i][c]);
+              const br = Math.floor(r / 2) * 2;
+              const bc = Math.floor(c / 3) * 3;
+              for (let dr = 0; dr < 2; dr++) {
+                for (let dc = 0; dc < 3; dc++) {
+                  const v = this.sudokuUserGrid[br + dr][bc + dc];
+                  if (v) used.add(v);
+                }
+              }
+              const candidates = [1, 2, 3, 4, 5, 6].filter(n => !used.has(n));
+              if (candidates.length === 1) {
+                const targetNum = candidates[0];
+                return {
+                  key: `sudoku_single_${r}_${c}`,
+                  reason: `Eindeutige Ziffer: Alle anderen Zahlen von 1 bis 6 sind in dieser Zeile, Spalte oder im 2×3-Block bereits belegt!`,
+                  action: `Trage bei Zeile ${r + 1}, Spalte ${c + 1} die Zahl ${targetNum} ein.`,
+                  highlight: { r, c },
+                  checkFulfilled: () => this.sudokuUserGrid[r][c] === targetNum
+                };
+              }
+            }
+          }
+        }
+
+        // 3. Fallback from solution
+        for (let r = 0; r < 6; r++) {
+          for (let c = 0; c < 6; c++) {
+            if (this.sudokuUserGrid[r][c] === 0) {
+              const targetNum = sol[r][c];
               return {
                 key: `sudoku_fill_${r}_${c}`,
-                text: `In Zeile ${r + 1}, Spalte ${c + 1} gehört die Ziffer ${sol[r][c]}!`,
-                highlight: { r, c }
+                reason: `In Zeile ${r + 1}, Spalte ${c + 1} fügt sich die Zahl ${targetNum} harmonisch in das 6×6-Zahlenfeld ein.`,
+                action: `Trage hier die Ziffer ${targetNum} ein.`,
+                highlight: { r, c },
+                checkFulfilled: () => this.sudokuUserGrid[r][c] === targetNum
               };
             }
           }
         }
-        return { key: 'sudoku_done', text: 'Das Sudoku ist komplett gelöst!', highlight: null };
+
+        return {
+          key: 'sudoku_done',
+          reason: 'Das Mini-Sudoku ist vollständig gelöst!',
+          action: 'Überprüfe deine Eingaben.',
+          highlight: null,
+          checkFulfilled: () => true
+        };
       }
+
+      if (game === 'zip') {
+        const puzzle = this.getActiveZip();
+        if (!puzzle) return null;
+        const curPath = this.zipPath || [];
+        const solPath = puzzle.solutionPath || [];
+
+        if (curPath.length > 0 && curPath.length < solPath.length) {
+          const nextTarget = solPath[curPath.length];
+          if (nextTarget) {
+            return {
+              key: `zip_next_${nextTarget.r}_${nextTarget.c}`,
+              reason: `Pfadführung: Das nächste Feld setzt den Pfad lückenlos zum nächsten Wegpunkt fort.`,
+              action: `Bewege den Pfad auf Zeile ${nextTarget.r + 1}, Spalte ${nextTarget.c + 1}.`,
+              highlight: { r: nextTarget.r, c: nextTarget.c },
+              checkFulfilled: () => (this.zipPath || []).some(p => p.r === nextTarget.r && p.c === nextTarget.c)
+            };
+          }
+        }
+      }
+
+      if (game === 'pinpoint') {
+        return {
+          key: 'pinpoint_general',
+          reason: 'Achte auf die gemeinsamen Merkmale aller bisher aufgedeckten Begriffe.',
+          action: 'Decke bei Bedarf den nächsten Hinweis auf oder rate die Überkategorie!',
+          highlight: null,
+          checkFulfilled: () => this.pinpointIsSolved
+        };
+      }
+
+      if (game === 'crossclimb') {
+        return {
+          key: 'crossclimb_general',
+          reason: 'Jede Sprosse der Leiter unterscheidet sich von der vorherigen durch genau einen Buchstaben.',
+          action: 'Finde das Wort, das durch Tausch eines Buchstabens zur nächsten Stufe passt.',
+          highlight: null,
+          checkFulfilled: () => this.crossclimbIsSolved
+        };
+      }
+
+      return null;
+    }
 
       if (game === 'zip') {
         const puzzle = this.getActiveZip();
@@ -12006,10 +12602,62 @@ END $$;`;
       }
     }
 
+    async hashPin(pin) {
+      if (!pin) return '';
+      const salt = (window.ORBIT_CONFIG && window.ORBIT_CONFIG.adminSalt) || 'orbit_suite_salt_8f7b2c9e4a1d603e';
+      return await this.sha256(`ADMIN_PIN::${salt}::${pin.trim()}`);
+    }
+
+    async getStoredPinHash() {
+      // 1. Check local storage for hashed PIN
+      let localHash = localStorage.getItem('orbitsuite_admin_pin_hash');
+      if (localHash) return localHash;
+
+      // 2. Check Supabase cloud sync for system admin PIN hash if available
+      if (this.suite && this.suite.sync && this.suite.sync.client) {
+        try {
+          const { data } = await this.suite.sync.client
+            .from('orbit_sync')
+            .select('payload')
+            .eq('app', 'system_admin_pin')
+            .maybeSingle();
+          if (data && data.payload && data.payload.hash) {
+            localStorage.setItem('orbitsuite_admin_pin_hash', data.payload.hash);
+            return data.payload.hash;
+          }
+        } catch (e) {
+          // silent fallback
+        }
+      }
+
+      // 3. Fallback to legacy local plaintext if exists
+      const legacyPlain = localStorage.getItem(this.STORAGE_KEY_ADMIN_PIN);
+      if (legacyPlain) {
+        const h = await this.hashPin(legacyPlain);
+        localStorage.setItem('orbitsuite_admin_pin_hash', h);
+        return h;
+      }
+
+      // 4. Default config pin hash if explicitly defined in config
+      if (window.ORBIT_CONFIG && window.ORBIT_CONFIG.defaultAdminPin) {
+        return await this.hashPin(window.ORBIT_CONFIG.defaultAdminPin);
+      }
+
+      return null;
+    }
+
+    async verifyPin(entered) {
+      if (!entered) return false;
+      const storedHash = await this.getStoredPinHash();
+      if (!storedHash) {
+        return false;
+      }
+      const enteredHash = await this.hashPin(entered);
+      return enteredHash === storedHash;
+    }
+
     getValidPin() {
-      return localStorage.getItem(this.STORAGE_KEY_ADMIN_PIN) || 
-             (window.ORBIT_CONFIG && window.ORBIT_CONFIG.defaultAdminPin) || 
-             '1234';
+      return localStorage.getItem(this.STORAGE_KEY_ADMIN_PIN) || (window.ORBIT_CONFIG && window.ORBIT_CONFIG.defaultAdminPin);
     }
 
     async openModal() {
@@ -12022,7 +12670,7 @@ END $$;`;
       if (this.isAdminUnlocked) {
         this.showUnlockedView();
       } else {
-        this.showLockedView();
+        await this.showLockedView();
       }
       this.dom.adminModal.classList.remove('hidden');
     }
@@ -12032,13 +12680,23 @@ END $$;`;
       this.dom.adminModal.classList.add('hidden');
     }
 
-    showLockedView() {
+    async showLockedView() {
       if (this.dom.viewLocked) this.dom.viewLocked.classList.remove('hidden');
       if (this.dom.viewUnlocked) this.dom.viewUnlocked.classList.add('hidden');
       if (this.dom.pinError) this.dom.pinError.classList.add('hidden');
       if (this.dom.inputPin) {
         this.dom.inputPin.value = '';
         setTimeout(() => this.dom.inputPin.focus(), 150);
+      }
+
+      const hintEl = document.getElementById('admin-pin-status-hint');
+      const hash = await this.getStoredPinHash();
+      if (hintEl) {
+        if (!hash) {
+          hintEl.innerHTML = '&#9888;&#65039; Keine Master-PIN vergeben. Gib eine PIN ein (mind. 4 Zeichen), um sie erstmalig festzulegen.';
+        } else {
+          hintEl.innerHTML = '&#128274; Master-PIN gesch&uuml;tzt &bull; Ger&auml;te&uuml;bergreifend synchronisiert';
+        }
       }
     }
 
@@ -12048,7 +12706,7 @@ END $$;`;
       this.refreshConfigFields();
     }
 
-    unlock() {
+    async unlock() {
       if (this.lockoutUntil && Date.now() < this.lockoutUntil) {
         const remaining = Math.ceil((this.lockoutUntil - Date.now()) / 1000);
         if (this.dom.pinError) {
@@ -12059,9 +12717,38 @@ END $$;`;
       }
 
       const entered = (this.dom.inputPin ? this.dom.inputPin.value : '').trim();
-      const valid = this.getValidPin();
+      const storedHash = await this.getStoredPinHash();
 
-      if (entered === valid) {
+      // If no PIN set yet anywhere: initialize setup!
+      if (!storedHash) {
+        if (entered.length >= 4) {
+          const newHash = await this.hashPin(entered);
+          localStorage.setItem('orbitsuite_admin_pin_hash', newHash);
+          localStorage.setItem(this.STORAGE_KEY_ADMIN_PIN, entered);
+          if (this.suite && this.suite.sync && this.suite.sync.client) {
+            try {
+              await this.suite.sync.client.from('orbit_sync').upsert({
+                app: 'system_admin_pin',
+                payload: { hash: newHash, updated_at: new Date().toISOString() },
+                updated_at: new Date().toISOString()
+              });
+            } catch (e) {}
+          }
+          this.isAdminUnlocked = true;
+          this.showUnlockedView();
+          this.suite.showToast('Erste Master-PIN eingerichtet und Admin entsperrt! 🛡️', 'success');
+          return;
+        } else {
+          if (this.dom.pinError) {
+            this.dom.pinError.classList.remove('hidden');
+            this.dom.pinError.textContent = 'Ersteinrichtung: Bitte vergib eine PIN mit mind. 4 Zeichen.';
+          }
+          return;
+        }
+      }
+
+      const isCorrect = await this.verifyPin(entered);
+      if (isCorrect) {
         this.isAdminUnlocked = true;
         this.failedAttempts = 0;
         this.lockoutUntil = 0;
@@ -12173,10 +12860,46 @@ END $$;`;
       }
     }
 
-    changePin() {
+    async changePin() {
       const newPin = (this.dom.inputNewPin ? this.dom.inputNewPin.value : '').trim();
       const confirmPin = (this.dom.inputConfirmPin ? this.dom.inputConfirmPin.value : '').trim();
 
+      if (!newPin || newPin.length < 4) {
+        this.showPinFeedback('Die PIN muss mindestens 4 Zeichen lang sein.', 'error');
+        return;
+      }
+      if (newPin !== confirmPin) {
+        this.showPinFeedback('Die eingegebenen PINs stimmen nicht überein.', 'error');
+        return;
+      }
+
+      const pinHash = await this.hashPin(newPin);
+      localStorage.setItem('orbitsuite_admin_pin_hash', pinHash);
+      localStorage.setItem(this.STORAGE_KEY_ADMIN_PIN, newPin);
+
+      // Cloud Sync via Supabase
+      if (this.suite && this.suite.sync && this.suite.sync.client) {
+        try {
+          await this.suite.sync.client
+            .from('orbit_sync')
+            .upsert({
+              app: 'system_admin_pin',
+              payload: { hash: pinHash, updated_at: new Date().toISOString() },
+              updated_at: new Date().toISOString()
+            });
+        } catch (e) {
+          console.warn('Could not sync admin pin hash to cloud:', e);
+        }
+      }
+
+      this.dom.inputNewPin.value = '';
+      this.dom.inputConfirmPin.value = '';
+      this.showPinFeedback('Admin-PIN erfolgreich geändert & synchronisiert! 🔐☁️', 'success');
+      this.suite.showToast('Neue Master-PIN aktiv und in der Cloud gesichert!', 'success');
+      return;
+    }
+
+    _placeholder_old_pin() {
       if (!newPin || newPin.length < 4) {
         this.showPinFeedback('Die PIN muss mindestens 4 Zeichen lang sein.', 'error');
         return;
@@ -12831,17 +13554,29 @@ END $$;`;
 
 
     toggleAppSelector(forceState) {
-
       if (!this.dom.appSelectorMenu || !this.dom.appSelectorToggle) return;
-
       const isOpen = forceState !== undefined ? forceState : this.dom.appSelectorMenu.classList.contains('hidden');
-
       this.dom.appSelectorMenu.classList.toggle('hidden', !isOpen);
-
       this.dom.appSelectorToggle.setAttribute('aria-expanded', String(isOpen));
-
-      if (isOpen) this.sound.playPop();
-
+      if (isOpen) {
+        this.sound.playPop();
+        // Dynamic viewport clamping: ensure menu never overflows the right or left edge of the screen!
+        requestAnimationFrame(() => {
+          const menu = this.dom.appSelectorMenu;
+          menu.style.left = '0';
+          menu.style.right = 'auto';
+          const rect = menu.getBoundingClientRect();
+          const vw = window.innerWidth;
+          if (rect.right > vw - 12) {
+            const overflow = rect.right - (vw - 12);
+            menu.style.left = `-${overflow}px`;
+            const updatedRect = menu.getBoundingClientRect();
+            if (updatedRect.left < 10) {
+              menu.style.left = `${10 - rect.left}px`;
+            }
+          }
+        });
+      }
     }
 
 

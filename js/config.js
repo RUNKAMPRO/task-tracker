@@ -23,6 +23,7 @@ window.ORBIT_CONFIG = {
     '0360abb0b5a61f231df78a97c916648b81ece575ffaa2d7171212d7b79f7f667'
   ],
 
-  // Standard Admin-PIN (über das Admin-Panel im Browser anpassbar)
-  defaultAdminPin: '1234'
+  // Kein unsicherer Standardwert: Die Master-PIN wird vom Administrator vergeben
+  // und automatisch geräteübergreifend verschlüsselt synchronisiert.
+  defaultAdminPin: null
 };
