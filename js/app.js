@@ -11228,6 +11228,12 @@ init() {
           }
         });
 
+        navigator.serviceWorker.addEventListener('message', (event) => {
+          if (event.data && event.data.type === 'SW_ACTIVATED') {
+            console.log('[OrbitSuite PWA] Service Worker activated:', event.data.version);
+          }
+        });
+
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('./sw.js')
             .then(reg => {
