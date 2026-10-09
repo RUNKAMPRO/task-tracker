@@ -1008,8 +1008,9 @@ class OrbitOS {
                 // Handle Password Prompt for SUDO
         if (this.terminalState.isPromptingPassword) {
           let isPinValid = false;
-          if (window.orbitApp && window.orbitApp.adminManager && window.orbitApp.adminManager.verifyPin) {
-            isPinValid = await window.orbitApp.adminManager.verifyPin(val);
+          const admin = (window.orbitSuite && window.orbitSuite.admin) || (window.orbitApp && window.orbitApp.adminManager);
+          if (admin && admin.verifyPin) {
+            isPinValid = await admin.verifyPin(val);
           } else {
             const expectedPin = localStorage.getItem('orbitsuite_admin_pin') || 
               (window.ORBIT_CONFIG && window.ORBIT_CONFIG.defaultAdminPin);
@@ -1220,11 +1221,13 @@ Oct  8 10:24:15 orbit-os sudo[142]: rune : TTY=pts/0 ; PWD=/home/rune ; USER=roo
           const newPin = prompt('Neuen 4-stelligen Admin-PIN eingeben:');
           if (newPin && newPin.trim().length >= 4) {
             localStorage.setItem('orbitsuite_admin_pin', newPin.trim());
-            if (window.orbitApp && window.orbitApp.adminManager && window.orbitApp.adminManager.hashPin) {
-              window.orbitApp.adminManager.hashPin(newPin.trim()).then(h => {
+            const suite = window.orbitSuite || window.orbitApp;
+            const admin = suite && (suite.admin || suite.adminManager);
+            if (admin && admin.hashPin) {
+              admin.hashPin(newPin.trim()).then(h => {
                 localStorage.setItem('orbitsuite_admin_pin_hash', h);
-                if (window.orbitApp.sync && window.orbitApp.sync.client) {
-                  window.orbitApp.sync.client.from('orbit_sync').upsert({
+                if (suite.sync && suite.sync.client) {
+                  suite.sync.client.from('orbit_sync').upsert({
                     app: 'system_admin_pin',
                     payload: { hash: h, updated_at: new Date().toISOString() },
                     updated_at: new Date().toISOString()
@@ -2149,7 +2152,7 @@ Oct  8 10:24:15 orbit-os sudo[142]: rune : TTY=pts/0 ; PWD=/home/rune ; USER=roo
   }
 
 
-  mountFolienwerk  mountFolienwerk(container) {
+  mountFolienwerk(container) {
     container.innerHTML = `
       <div class="os-folienwerk-wrap" style="display:flex; flex-direction:column; height:100%; background:#0f1117; color:#fff; overflow:hidden;">
         <!-- Folienwerk Top Header -->
