@@ -11218,51 +11218,39 @@ init() {
 
 
     initServiceWorker() {
-
       if ('serviceWorker' in navigator) {
-
-        window.addEventListener('load', () => {
-
-          navigator.serviceWorker.register('./sw.js')
-
-            .then(reg => {
-
-              console.log('[OrbitSuite PWA] Service Worker registered with scope:', reg.scope);
-
-              // Handle updatefound
-
-              reg.addEventListener('updatefound', () => {
-
-                const newWorker = reg.installing;
-
-                if (newWorker) {
-
-                  newWorker.addEventListener('statechange', () => {
-
-                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-
-                      this.suite.showToast('OrbitSuite Update verfügbar! Aktualisiere beim nächsten Start 🚀');
-
-                    }
-
-                  });
-
-                }
-
-              });
-
-            })
-
-            .catch(err => {
-
-              console.warn('[OrbitSuite PWA] Service Worker registration failed:', err);
-
-            });
-
+        // Automatically reload when new service worker takes control
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (!refreshing) {
+            refreshing = true;
+            window.location.reload();
+          }
         });
 
-      }
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js')
+            .then(reg => {
+              console.log('[OrbitSuite PWA] Service Worker registered with scope:', reg.scope);
+              // Force check for fresh sw.js on every load
+              reg.update();
 
+              reg.addEventListener('updatefound', () => {
+                const newWorker = reg.installing;
+                if (newWorker) {
+                  newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                      this.suite.showToast('OrbitSuite Update wird geladen... 🚀', 'info');
+                    }
+                  });
+                }
+              });
+            })
+            .catch(err => {
+              console.warn('[OrbitSuite PWA] Service Worker registration failed:', err);
+            });
+        });
+      }
     }
 
 
