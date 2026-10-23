@@ -11130,6 +11130,7 @@ init() {
         }
 
         // 4. CONSTRAINT EDGES (= and x)
+        // 4.1 Horizontal Edge Direct Deduction
         if (puzzle.hEdges) {
           for (const e of puzzle.hEdges) {
             const v1 = this.tangoUserGrid[e.r][e.c];
@@ -11174,6 +11175,102 @@ init() {
                 highlight: { r: e.r, c: targetC },
                 checkFulfilled: () => this.tangoUserGrid[e.r][targetC] === opp
               };
+            }
+          }
+        }
+
+        // 4.2 Vertical Edge Direct Deduction
+        if (puzzle.vEdges) {
+          for (const e of puzzle.vEdges) {
+            const v1 = this.tangoUserGrid[e.r][e.c];
+            const v2 = this.tangoUserGrid[e.r + 1][e.c];
+            if (e.op === '=' && (v1 || v2) && !(v1 && v2)) {
+              const known = v1 || v2;
+              const targetR = v1 ? e.r + 1 : e.r;
+              const knownR = v1 ? e.r : e.r + 1;
+              const symName = known === 'S' ? 'Sonne ☀️' : 'Mond 🌙';
+              return {
+                key: `tango_veq_${targetR}_${e.c}`,
+                tag: 'Gleichheitsbedingung (=)',
+                focus: `Vertikale Randbedingung zwischen Zeile ${e.r + 1} & ${e.r + 2} (Spalte ${e.c + 1})`,
+                steps: [
+                  { title: '1. Bedingung prüfen', desc: 'Das Gleichheitszeichen (=) erzwingt, dass beide vertikal verbundenen Felder dasselbe Symbol tragen.' },
+                  { title: '2. Ausgangswert', desc: `Feld (Zeile ${knownR + 1}, Spalte ${e.c + 1}) ist bereits fest als ${symName} bestimmt.` },
+                  { title: '3. Direkte Übertragung', desc: `Das verbundene Feld (Zeile ${targetR + 1}, Spalte ${e.c + 1}) MUSS folglich ebenfalls ein(e) ${symName} sein!` }
+                ],
+                reason: `Zwischen Zeile ${e.r + 1} und Zeile ${e.r + 2} in Spalte ${e.c + 1} steht ein Gleichheitszeichen (=). Da Feld (Zeile ${knownR + 1}, Spalte ${e.c + 1}) ein(e) ${symName} ist, MUSS das Nachbarfeld identisch sein!`,
+                action: `Übertrage ${symName} auf Zeile ${targetR + 1}, Spalte ${e.c + 1}.`,
+                highlight: { r: targetR, c: e.c },
+                checkFulfilled: () => this.tangoUserGrid[targetR][e.c] === known
+              };
+            }
+            if (e.op === 'x' && (v1 || v2) && !(v1 && v2)) {
+              const known = v1 || v2;
+              const opp = known === 'S' ? 'M' : 'S';
+              const targetR = v1 ? e.r + 1 : e.r;
+              const knownR = v1 ? e.r : e.r + 1;
+              const symName = opp === 'S' ? 'Sonne ☀️' : 'Mond 🌙';
+              return {
+                key: `tango_vneq_${targetR}_${e.c}`,
+                tag: 'Ungleichheitsbedingung (×)',
+                focus: `Vertikale Randbedingung zwischen Zeile ${e.r + 1} & ${e.r + 2} (Spalte ${e.c + 1})`,
+                steps: [
+                  { title: '1. Bedingung prüfen', desc: 'Das Unterschiedlich-Zeichen (×) verlangt strikt entgegengesetzte Symbole.' },
+                  { title: '2. Ausgangswert', desc: `Feld (Zeile ${knownR + 1}, Spalte ${e.c + 1}) ist fest belegt.` },
+                  { title: '3. Ableitung', desc: `Das verbundene Nachbarfeld MUSS zwingend das Gegenteil (${symName}) sein!` }
+                ],
+                reason: `Zwischen Zeile ${e.r + 1} und Zeile ${e.r + 2} in Spalte ${e.c + 1} steht ein Ungleichheitszeichen (×). Da Feld (Zeile ${knownR + 1}, Spalte ${e.c + 1}) feststeht, MUSS das Nachbarfeld das Gegenteil (${symName}) sein!`,
+                action: `Trage bei Zeile ${targetR + 1}, Spalte ${e.c + 1} ein(e) ${symName} ein.`,
+                highlight: { r: targetR, c: e.c },
+                checkFulfilled: () => this.tangoUserGrid[targetR][e.c] === opp
+              };
+            }
+          }
+        }
+
+        // 4.3 Equal edge on two empty cells when row/column already has 2 of a symbol
+        if (puzzle.hEdges) {
+          for (const e of puzzle.hEdges) {
+            if (e.op === '=' && this.tangoUserGrid[e.r][e.c] === null && this.tangoUserGrid[e.r][e.c + 1] === null) {
+              let suns = 0, moons = 0;
+              for (let c = 0; c < size; c++) {
+                if (this.tangoUserGrid[e.r][c] === 'S') suns++;
+                if (this.tangoUserGrid[e.r][c] === 'M') moons++;
+              }
+              if (suns === 2) {
+                return {
+                  key: `tango_eq_cap_suns_${e.r}_${e.c}`,
+                  tag: 'Kapazitätsgrenze mit Gleichheitskante',
+                  focus: `Zeile ${e.r + 1} & (=) bei Spalte ${e.c + 1}-${e.c + 2}`,
+                  steps: [
+                    { title: '1. Reihen-Inventur', desc: `In Zeile ${e.r + 1} stehen bereits 2 Sonnen ☀️. Es darf insgesamt nur noch maximal EINE einzige Sonne hinzukommen.` },
+                    { title: '2. Gleichheits-Zwang', desc: `Die freien Felder in Spalte ${e.c + 1} und ${e.c + 2} sind mit (=) verbunden, müssen also identisch sein.` },
+                    { title: '3. Widerspruch entlarven', desc: 'Wären beide eine Sonne, hätte die Zeile 2 + 2 = 4 Sonnen (erlaubt sind maximal 3)!' },
+                    { title: '4. Zwingende Folge', desc: 'Beide Felder MÜSSEN zwingend Monde 🌙 sein!' }
+                  ],
+                  reason: `In Zeile ${e.r + 1} stehen bereits 2 Sonnen ☀️. Da Spalte ${e.c + 1} und ${e.c + 2} durch (=) dasselbe Symbol tragen müssen, können sie unmöglich beide Sonnen sein (sonst 4 Sonnen!). Beide MÜSSEN Monde 🌙 sein.`,
+                  action: `Setze auf Zeile ${e.r + 1}, Spalte ${e.c + 1} einen Mond 🌙.`,
+                  highlight: { r: e.r, c: e.c },
+                  checkFulfilled: () => this.tangoUserGrid[e.r][e.c] === 'M'
+                };
+              }
+              if (moons === 2) {
+                return {
+                  key: `tango_eq_cap_moons_${e.r}_${e.c}`,
+                  tag: 'Kapazitätsgrenze mit Gleichheitskante',
+                  focus: `Zeile ${e.r + 1} & (=) bei Spalte ${e.c + 1}-${e.c + 2}`,
+                  steps: [
+                    { title: '1. Reihen-Inventur', desc: `In Zeile ${e.r + 1} stehen bereits 2 Monde 🌙. Es darf nur noch maximal EIN Mond hinzukommen.` },
+                    { title: '2. Gleichheits-Zwang', desc: `Die freien Felder in Spalte ${e.c + 1} und ${e.c + 2} sind mit (=) verbunden.` },
+                    { title: '3. Widerspruch entlarven', desc: 'Wären beide ein Mond, hätte die Zeile 2 + 2 = 4 Monde (erlaubt sind maximal 3)!' },
+                    { title: '4. Zwingende Folge', desc: 'Beide Felder MÜSSEN zwingend Sonnen ☀️ sein!' }
+                  ],
+                  reason: `In Zeile ${e.r + 1} stehen bereits 2 Monde 🌙. Da Spalte ${e.c + 1} und ${e.c + 2} durch (=) identisch sein müssen, scheidet Mond aus. Beide MÜSSEN Sonnen ☀️ sein.`,
+                  action: `Setze auf Zeile ${e.r + 1}, Spalte ${e.c + 1} eine Sonne ☀️.`,
+                  highlight: { r: e.r, c: e.c },
+                  checkFulfilled: () => this.tangoUserGrid[e.r][e.c] === 'S'
+                };
+              }
             }
           }
         }
@@ -11573,21 +11670,90 @@ init() {
           }
         }
 
-        // 6. Tactical Solution Step
+        // 6. CONTRADICTION & ADVANCED LOOKAHEAD (WIDERSPRUCHSBEWEIS BEI ALTERNATIVEN)
+        const getCellCandidates = (gr, gc) => {
+          if (this.sudokuUserGrid[gr][gc] !== 0) return [];
+          const used = new Set();
+          for (let i = 0; i < 6; i++) {
+            if (this.sudokuUserGrid[gr][i]) used.add(this.sudokuUserGrid[gr][i]);
+            if (this.sudokuUserGrid[i][gc]) used.add(this.sudokuUserGrid[i][gc]);
+          }
+          const br = Math.floor(gr / 2) * 2;
+          const bc = Math.floor(gc / 3) * 3;
+          for (let dr = 0; dr < 2; dr++) {
+            for (let dc = 0; dc < 3; dc++) {
+              if (this.sudokuUserGrid[br + dr][bc + dc]) used.add(this.sudokuUserGrid[br + dr][bc + dc]);
+            }
+          }
+          return [1, 2, 3, 4, 5, 6].filter(n => !used.has(n));
+        };
+
+        for (let r = 0; r < 6; r++) {
+          for (let c = 0; c < 6; c++) {
+            if (this.sudokuUserGrid[r][c] === 0) {
+              const cands = getCellCandidates(r, c);
+              if (cands.length === 2) {
+                const correctNum = sol[r][c];
+                const wrongNum = cands.find(n => n !== correctNum);
+                if (wrongNum) {
+                  // Simulate placing wrongNum in grid and find which neighbor cell is starved to 0 candidates
+                  this.sudokuUserGrid[r][c] = wrongNum;
+                  let starvedCell = null;
+                  for (let or = 0; or < 6; or++) {
+                    for (let oc = 0; oc < 6; oc++) {
+                      if (this.sudokuUserGrid[or][oc] === 0) {
+                        const starvedCands = getCellCandidates(or, oc);
+                        if (starvedCands.length === 0) {
+                          starvedCell = { r: or, c: oc };
+                          break;
+                        }
+                      }
+                    }
+                    if (starvedCell) break;
+                  }
+                  this.sudokuUserGrid[r][c] = 0; // revert simulation
+
+                  if (starvedCell) {
+                    const blockNum = Math.floor(starvedCell.r / 2) * 2 + Math.floor(starvedCell.c / 3) + 1;
+                    return {
+                      key: `sudoku_contra_${r}_${c}_${wrongNum}`,
+                      tag: 'Widerspruchsbeweis',
+                      focus: `Hypothese: Ziffer ${wrongNum} bei Zeile ${r + 1}, Spalte ${c + 1}`,
+                      steps: [
+                        { title: '1. Ausgangslage & Hypothese', desc: `Feld (Zeile ${r + 1}, Spalte ${c + 1}) hat genau zwei Kandidaten: [${cands.join(', ')}]. Prüfe die Annahme: „Was wäre, wenn hier die Ziffer ${wrongNum} stünde?“` },
+                        { title: '2. Domino-Effekt auf Nachbarfeld', desc: `Blicke auf Feld (Zeile ${starvedCell.r + 1}, Spalte ${starvedCell.c + 1}) in Block #${blockNum}. Durch das Eintragen von ${wrongNum} würden dort alle verbleibenden Ziffern gleichzeitig verboten!` },
+                        { title: '3. Der Widerspruch', desc: `Feld (${starvedCell.r + 1}, ${starvedCell.c + 1}) hätte daraufhin 0 legale Zahlen übrig – ein direkter Sudoku-Regelbruch!` },
+                        { title: '4. Eindeutiger Schluss', desc: `Die Annahme ${wrongNum} ist unmöglich. Feld (Zeile ${r + 1}, Spalte ${c + 1}) MUSS zwingend die Zahl ${correctNum} sein!` }
+                      ],
+                      reason: `Ausschluss durch Widerspruch: Würde man bei Zeile ${r + 1}, Spalte ${c + 1} die Zahl ${wrongNum} setzen, hätte Feld (Zeile ${starvedCell.r + 1}, Spalte ${starvedCell.c + 1}) keine einzige legale Zahl von 1 bis 6 mehr übrig. Daher MUSS hier zwingend die Zahl ${correctNum} stehen!`,
+                      action: `Trage bei Zeile ${r + 1}, Spalte ${c + 1} die Zahl ${correctNum} ein.`,
+                      highlight: { r, c },
+                      checkFulfilled: () => this.sudokuUserGrid[r][c] === correctNum
+                    };
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // 7. Tactical Solution Step
         for (let r = 0; r < 6; r++) {
           for (let c = 0; c < 6; c++) {
             if (this.sudokuUserGrid[r][c] === 0) {
               const targetNum = sol[r][c];
+              const cands = getCellCandidates(r, c);
+              const otherCands = cands.filter(n => n !== targetNum);
               return {
                 key: `sudoku_fill_${r}_${c}`,
-                tag: 'Block-Deduktion',
+                tag: 'Kandidaten-Synthese',
                 focus: `Feld (Zeile ${r + 1}, Spalte ${c + 1})`,
                 steps: [
                   { title: '1. Schnittstellen-Analyse', desc: `Untersuche Zeile ${r + 1}, Spalte ${c + 1} und den zugehörigen 2×3-Block.` },
-                  { title: '2. Konfliktfreiheit', desc: `Die Ziffer ${targetNum} ist die einzige Zahl, die alle Einheiten ohne Duplikate vervollständigt.` },
-                  { title: '3. Eintrag', desc: `Setze die Zahl ${targetNum} ein.` }
+                  { title: '2. Alternativen-Ausschluss', desc: otherCands.length > 0 ? `Die Alternativen [${otherCands.join(', ')}] führen in den kreuzenden Linien zu unlösbaren Duplikaten.` : 'Alle anderen Zahlen scheiden aus.' },
+                  { title: '3. Eintrag', desc: `Die Ziffer ${targetNum} ist die einzig regelkonforme Wahl.` }
                 ],
-                reason: `In Zeile ${r + 1}, Spalte ${c + 1} fügt sich die Zahl ${targetNum} als einzig konsistente Zahl harmonisch in Zeile, Spalte und den 2×3-Block ein.`,
+                reason: `In Zeile ${r + 1}, Spalte ${c + 1} ist die Zahl ${targetNum} die einzige Zahl, die mit den kreuzenden Linien und dem 2×3-Block harmonisch aufgeht.`,
                 action: `Trage hier die Ziffer ${targetNum} ein.`,
                 highlight: { r, c },
                 checkFulfilled: () => this.sudokuUserGrid[r][c] === targetNum
@@ -11695,6 +11861,46 @@ init() {
                   checkFulfilled: () => (this.zipPath || []).some(p => p.r === r && p.c === c)
                 };
               }
+            }
+          }
+        }
+
+        // 2.3 Corner Trap Warning (Eckfeld-Falle)
+        const corners = [
+          { r: 0, c: 0 },
+          { r: 0, c: puzzle.size - 1 },
+          { r: puzzle.size - 1, c: 0 },
+          { r: puzzle.size - 1, c: puzzle.size - 1 }
+        ];
+        for (const cr of corners) {
+          const isCornerVisited = curPath.some(p => p.r === cr.r && p.c === cr.c);
+          if (!isCornerVisited) {
+            const cornerNeighs = [
+              { r: cr.r - 1, c: cr.c },
+              { r: cr.r + 1, c: cr.c },
+              { r: cr.r, c: cr.c - 1 },
+              { r: cr.r, c: cr.c + 1 }
+            ].filter(pt => pt.r >= 0 && pt.r < puzzle.size && pt.c >= 0 && pt.c < puzzle.size && !curPath.some(p => p.r === pt.r && p.c === pt.c));
+
+            const touchesCorner = cornerNeighs.some(pt => pt.r === last.r && pt.c === last.c);
+            const isCornerEndPoint = puzzle.checkpoints[`${cr.r},${cr.c}`]?.num === Object.keys(puzzle.checkpoints).length;
+
+            if (cornerNeighs.length === 1 && touchesCorner && !isCornerEndPoint) {
+              return {
+                key: `zip_corner_trap_${cr.r}_${cr.c}`,
+                tag: 'Eckfeld-Falle',
+                focus: `Eckfeld (Zeile ${cr.r + 1}, Spalte ${cr.c + 1})`,
+                steps: [
+                  { title: '1. Eckfeld-Geometrie', desc: 'Ein Eckfeld hat im gesamten Raster immer nur genau 2 Nachbarn (Eingang & Ausgang).' },
+                  { title: '2. Drohende Schließung', desc: `Eines der beiden Nachbarfelder wurde bereits vom Pfad belegt. Das Eckfeld hat nur noch EINEN EINZIGEN freien Zugang: dein aktuelles Pfad-Ende!` },
+                  { title: '3. Zwingende Mitnahme', desc: 'Wenn du jetzt am Eckfeld vorbeiziehst, verliert es seinen letzten Ausgang und wird für immer unbesuchbar!' },
+                  { title: '4. Rettungszug', desc: 'Der Pfad MUSS das Eckfeld jetzt sofort mitnehmen!' }
+                ],
+                reason: `Eckfeld-Gefahr: Das Eckfeld bei Zeile ${cr.r + 1}, Spalte ${cr.c + 1} hat nur noch einen einzigen freien Zugang (dein Pfad-Ende). Du musst es jetzt sofort ansteuern, da es sonst isoliert wird und das Spiel scheitert!`,
+                action: `Ziehe den Pfad direkt auf das Eckfeld bei Zeile ${cr.r + 1}, Spalte ${cr.c + 1}.`,
+                highlight: { r: cr.r, c: cr.c },
+                checkFulfilled: () => (this.zipPath || []).some(p => p.r === cr.r && p.c === cr.c)
+              };
             }
           }
         }
