@@ -2,7 +2,7 @@
 // OrbitSuite Service Worker (Offline & Instant PWA Caching Engine)
 // ==============================================================================
 
-const CACHE_VERSION = 'orbitsuite-v3.7.4';
+const CACHE_VERSION = 'orbitsuite-v3.8.4';
 const STATIC_CACHE_NAME = `orbitsuite-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE_NAME = `orbitsuite-runtime-${CACHE_VERSION}`;
 
@@ -25,12 +25,7 @@ const PRECACHE_ASSETS = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-maskable.png',
-  './data/puzzles/queens_data.json',
-  './data/puzzles/tango_data.json',
-  './data/puzzles/sudoku_data.json',
-  './data/puzzles/zip_data.json',
-  './data/puzzles/pinpoint_data.json',
-  './data/puzzles/crossclimb_data.json'
+  './assets/wallpapers/shadow-knight.jpg'
 ];
 
 // 1. Install Event: Precaching static assets & immediate activation
@@ -116,7 +111,7 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Strategy B: Cache-First for static assets (images, icons, sounds, puzzles)
+  // Strategy B: Cache-First for static assets (images, icons, sounds, wallpapers)
   event.respondWith(
     caches.match(req).then(cachedResponse => {
       if (cachedResponse) return cachedResponse;

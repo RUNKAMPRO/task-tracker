@@ -5658,84 +5658,7 @@ this.zipNextExpectedCp = 2;
         sudokuStatusPill: document.getElementById('sudoku-status-pill'),
         sudokuCountdown: document.getElementById('sudoku-daily-countdown'),
         sudokuDateTitle: document.getElementById('sudoku-daily-date-title'),
-        btnSudokuReset: document.getElementById('btn-sudoku-reset'),
-
-
-btnRandom: document.getElementById('btn-riddle-random'),
-
-        btnCreate: document.getElementById('btn-riddle-create'),
-
-        filterChips: document.querySelectorAll('.riddle-filter-chip'),
-
-        diffSelect: document.getElementById('riddle-difficulty-select'),
-
-        catPill: document.getElementById('riddle-active-cat'),
-
-        diffPill: document.getElementById('riddle-active-diff'),
-
-        countLabel: document.getElementById('riddle-active-counter'),
-
-        statusIndicator: document.getElementById('riddle-status-indicator'),
-
-        statusText: document.getElementById('riddle-status-text'),
-
-        visualBox: document.getElementById('riddle-visual-box'),
-
-        questionText: document.getElementById('riddle-question-text'),
-
-        answerInput: document.getElementById('riddle-answer-input'),
-
-        btnSubmit: document.getElementById('btn-riddle-submit'),
-
-        feedbackBox: document.getElementById('riddle-feedback-box'),
-
-        btnHint: document.getElementById('btn-riddle-hint'),
-
-        hintBox: document.getElementById('riddle-hint-box'),
-
-        hintText: document.getElementById('riddle-hint-text'),
-
-        btnReveal: document.getElementById('btn-riddle-reveal'),
-
-        solutionBox: document.getElementById('riddle-solution-box'),
-
-        solutionContent: document.getElementById('riddle-solution-content'),
-
-        solutionTitle: document.getElementById('riddle-solution-title'),
-
-        solutionExplanation: document.getElementById('riddle-solution-explanation'),
-
-        btnPrev: document.getElementById('btn-riddle-prev'),
-
-        btnShuffle: document.getElementById('btn-riddle-shuffle'),
-
-        btnNext: document.getElementById('btn-riddle-next'),
-
-        cardsGrid: document.getElementById('riddle-cards-grid'),
-
-        // Modal
-
-        modal: document.getElementById('riddle-create-modal'),
-
-        modalClose: document.getElementById('riddle-modal-close'),
-
-        form: document.getElementById('riddle-form'),
-
-        newQuestion: document.getElementById('riddle-new-question'),
-
-        newCat: document.getElementById('riddle-new-cat'),
-
-        newDiff: document.getElementById('riddle-new-diff'),
-
-        newAnswer: document.getElementById('riddle-new-answer'),
-
-        newHint: document.getElementById('riddle-new-hint'),
-
-        newExplanation: document.getElementById('riddle-new-explanation'),
-
-        btnModalCancel: document.getElementById('btn-riddle-modal-cancel')
-
-      };
+        btnSudokuReset: document.getElementById('btn-sudoku-reset')};
 
 
 
@@ -7703,6 +7626,8 @@ btnRandom: document.getElementById('btn-riddle-random'),
       const clashes = this.queensActiveClashes || new Set();
       const gridEl = this.dom.queensGrid;
       gridEl.innerHTML = '';
+      gridEl.setAttribute('role', 'grid');
+      gridEl.setAttribute('aria-label', `Queens Spielfeld ${size} mal ${size}`);
       gridEl.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
       gridEl.style.gridTemplateRows = `repeat(${size}, 1fr)`;
 
@@ -7815,6 +7740,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
           cell.dataset.r = r;
           cell.dataset.c = c;
           cell.dataset.reg = reg;
+          cell.setAttribute('role', 'gridcell');
 
           cell.addEventListener('pointerenter', () => {
             gridEl.dataset.hoverReg = reg;
@@ -8390,6 +8316,8 @@ btnRandom: document.getElementById('btn-riddle-random'),
       const container = document.createElement('div');
 
       container.className = 'tango-board-card-inner';
+      container.setAttribute('role', 'grid');
+      container.setAttribute('aria-label', `Tango Spielfeld ${size} mal ${size}`);
 
       container.style.gridTemplateColumns = `repeat(${size}, 58px)`;
 
@@ -9735,6 +9663,8 @@ btnRandom: document.getElementById('btn-riddle-random'),
       const gridEl = this.dom.sudokuGrid;
       const errors = this.getSudokuErrors();
       gridEl.innerHTML = '';
+      gridEl.setAttribute('role', 'grid');
+      gridEl.setAttribute('aria-label', 'Mini-Sudoku 6 mal 6 Spielfeld');
 
       const selVal = this.sudokuSelectedCell
         ? this.sudokuUserGrid[this.sudokuSelectedCell.r][this.sudokuSelectedCell.c]
@@ -13995,7 +13925,12 @@ END $$;`;
         console.error('[OrbitSync] Push error:', err);
         this.updateBadge('error', 'Sync-Fehler');
         if (manual) {
-          this.suite.showToast('Fehler bei der Synchronisation: ' + (err.message || err), 'error');
+          const errMsg = String(err.message || err || '');
+          const isRls = errMsg.includes('row-level security') || errMsg.includes('JWT') || errMsg.includes('42501') || err.code === '42501';
+          const displayMsg = isRls 
+            ? 'Cloud-Zugriff verweigert (RLS). Bitte logge dich im Account-Tab mit deinem Benutzerkonto ein!'
+            : 'Fehler bei der Synchronisation: ' + errMsg;
+          this.suite.showToast(displayMsg, 'error');
         }
       } finally {
         this.isSyncing = false;
