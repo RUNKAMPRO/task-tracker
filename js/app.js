@@ -8566,6 +8566,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
       this.suite.sound.playClick();
 
       this.renderPinpoint();
+      this.checkHintCompletion('pinpoint');
 
     }
 
@@ -8864,6 +8865,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
       this.suite.sound.playClick();
       this.checkCrossclimbLadderOrder();
       this.renderCrossclimb();
+      this.checkHintCompletion('crossclimb');
     }
 
     reverseCrossclimbRungs() {
@@ -8871,6 +8873,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
       this.crossclimbLadderDirection = this.crossclimbLadderDirection === 'forward' ? 'reverse' : 'forward';
       this.suite.sound.playClick();
       this.renderCrossclimb();
+      this.checkHintCompletion('crossclimb');
       this.checkCrossclimbWin();
     }
 
@@ -9022,6 +9025,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
           if (val === this.crossclimbDecke.targetWord) {
             deckeCard.classList.add('valid-rung');
             this.suite.sound.playPop();
+            this.checkHintCompletion('crossclimb');
             this.checkCrossclimbWin();
           } else {
             deckeCard.classList.remove('valid-rung');
@@ -9062,6 +9066,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
             rung.isSolved = true;
             card.classList.add('valid-rung');
             this.suite.sound.playPop();
+            this.checkHintCompletion('crossclimb');
             if (this.crossclimbRungs.every(r => r.isSolved || r.currentWord === r.targetWord)) {
               if (this.crossclimbStep === 1) {
                 this.crossclimbStep = 2;
@@ -9249,6 +9254,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
           this.dom.zipFeedback.textContent = '';
         }
         this.renderZip();
+        this.checkHintCompletion('zip');
       }
     }
 
@@ -9304,6 +9310,7 @@ btnRandom: document.getElementById('btn-riddle-random'),
       }
 
       this.renderZip();
+      this.checkHintCompletion('zip');
       this.checkZipStatus();
     }
 
@@ -9855,17 +9862,51 @@ init() {
       const container = document.getElementById(`${game}-active-hint`);
       if (!container || !hint) return;
 
+      const focusBadge = hint.focus
+        ? `<span class="hint-focus-badge"><span class="focus-icon">🎯</span> <strong>Fokus:</strong> ${hint.focus}</span>`
+        : '';
+
+      const stepsHtml = (hint.steps && Array.isArray(hint.steps) && hint.steps.length > 0)
+        ? `
+          <div class="hint-thought-process">
+            <div class="hint-process-label">
+              <span class="process-icon">🧠</span>
+              <span><strong>Deduktionsweg (Wie man darauf kommt):</strong></span>
+            </div>
+            <div class="hint-steps-list">
+              ${hint.steps.map((st, i) => `
+                <div class="hint-step-item">
+                  <span class="step-badge">${i + 1}</span>
+                  <div class="step-text">
+                    <strong class="step-title">${st.title}:</strong>
+                    <span class="step-desc">${st.desc}</span>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `
+        : (hint.reason ? `<div class="hint-reasoning">${hint.reason}</div>` : '');
+
       container.className = 'game-active-hint-card';
       container.innerHTML = `
         <div class="hint-icon-box">💡</div>
         <div class="hint-content-box">
           <div class="hint-title-row">
-            <span class="hint-tag">${hint.tag || 'Logische Deduktion'}</span>
-            <span class="hint-status-badge" id="${game}-hint-status">Warte auf Umsetzung...</span>
-            <button class="hint-close-btn" id="${game}-hint-close" title="Hinweis schließen">✕</button>
+            <div class="hint-tag-wrap">
+              <span class="hint-tag">${hint.tag || 'Logische Deduktion'}</span>
+              ${focusBadge}
+            </div>
+            <div class="hint-header-actions">
+              <span class="hint-status-badge" id="${game}-hint-status">Warte auf Umsetzung...</span>
+              <button class="hint-close-btn" id="${game}-hint-close" title="Hinweis schließen">✕</button>
+            </div>
           </div>
-          <div class="hint-reasoning">${hint.reason}</div>
-          <div class="hint-action">👉 ${hint.action}</div>
+          ${stepsHtml}
+          <div class="hint-action">
+            <span class="action-icon">👉</span>
+            <span class="action-text"><strong>Dein nächster Zug:</strong> ${hint.action}</span>
+          </div>
         </div>
       `;
 
@@ -10019,7 +10060,6 @@ init() {
         };
 
         // --- STEP 1: CONFLICTS & RULE VIOLATIONS ---
-        // 1.1 Direct clashes between placed queens
         for (let i = 0; i < placedQueens.length; i++) {
           for (let j = i + 1; j < placedQueens.length; j++) {
             const q1 = placedQueens[i];
@@ -10028,7 +10068,13 @@ init() {
               return {
                 key: `queens_clash_row_${q1.r}`,
                 tag: 'Regelverstoß',
-                reason: `In Zeile ${q1.r + 1} stehen 2 Kronen (Spalte ${q1.c + 1} und Spalte ${q2.c + 1}). Die Spielregel besagt: Jede Zeile darf genau EINE Krone enthalten!`,
+                focus: `Zeile ${q1.r + 1}`,
+                steps: [
+                  { title: 'Regelprüfung', desc: 'Jede Zeile darf auf dem gesamten Spielfeld genau EINE Krone enthalten.' },
+                  { title: 'Konflikt entdeckt', desc: `In Zeile ${q1.r + 1} stehen aktuell 2 Kronen (Spalte ${q1.c + 1} und Spalte ${q2.c + 1}).` },
+                  { title: 'Korrektur', desc: 'Zwei Kronen in derselben Zeile machen das Rätsel unlösbar. Eine der beiden muss weichen.' }
+                ],
+                reason: `In Zeile ${q1.r + 1} stehen 2 Kronen (Spalte ${q1.c + 1} und Spalte ${q2.c + 1}). Jede Zeile darf genau EINE Krone enthalten!`,
                 action: `Entferne die überflüssige Krone auf Zeile ${q2.r + 1}, Spalte ${q2.c + 1}.`,
                 highlight: { r: q2.r, c: q2.c },
                 checkFulfilled: () => this.queensUserGrid[q2.r][q2.c] !== 'Q'
@@ -10038,6 +10084,12 @@ init() {
               return {
                 key: `queens_clash_col_${q1.c}`,
                 tag: 'Regelverstoß',
+                focus: `Spalte ${q1.c + 1}`,
+                steps: [
+                  { title: 'Regelprüfung', desc: 'Jede Spalte darf auf dem gesamten Spielfeld genau EINE Krone enthalten.' },
+                  { title: 'Konflikt entdeckt', desc: `In Spalte ${q1.c + 1} stehen aktuell 2 Kronen (Zeile ${q1.r + 1} und Zeile ${q2.r + 1}).` },
+                  { title: 'Korrektur', desc: 'Eine Spalte mit zwei Kronen ist unzulässig. Entferne die zweite Krone.' }
+                ],
                 reason: `In Spalte ${q1.c + 1} stehen 2 Kronen (Zeile ${q1.r + 1} und Zeile ${q2.r + 1}). Jede Spalte darf nur genau EINE Krone enthalten!`,
                 action: `Entferne die überflüssige Krone auf Zeile ${q2.r + 1}, Spalte ${q2.c + 1}.`,
                 highlight: { r: q2.r, c: q2.c },
@@ -10048,6 +10100,12 @@ init() {
               return {
                 key: `queens_clash_reg_${q1.reg}`,
                 tag: 'Regelverstoß',
+                focus: `${getRegName(q1.reg)}`,
+                steps: [
+                  { title: 'Zonenregel', desc: 'Jede farbige Zone muss genau EINE Krone besitzen.' },
+                  { title: 'Konflikt entdeckt', desc: `In der ${getRegName(q1.reg)} wurden zwei Kronen platziert.` },
+                  { title: 'Korrektur', desc: 'Entferne die überschüssige Krone aus dieser Farbzone.' }
+                ],
                 reason: `In der ${getRegName(q1.reg)} stehen bereits 2 Kronen. Jede Farbzone darf nur genau EINE Krone enthalten!`,
                 action: `Entferne die zweite Krone aus dieser Farbzone (z. B. auf Zeile ${q2.r + 1}, Spalte ${q2.c + 1}).`,
                 highlight: { r: q2.r, c: q2.c },
@@ -10058,6 +10116,12 @@ init() {
               return {
                 key: `queens_clash_touch_${q1.r}_${q1.c}`,
                 tag: 'Regelverstoß',
+                focus: `Kronen bei (${q1.r + 1}, ${q1.c + 1}) & (${q2.r + 1}, ${q2.c + 1})`,
+                steps: [
+                  { title: 'Abstandsregel', desc: 'Kronen dürfen sich niemals berühren – weder waagerecht, noch senkrecht, noch diagonal!' },
+                  { title: 'Konflikt', desc: `Die Krone bei (${q1.r + 1}, ${q1.c + 1}) und die Krone bei (${q2.r + 1}, ${q2.c + 1}) berühren sich direkt.` },
+                  { title: 'Korrektur', desc: 'Lösche eine der beiden benachbarten Kronen, um den Abstand wiederherzustellen.' }
+                ],
                 reason: `Die Kronen bei (Zeile ${q1.r + 1}, Spalte ${q1.c + 1}) und (Zeile ${q2.r + 1}, Spalte ${q2.c + 1}) berühren sich. Kronen dürfen niemals benachbart sein – auch nicht diagonal!`,
                 action: `Entferne die angrenzende Krone bei Zeile ${q2.r + 1}, Spalte ${q2.c + 1}.`,
                 highlight: { r: q2.r, c: q2.c },
@@ -10067,7 +10131,7 @@ init() {
           }
         }
 
-        // 1.2 Queen placed on an incorrect cell (dead end)
+        // Dead-end Queen
         for (const q of placedQueens) {
           const isCorrect = solution.some(s => {
             const sr = Array.isArray(s) ? s[0] : s.r;
@@ -10078,6 +10142,12 @@ init() {
             return {
               key: `queens_wrong_${q.r}_${q.c}`,
               tag: 'Sackgasse erkannt',
+              focus: `Krone bei Zeile ${q.r + 1}, Spalte ${q.c + 1}`,
+              steps: [
+                { title: 'Sackgassen-Analyse', desc: 'Verfolge die logischen Konsequenzen dieser Krone auf das Spielfeld.' },
+                { title: 'Aushungerung', desc: 'Durch ihre Zeilen-, Spalten- und Abstandsverbote werden andere Zeilen oder Farbzonen so stark blockiert, dass dort 0 legale Plätze für eine Krone verbleiben.' },
+                { title: 'Lösung', desc: 'Diese Krone führt unausweichlich in einen Widerspruch und muss entfernt werden.' }
+              ],
               reason: `Die Krone auf Zeile ${q.r + 1}, Spalte ${q.c + 1} führt zu einer Sackgasse, da sie Pflichtfelder für andere Zeilen oder Farbzonen blockiert.`,
               action: `Entferne diese Krone auf Zeile ${q.r + 1}, Spalte ${q.c + 1}.`,
               highlight: { r: q.r, c: q.c },
@@ -10086,7 +10156,7 @@ init() {
           }
         }
 
-        // 1.3 Erroneous 'X' blocking a required solution cell
+        // Erroneous 'X' blocking a solution cell
         for (const s of solution) {
           const sr = Array.isArray(s) ? s[0] : s.r;
           const sc = Array.isArray(s) ? s[1] : s.c;
@@ -10094,6 +10164,12 @@ init() {
             return {
               key: `queens_wrong_x_${sr}_${sc}`,
               tag: 'Fehlendes Lösungsfeld',
+              focus: `Feld (Zeile ${sr + 1}, Spalte ${sc + 1})`,
+              steps: [
+                { title: 'Bedarfsprüfung', desc: `Zeile ${sr + 1} und die ${getRegName(board.regions[sr][sc])} benötigen zwingend hier ihre Krone.` },
+                { title: 'Fehlausschluss', desc: 'Auf diesem Feld wurde versehentlich ein ✕ gesetzt.' },
+                { title: 'Befreiung', desc: 'Entferne das ✕, damit das Pflichtfeld wieder freigegeben wird.' }
+              ],
               reason: `Auf Zeile ${sr + 1}, Spalte ${sc + 1} wurde fälschlicherweise ein ✕ gesetzt. Doch Zeile ${sr + 1} und die ${getRegName(board.regions[sr][sc])} benötigen zwingend hier ihre Krone!`,
               action: `Entferne das ✕ bei Zeile ${sr + 1}, Spalte ${sc + 1}.`,
               highlight: { r: sr, c: sc },
@@ -10130,7 +10206,7 @@ init() {
           }
         }
 
-        // 1.4 Starved units (units with 0 candidate cells)
+        // Starved units
         for (const r of rowsWithoutQueen) {
           if (rowCandidates[r].length === 0) {
             const solCell = solution.find(s => (Array.isArray(s) ? s[0] === r : s.r === r));
@@ -10139,6 +10215,12 @@ init() {
               return {
                 key: `queens_starved_row_${r}`,
                 tag: 'Zeile blockiert',
+                focus: `Zeile ${r + 1}`,
+                steps: [
+                  { title: 'Inventur', desc: `Zähle alle ${size} Felder in Zeile ${r + 1}: Jedes einzelne Feld ist mit ✕ markiert oder blockiert!` },
+                  { title: 'Regelwiderspruch', desc: 'Die Zeile benötigt genau 1 Krone, hat aber 0 freie Felder mehr.' },
+                  { title: 'Korrektur', desc: `Mindestens ein gesetztes ✕ war ein Fehlgriff. Das Feld bei Spalte ${sc + 1} muss wieder freigegeben werden.` }
+                ],
                 reason: `In Zeile ${r + 1} gibt es kein einziges freies Feld mehr für eine Krone! Ein ✕ wurde fälschlicherweise auf einem Lösungsfeld gesetzt.`,
                 action: `Entferne das ✕ bei Zeile ${r + 1}, Spalte ${sc + 1}.`,
                 highlight: { r, c: sc },
@@ -10156,6 +10238,12 @@ init() {
               return {
                 key: `queens_starved_col_${c}`,
                 tag: 'Spalte blockiert',
+                focus: `Spalte ${c + 1}`,
+                steps: [
+                  { title: 'Inventur', desc: `In Spalte ${c + 1} sind alle Felder gesperrt.` },
+                  { title: 'Regelwiderspruch', desc: 'Die Spalte benötigt genau 1 Krone, hat aber 0 freie Plätze.' },
+                  { title: 'Korrektur', desc: `Entferne das blockierende ✕ auf Zeile ${sr + 1}.` }
+                ],
                 reason: `In Spalte ${c + 1} gibt es kein einziges freies Feld mehr für eine Krone! Ein ✕ blockiert das Lösungsfeld.`,
                 action: `Entferne das ✕ bei Zeile ${sr + 1}, Spalte ${c + 1}.`,
                 highlight: { r: sr, c },
@@ -10165,29 +10253,7 @@ init() {
           }
         }
 
-        for (const reg of regsWithoutQueen) {
-          if (regCandidates[reg].length === 0) {
-            const solCell = solution.find(s => {
-              const sr = Array.isArray(s) ? s[0] : s.r;
-              const sc = Array.isArray(s) ? s[1] : s.c;
-              return board.regions[sr][sc] === reg;
-            });
-            const sr = Array.isArray(solCell) ? solCell[0] : solCell?.r;
-            const sc = Array.isArray(solCell) ? solCell[1] : solCell?.c;
-            if (sr !== undefined && sc !== undefined) {
-              return {
-                key: `queens_starved_reg_${reg}`,
-                tag: 'Farbzone blockiert',
-                reason: `In der ${getRegName(reg)} gibt es kein freies Feld mehr für die vorgeschriebene Krone!`,
-                action: `Entferne das blockierende ✕ bei Zeile ${sr + 1}, Spalte ${sc + 1}.`,
-                highlight: { r: sr, c: sc },
-                checkFulfilled: () => this.queensUserGrid[sr][sc] !== 'X'
-              };
-            }
-          }
-        }
-
-        // --- STEP 2: SINGLE CANDIDATE IN ROW (USER REQUEST SPECIFIC DEDUCTION) ---
+        // --- STEP 2: SINGLE CANDIDATE IN ROW ---
         for (const r of rowsWithoutQueen) {
           if (rowCandidates[r].length === 1) {
             const { c } = rowCandidates[r][0];
@@ -10195,13 +10261,16 @@ init() {
             for (let ci = 0; ci < size; ci++) {
               if (this.queensUserGrid[r][ci] === 'X') xCols.push(ci + 1);
             }
-            const detail = xCols.length === size - 1
-              ? `haben alle anderen ${size - 1} Felder ein ✕ (Spalten ${xCols.join(', ')})`
-              : `sind alle anderen Positionen durch ✕ oder angrenzende Kronen blockiert`;
             return {
               key: `queens_single_row_${r}_${c}`,
               tag: 'Eindeutige Zeilen-Deduktion',
-              reason: `In Zeile ${r + 1} ${detail} außer Spalte ${c + 1}. Da jede Zeile genau eine Krone enthalten muss, MUSS die Krone zwingend auf Spalte ${c + 1} stehen!`,
+              focus: `Zeile ${r + 1} (Spalten 1–${size})`,
+              steps: [
+                { title: '1. Ausgangslage & Regel', desc: `Jede Zeile auf dem Brett muss am Ende genau eine Krone enthalten.` },
+                { title: '2. Feld-für-Feld Ausschluss', desc: `Scanne Zeile ${r + 1}: ${xCols.length > 0 ? `Spalten [${xCols.join(', ')}] sind mit ✕ abgestrichen` : 'Alle anderen Positionen sind blockiert'}.` },
+                { title: '3. Zwingende Schlussfolgerung', desc: `Es verbleibt in der gesamten Zeile nur noch ein einziges unblockiertes Feld (Spalte ${c + 1}). Da jede Zeile eine Krone braucht, MUSS sie ohne jedes Raten hierhin!` }
+              ],
+              reason: `In Zeile ${r + 1} scheiden alle anderen Felder aus. Da jede Zeile genau eine Krone enthalten muss, MUSS die Krone zwingend auf Spalte ${c + 1} stehen!`,
               action: `Setze die Krone 👑 auf Zeile ${r + 1}, Spalte ${c + 1}.`,
               highlight: { r, c },
               checkFulfilled: () => this.queensUserGrid[r][c] === 'Q'
@@ -10217,13 +10286,16 @@ init() {
             for (let ri = 0; ri < size; ri++) {
               if (this.queensUserGrid[ri][c] === 'X') xRows.push(ri + 1);
             }
-            const detail = xRows.length === size - 1
-              ? `haben alle anderen ${size - 1} Felder ein ✕ (Zeilen ${xRows.join(', ')})`
-              : `sind alle anderen Positionen blockiert`;
             return {
               key: `queens_single_col_${r}_${c}`,
               tag: 'Eindeutige Spalten-Deduktion',
-              reason: `In Spalte ${c + 1} ${detail} außer Zeile ${r + 1}. Da jede Spalte genau eine Krone enthalten muss, gehört die Krone zwingend auf Zeile ${r + 1}!`,
+              focus: `Spalte ${c + 1} (Zeilen 1–${size})`,
+              steps: [
+                { title: '1. Ausgangslage & Regel', desc: `Jede vertikale Spalte verlangt ausnahmslos genau eine Krone.` },
+                { title: '2. Vertikaler Scan', desc: `Prüfe Spalte ${c + 1} von oben nach unten: ${xRows.length > 0 ? `Zeilen [${xRows.join(', ')}] tragen alle ein ✕` : 'Alle anderen Felder sind gesperrt'}.` },
+                { title: '3. Zwingende Deduktion', desc: `Zeile ${r + 1} ist das letzte unblockierte Feld in Spalte ${c + 1}. Die Krone gehört unausweichlich hierhin.` }
+              ],
+              reason: `In Spalte ${c + 1} sind alle anderen Zeilen blockiert. Die Krone gehört zwingend auf Zeile ${r + 1}!`,
               action: `Setze die Krone 👑 auf Zeile ${r + 1}, Spalte ${c + 1}.`,
               highlight: { r, c },
               checkFulfilled: () => this.queensUserGrid[r][c] === 'Q'
@@ -10238,7 +10310,13 @@ init() {
             return {
               key: `queens_single_reg_${reg}_${r}_${c}`,
               tag: 'Eindeutige Zonen-Deduktion',
-              reason: `In der ${getRegName(reg)} sind alle Felder bis auf Zeile ${r + 1}, Spalte ${c + 1} mit ✕ ausgeschlossen oder gesperrt. Da jede Farbzone genau eine Krone benötigt, muss sie hierhin!`,
+              focus: `${getRegName(reg)}`,
+              steps: [
+                { title: '1. Zonenregel', desc: `Jede farbige Zone auf dem Spielfeld muss genau eine Krone beherbergen.` },
+                { title: '2. Zonen-Inventur', desc: `Untersuche alle Felder der ${getRegName(reg)}: Alle bis auf Feld (Zeile ${r + 1}, Spalte ${c + 1}) sind mit ✕ blockiert oder grenzen an Kronen an.` },
+                { title: '3. Logischer Zwang', desc: `Da die Farbzone ihre Krone irgendwo unterbringen muss und nur noch dieser Platz frei ist, MUSS die Krone hier platziert werden.` }
+              ],
+              reason: `In der ${getRegName(reg)} sind alle Felder bis auf Zeile ${r + 1}, Spalte ${c + 1} ausgeschlossen. Da jede Farbzone genau eine Krone benötigt, muss sie hierhin!`,
               action: `Platziere die Krone 👑 auf Zeile ${r + 1}, Spalte ${c + 1}.`,
               highlight: { r, c },
               checkFulfilled: () => this.queensUserGrid[r][c] === 'Q'
@@ -10258,6 +10336,12 @@ init() {
                   return {
                     key: `queens_touch_${nr}_${nc}`,
                     tag: 'Abstandsregel',
+                    focus: `Krone bei (${q.r + 1}, ${q.c + 1}) & Nachbar (${nr + 1}, ${nc + 1})`,
+                    steps: [
+                      { title: '1. Berührungsverbot', desc: 'Kronen strahlen eine 1-Feld-Schutzzone in alle 8 Richtungen aus (oben, unten, links, rechts und alle 4 Diagonalen).' },
+                      { title: '2. Nachbarschaftsprüfung', desc: `Feld (Zeile ${nr + 1}, Spalte ${nc + 1}) berührt die gesetzte Krone auf (Zeile ${q.r + 1}, Spalte ${q.c + 1}) direkt.` },
+                      { title: '3. Sicheres ✕', desc: 'Hier kann niemals eine Krone stehen. Markiere das Feld mit ✕, um die Auswahl für die Zeile/Spalte einzuschränken.' }
+                    ],
                     reason: `Kronen dürfen sich niemals berühren (auch nicht diagonal!). Da bei Zeile ${q.r + 1}, Spalte ${q.c + 1} eine Krone steht, scheidet das Nachbarfeld bei Zeile ${nr + 1}, Spalte ${nc + 1} sicher aus.`,
                     action: `Markiere Zeile ${nr + 1}, Spalte ${nc + 1} mit einem ✕.`,
                     highlight: { r: nr, c: nc },
@@ -10273,6 +10357,12 @@ init() {
               return {
                 key: `queens_row_elim_${q.r}_${c}`,
                 tag: 'Zeilenausschluss',
+                focus: `Zeile ${q.r + 1}`,
+                steps: [
+                  { title: '1. Kronen-Limit', desc: 'In jeder Zeile ist genau EINE Krone erlaubt.' },
+                  { title: '2. Bereits belegt', desc: `In Zeile ${q.r + 1} steht die Krone bereits auf Spalte ${q.c + 1}.` },
+                  { title: '3. Zeilenbereinigung', desc: 'Alle restlichen offenen Felder dieser Zeile scheiden garantiert aus und müssen abgestrichen werden.' }
+                ],
                 reason: `In Zeile ${q.r + 1} steht bei Spalte ${q.c + 1} bereits die Krone. Kein weiteres Feld dieser Zeile darf eine Krone enthalten!`,
                 action: `Setze auf Zeile ${q.r + 1}, Spalte ${c + 1} ein ✕.`,
                 highlight: { r: q.r, c },
@@ -10286,6 +10376,12 @@ init() {
               return {
                 key: `queens_col_elim_${r}_${q.c}`,
                 tag: 'Spaltenausschluss',
+                focus: `Spalte ${q.c + 1}`,
+                steps: [
+                  { title: '1. Spalten-Limit', desc: 'In jeder Spalte ist exakt EINE Krone erlaubt.' },
+                  { title: '2. Bereits belegt', desc: `In Spalte ${q.c + 1} steht die Krone bereits auf Zeile ${q.r + 1}.` },
+                  { title: '3. Bereinigung', desc: 'Alle restlichen offenen Felder dieser Spalte scheiden sicher aus.' }
+                ],
                 reason: `In Spalte ${q.c + 1} steht bei Zeile ${q.r + 1} bereits die Krone. Alle übrigen Felder in dieser Spalte scheiden aus.`,
                 action: `Setze auf Zeile ${r + 1}, Spalte ${q.c + 1} ein ✕.`,
                 highlight: { r, c: q.c },
@@ -10300,6 +10396,12 @@ init() {
                 return {
                   key: `queens_reg_elim_${r}_${c}`,
                   tag: 'Zonenausschluss',
+                  focus: `${getRegName(q.reg)}`,
+                  steps: [
+                    { title: '1. Farbzonen-Limit', desc: 'In jeder Farbzone darf nur genau EINE Krone stehen.' },
+                    { title: '2. Zonenkrone gesetzt', desc: `Die Krone für die ${getRegName(q.reg)} steht bereits fest.` },
+                    { title: '3. Ausschluss', desc: 'Alle weiteren freien Felder dieser Farbzone scheiden aus.' }
+                  ],
                   reason: `In der ${getRegName(q.reg)} steht bereits eine Krone. Daher scheiden alle restlichen Felder dieser Farbzone aus.`,
                   action: `Setze auf Zeile ${r + 1}, Spalte ${c + 1} ein ✕.`,
                   highlight: { r, c },
@@ -10311,7 +10413,7 @@ init() {
         }
 
         // --- STEP 6: LINE-REGION CONFINEMENT & POINTING ---
-        // 6.1 Region confined to a single Row -> Eliminate other cells in that Row
+        // 6.1 Region confined to a single Row
         for (const reg of regsWithoutQueen) {
           const cands = regCandidates[reg];
           if (cands.length > 1) {
@@ -10322,6 +10424,13 @@ init() {
                   return {
                     key: `queens_pointing_reg_row_${firstR}_${c}`,
                     tag: 'Logische Ausrichtung',
+                    focus: `${getRegName(reg)} & Zeile ${firstR + 1}`,
+                    steps: [
+                      { title: '1. Zonen-Kandidaten lokalisieren', desc: `Betrachte die ${getRegName(reg)}: Alle ihre verbleibenden freien Felder (${cands.map(p => `Spalte ${p.c + 1}`).join(', ')}) liegen ausnahmslos in Zeile ${firstR + 1}.` },
+                      { title: '2. Zeilen-Bindung verstehen', desc: `Die Pflichtkrone der ${getRegName(reg)} MUSS also zwingend irgendwo auf Zeile ${firstR + 1} platziert werden.` },
+                      { title: '3. Ausschluss für die restliche Zeile', desc: `Da Zeile ${firstR + 1} insgesamt nur genau EINE Krone haben darf, ist ihr Kronenplatz bereits an die ${getRegName(reg)} vergeben. Kein Feld der Zeile außerhalb der Zone darf eine Krone sein!` },
+                      { title: '4. Konsequenz', desc: `Feld (Zeile ${firstR + 1}, Spalte ${c + 1}) liegt in dieser Zeile, gehört aber nicht zur Zone -> sicheres ✕!` }
+                    ],
                     reason: `Alle verbleibenden Möglichkeiten für die ${getRegName(reg)} liegen ausnahmslos in Zeile ${firstR + 1}. Die Krone von Zeile ${firstR + 1} MUSS also in dieser Farbzone stehen. Daher kann kein anderes Feld in Zeile ${firstR + 1} außerhalb der Zone eine Krone sein!`,
                     action: `Setze auf Zeile ${firstR + 1}, Spalte ${c + 1} ein ✕.`,
                     highlight: { r: firstR, c },
@@ -10333,7 +10442,7 @@ init() {
           }
         }
 
-        // 6.2 Region confined to a single Column -> Eliminate other cells in that Column
+        // 6.2 Region confined to a single Column
         for (const reg of regsWithoutQueen) {
           const cands = regCandidates[reg];
           if (cands.length > 1) {
@@ -10344,6 +10453,13 @@ init() {
                   return {
                     key: `queens_pointing_reg_col_${r}_${firstC}`,
                     tag: 'Logische Ausrichtung',
+                    focus: `${getRegName(reg)} & Spalte ${firstC + 1}`,
+                    steps: [
+                      { title: '1. Zonen-Kandidaten lokalisieren', desc: `Betrachte die ${getRegName(reg)}: Alle verbleibenden freien Felder (${cands.map(p => `Zeile ${p.r + 1}`).join(', ')}) liegen ausnahmslos in Spalte ${firstC + 1}.` },
+                      { title: '2. Spalten-Bindung verstehen', desc: `Die Pflichtkrone der ${getRegName(reg)} MUSS also zwingend irgendwo in Spalte ${firstC + 1} stehen.` },
+                      { title: '3. Ausschluss für die restliche Spalte', desc: `Da Spalte ${firstC + 1} nur EINE Krone haben darf und diese für die ${getRegName(reg)} reserviert ist, scheiden alle anderen Felder dieser Spalte außerhalb der Zone aus!` },
+                      { title: '4. Konsequenz', desc: `Feld (Zeile ${r + 1}, Spalte ${firstC + 1}) liegt in Spalte ${firstC + 1}, gehört aber zu einer anderen Farbe -> sicheres ✕!` }
+                    ],
                     reason: `Alle verbleibenden Möglichkeiten für die ${getRegName(reg)} liegen in Spalte ${firstC + 1}. Die Spalten-Krone von Spalte ${firstC + 1} muss also zwingend in dieser Zone liegen. Felder außerhalb der Zone scheiden daher aus!`,
                     action: `Setze auf Zeile ${r + 1}, Spalte ${firstC + 1} ein ✕.`,
                     highlight: { r, c: firstC },
@@ -10355,7 +10471,7 @@ init() {
           }
         }
 
-        // 6.3 Row confined to a single Region -> Eliminate other cells in that Region
+        // 6.3 Row confined to a single Region
         for (const r of rowsWithoutQueen) {
           const cands = rowCandidates[r];
           if (cands.length > 1) {
@@ -10367,6 +10483,13 @@ init() {
                     return {
                       key: `queens_confinement_row_reg_${or}_${oc}`,
                       tag: 'Zonengebundenheit',
+                      focus: `Zeile ${r + 1} & ${getRegName(firstReg)}`,
+                      steps: [
+                        { title: '1. Zeilen-Analyse', desc: `In Zeile ${r + 1} liegen alle noch offenen Felder komplett innerhalb der ${getRegName(firstReg)}.` },
+                        { title: '2. Zonen-Reservierung', desc: `Zeile ${r + 1} MUSS ihre Krone zwingend in dieser Farbzone ablegen.` },
+                        { title: '3. Zonen-Ausschluss', desc: `Die ${getRegName(firstReg)} darf nur genau EINE Krone besitzen. Da diese garantiert in Zeile ${r + 1} landet, scheiden alle anderen Felder dieser Farbzone in anderen Zeilen aus!` },
+                        { title: '4. Konsequenz', desc: `Feld (Zeile ${or + 1}, Spalte ${oc + 1}) liegt in einer anderen Zeile -> sicheres ✕!` }
+                      ],
                       reason: `In Zeile ${r + 1} liegen alle verbleibenden freien Felder komplett innerhalb der ${getRegName(firstReg)}. Die Krone dieser Farbzone wird also garantiert in Zeile ${r + 1} vergeben. Alle anderen Felder dieser Farbzone in anderen Zeilen scheiden somit aus!`,
                       action: `Setze auf Zeile ${or + 1}, Spalte ${oc + 1} ein ✕.`,
                       highlight: { r: or, c: oc },
@@ -10379,7 +10502,7 @@ init() {
           }
         }
 
-        // 6.4 Column confined to a single Region -> Eliminate other cells in that Region
+        // 6.4 Column confined to a single Region
         for (const c of colsWithoutQueen) {
           const cands = colCandidates[c];
           if (cands.length > 1) {
@@ -10391,6 +10514,12 @@ init() {
                     return {
                       key: `queens_confinement_col_reg_${or}_${oc}`,
                       tag: 'Zonengebundenheit',
+                      focus: `Spalte ${c + 1} & ${getRegName(firstReg)}`,
+                      steps: [
+                        { title: '1. Spalten-Analyse', desc: `In Spalte ${c + 1} liegen alle noch offenen Felder komplett innerhalb der ${getRegName(firstReg)}.` },
+                        { title: '2. Reservierung', desc: `Die Pflichtkrone dieser Farbzone MUSS in Spalte ${c + 1} stehen.` },
+                        { title: '3. Zonen-Ausschluss', desc: `Alle übrigen Felder dieser Farbzone in anderen Spalten können ausgeschlossen werden.` }
+                      ],
                       reason: `In Spalte ${c + 1} liegen alle möglichen Positionen innerhalb der ${getRegName(firstReg)}. Die Krone dieser Farbzone muss also in Spalte ${c + 1} stehen. Alle übrigen Felder dieser Farbzone in anderen Spalten können ausgeschlossen werden.`,
                       action: `Setze auf Zeile ${or + 1}, Spalte ${oc + 1} ein ✕.`,
                       highlight: { r: or, c: oc },
@@ -10415,6 +10544,13 @@ init() {
                     return {
                       key: `queens_overlap_${r}_${c}`,
                       tag: 'Gemeinsamer Nachbar',
+                      focus: `${getRegName(reg)} vs. Nachbar (${r + 1}, ${c + 1})`,
+                      steps: [
+                        { title: '1. Zonen-Optionen', desc: `In der ${getRegName(reg)} kann die Krone nur noch auf einem von ${cands.length} Feldern (${cands.map(p => `(${p.r + 1}, ${p.c + 1})`).join(', ')}) stehen.` },
+                        { title: '2. Geometrischer Schnittpunkt', desc: `Schau dir Feld (Zeile ${r + 1}, Spalte ${c + 1}) an: Es berührt diagonal oder orthogonal JEDES EINZELNE dieser ${cands.length} Kandidatenfelder!` },
+                        { title: '3. Unweigerlicher Konflikt', desc: `Egal welche Option die Farbzone am Ende wählt: Eine Krone auf Feld (${r + 1}, ${c + 1}) würde sie in jedem Fall unzulässig berühren.` },
+                        { title: '4. Sicheres ✕', desc: `Feld (${r + 1}, ${c + 1}) scheidet daher 100% sicher aus!` }
+                      ],
                       reason: `In der ${getRegName(reg)} kann die Krone nur noch auf einem von ${cands.length} Feldern stehen. Das Feld bei Zeile ${r + 1}, Spalte ${c + 1} berührt jedoch ALLE diese ${cands.length} Möglichkeiten! Egal wo die Krone in der Zone landet: dieses Nachbarfeld scheidet in jedem Fall aus.`,
                       action: `Setze auf Zeile ${r + 1}, Spalte ${c + 1} ein ✕.`,
                       highlight: { r, c },
@@ -10433,16 +10569,31 @@ init() {
             if (this.queensUserGrid[r][c] === null && isCellAvailable(r, c)) {
               for (const testR of rowsWithoutQueen) {
                 if (testR === r) continue;
-                const remaining = rowCandidates[testR].filter(pt =>
+                const cands = rowCandidates[testR];
+                const remaining = cands.filter(pt =>
                   pt.c !== c &&
                   board.regions[pt.r][pt.c] !== board.regions[r][c] &&
                   !(Math.abs(pt.r - r) <= 1 && Math.abs(pt.c - c) <= 1)
                 );
                 if (remaining.length === 0) {
+                  const reasons = cands.map(pt => {
+                    const parts = [];
+                    if (pt.c === c) parts.push(`gleiche Spalte ${c + 1}`);
+                    if (board.regions[pt.r][pt.c] === board.regions[r][c]) parts.push(`gleiche ${getRegName(board.regions[r][c])}`);
+                    if (Math.abs(pt.r - r) <= 1 && Math.abs(pt.c - c) <= 1) parts.push('diagonale/direkte Berührung');
+                    return `(${pt.r + 1}, ${pt.c + 1}) durch ${parts.join(' & ')}`;
+                  });
                   return {
                     key: `queens_contra_row_${r}_${c}`,
                     tag: 'Widerspruchsbeweis',
-                    reason: `Ausschluss durch Widerspruch: Würde man auf Zeile ${r + 1}, Spalte ${c + 1} eine Krone setzen, hätte Zeile ${testR + 1} kein einziges freies Feld mehr für ihre Krone! Daher scheidet dieses Feld aus.`,
+                    focus: `Hypothese: Feld (Zeile ${r + 1}, Spalte ${c + 1})`,
+                    steps: [
+                      { title: '1. Gedankenspiel (Hypothese)', desc: `Nimm für einen Moment an: „Was passiert, wenn auf Feld (Zeile ${r + 1}, Spalte ${c + 1}) eine Krone stünde?“` },
+                      { title: `2. Auswirkung auf Zeile ${testR + 1}`, desc: `Zeile ${testR + 1} hat aktuell nur noch ${cands.length} offene Kandidaten: ${cands.map(p => `(${p.r + 1}, ${p.c + 1})`).join(', ')}.` },
+                      { title: '3. Der totale Ausschluss', desc: `Die hypothetische Krone auf (${r + 1}, ${c + 1}) würde ALLE diese ${cands.length} Felder gleichzeitig sperren: ${reasons.join('; ')}!` },
+                      { title: '4. Widerlegung & Lösung', desc: `Zeile ${testR + 1} hätte 0 Kronenplätze übrig. Da jede Zeile genau 1 Krone braucht, ist die Annahme unmöglich ➔ Feld (${r + 1}, ${c + 1}) MUSS ein ✕ sein!` }
+                    ],
+                    reason: `Ausschluss durch Widerspruch: Eine hypothetische Krone auf Zeile ${r + 1}, Spalte ${c + 1} würde Zeile ${testR + 1} komplett sperren, da sie alle ${cands.length} dortigen Kandidaten vernichtet (${reasons.join(', ')}). Daher MUSS hier ein ✕ stehen!`,
                     action: `Setze bei Zeile ${r + 1}, Spalte ${c + 1} ein ✕.`,
                     highlight: { r, c },
                     checkFulfilled: () => this.queensUserGrid[r][c] === 'X'
@@ -10452,16 +10603,31 @@ init() {
 
               for (const testC of colsWithoutQueen) {
                 if (testC === c) continue;
-                const remaining = colCandidates[testC].filter(pt =>
+                const cands = colCandidates[testC];
+                const remaining = cands.filter(pt =>
                   pt.r !== r &&
                   board.regions[pt.r][pt.c] !== board.regions[r][c] &&
                   !(Math.abs(pt.r - r) <= 1 && Math.abs(pt.c - c) <= 1)
                 );
                 if (remaining.length === 0) {
+                  const reasons = cands.map(pt => {
+                    const parts = [];
+                    if (pt.r === r) parts.push(`gleiche Zeile ${r + 1}`);
+                    if (board.regions[pt.r][pt.c] === board.regions[r][c]) parts.push(`gleiche ${getRegName(board.regions[r][c])}`);
+                    if (Math.abs(pt.r - r) <= 1 && Math.abs(pt.c - c) <= 1) parts.push('diagonale/direkte Berührung');
+                    return `(${pt.r + 1}, ${pt.c + 1}) durch ${parts.join(' & ')}`;
+                  });
                   return {
                     key: `queens_contra_col_${r}_${c}`,
                     tag: 'Widerspruchsbeweis',
-                    reason: `Ausschluss durch Widerspruch: Eine hypothetische Krone auf Zeile ${r + 1}, Spalte ${c + 1} würde Spalte ${testC + 1} komplett sperren, sodass dort keine Krone mehr Platz fände.`,
+                    focus: `Hypothese: Feld (Zeile ${r + 1}, Spalte ${c + 1})`,
+                    steps: [
+                      { title: '1. Gedankenspiel (Hypothese)', desc: `Was wäre, wenn auf Feld (Zeile ${r + 1}, Spalte ${c + 1}) eine Krone stünde?` },
+                      { title: `2. Auswirkung auf Spalte ${testC + 1}`, desc: `Spalte ${testC + 1} hat aktuell nur noch ${cands.length} offene Felder: ${cands.map(p => `(${p.r + 1}, ${p.c + 1})`).join(', ')}.` },
+                      { title: '3. Der totale Ausschluss', desc: `Die Krone auf (${r + 1}, ${c + 1}) würde ALLE ${cands.length} Optionen vernichten: ${reasons.join('; ')}!` },
+                      { title: '4. Widerlegung & Lösung', desc: `Spalte ${testC + 1} hätte 0 legale Plätze für ihre Pflichtkrone übrig. Die Hypothese ist widerlegt ➔ sicheres ✕!` }
+                    ],
+                    reason: `Ausschluss durch Widerspruch: Eine hypothetische Krone auf Zeile ${r + 1}, Spalte ${c + 1} würde Spalte ${testC + 1} komplett sperren, da sie alle ${cands.length} dortigen Kandidaten vernichtet (${reasons.join(', ')}). Daher MUSS hier ein ✕ stehen!`,
                     action: `Setze bei Zeile ${r + 1}, Spalte ${c + 1} ein ✕.`,
                     highlight: { r, c },
                     checkFulfilled: () => this.queensUserGrid[r][c] === 'X'
@@ -10471,16 +10637,31 @@ init() {
 
               for (const testReg of regsWithoutQueen) {
                 if (testReg === board.regions[r][c]) continue;
-                const remaining = regCandidates[testReg].filter(pt =>
+                const cands = regCandidates[testReg];
+                const remaining = cands.filter(pt =>
                   pt.r !== r &&
                   pt.c !== c &&
                   !(Math.abs(pt.r - r) <= 1 && Math.abs(pt.c - c) <= 1)
                 );
                 if (remaining.length === 0) {
+                  const reasons = cands.map(pt => {
+                    const parts = [];
+                    if (pt.r === r) parts.push(`gleiche Zeile ${r + 1}`);
+                    if (pt.c === c) parts.push(`gleiche Spalte ${c + 1}`);
+                    if (Math.abs(pt.r - r) <= 1 && Math.abs(pt.c - c) <= 1) parts.push('diagonale/direkte Berührung');
+                    return `(${pt.r + 1}, ${pt.c + 1}) durch ${parts.join(' & ')}`;
+                  });
                   return {
                     key: `queens_contra_reg_${r}_${c}`,
                     tag: 'Widerspruchsbeweis',
-                    reason: `Ausschluss durch Widerspruch: Eine Krone auf Zeile ${r + 1}, Spalte ${c + 1} würde alle verbleibenden Felder der ${getRegName(testReg)} blockieren. Da jede Farbzone genau eine Krone braucht, scheidet dieses Feld sicher aus.`,
+                    focus: `Hypothese: Feld (Zeile ${r + 1}, Spalte ${c + 1})`,
+                    steps: [
+                      { title: '1. Gedankenspiel (Hypothese)', desc: `Teste die Annahme einer Krone auf Feld (Zeile ${r + 1}, Spalte ${c + 1}).` },
+                      { title: `2. Auswirkung auf die ${getRegName(testReg)}`, desc: `Diese Farbzone hat nur noch ${cands.length} offene Felder: ${cands.map(p => `(${p.r + 1}, ${p.c + 1})`).join(', ')}.` },
+                      { title: '3. Der totale Ausschluss', desc: `Die Krone auf (${r + 1}, ${c + 1}) würde ALLE ${cands.length} Optionen vernichten: ${reasons.join('; ')}!` },
+                      { title: '4. Widerlegung & Lösung', desc: `Die ${getRegName(testReg)} hätte 0 Kronenplätze übrig. Da jede Farbzone genau 1 Krone verlangt, scheidet dieses Feld sicher aus ➔ sicheres ✕!` }
+                    ],
+                    reason: `Ausschluss durch Widerspruch: Eine Krone auf Zeile ${r + 1}, Spalte ${c + 1} würde alle verbleibenden ${cands.length} Felder der ${getRegName(testReg)} blockieren (${reasons.join(', ')}). Da jede Farbzone genau eine Krone braucht, scheidet dieses Feld sicher aus!`,
                     action: `Setze bei Zeile ${r + 1}, Spalte ${c + 1} ein ✕.`,
                     highlight: { r, c },
                     checkFulfilled: () => this.queensUserGrid[r][c] === 'X'
@@ -10491,23 +10672,22 @@ init() {
           }
         }
 
-        // --- STEP 9: TACTICAL QUEEN PLACEMENT (EXPLICIT ELIMINATION REASONING) ---
+        // --- STEP 9: TACTICAL QUEEN PLACEMENT ---
         for (const s of solution) {
           const sr = Array.isArray(s) ? s[0] : s.r;
           const sc = Array.isArray(s) ? s[1] : s.c;
           if (this.queensUserGrid[sr][sc] !== 'Q') {
             const regId = board.regions[sr][sc];
-            const rowCands = rowCandidates[sr];
-            let reasonStr = '';
-            if (rowCands.length <= 2) {
-              reasonStr = `In Zeile ${sr + 1} scheiden die Alternativen wegen Konflikten mit Nachbarzonen oder Spalten aus. Zeile ${sr + 1}, Spalte ${sc + 1} ist das einzig konsistente Lösungsfeld!`;
-            } else {
-              reasonStr = `Zonengebundene Deduktion: Für die ${getRegName(regId)} ist Feld (Zeile ${sr + 1}, Spalte ${sc + 1}) die Schlüsselposition, die allen Zeilen-, Spalten- und Abstandsregeln widerspruchsfrei genügt.`;
-            }
             return {
               key: `queens_place_${sr}_${sc}`,
               tag: 'Taktische Platzierung',
-              reason: reasonStr,
+              focus: `Zeile ${sr + 1} & ${getRegName(regId)}`,
+              steps: [
+                { title: '1. Analyse der Alternativen', desc: `In Zeile ${sr + 1} und der ${getRegName(regId)} scheiden alle anderen Felder durch Berührungs- und Zeilenverbote aus.` },
+                { title: '2. Konfliktfreiheit', desc: `Feld (Zeile ${sr + 1}, Spalte ${sc + 1}) ist die einzige Position, die alle Zeilen-, Spalten- und Farbzonen-Bedingungen gleichzeitig widerspruchsfrei erfüllt.` },
+                { title: '3. Platzierung', desc: `Hier steht die Pflichtkrone!` }
+              ],
+              reason: `Zonengebundene Deduktion: Für die ${getRegName(regId)} ist Feld (Zeile ${sr + 1}, Spalte ${sc + 1}) die Schlüsselposition, die allen Zeilen-, Spalten- und Abstandsregeln widerspruchsfrei genügt.`,
               action: `Platziere hier bei Zeile ${sr + 1}, Spalte ${sc + 1} die Krone 👑.`,
               highlight: { r: sr, c: sc },
               checkFulfilled: () => this.queensUserGrid[sr][sc] === 'Q'
@@ -10518,6 +10698,10 @@ init() {
         return {
           key: 'queens_done',
           tag: 'Gelöst',
+          focus: 'Gesamtes Spielfeld',
+          steps: [
+            { title: 'Glückwunsch', desc: 'Alle Kronen wurden bereits korrekt positioniert!' }
+          ],
           reason: 'Alle Kronen wurden bereits korrekt positioniert!',
           action: 'Überprüfe dein Board auf Vollständigkeit.',
           highlight: null,
@@ -10531,7 +10715,162 @@ init() {
         const size = puzzle.size;
         const sol = puzzle.solution;
 
-        // 1. Check for wrong symbols (clash / dead-end)
+        // 1. Direct Rule Violations / Clashes
+        // 1.1 Horizontal 3-in-a-row clash
+        for (let r = 0; r < size; r++) {
+          for (let c = 0; c < size - 2; c++) {
+            const v1 = this.tangoUserGrid[r][c];
+            const v2 = this.tangoUserGrid[r][c + 1];
+            const v3 = this.tangoUserGrid[r][c + 2];
+            if (v1 && v1 === v2 && v2 === v3) {
+              const symName = v1 === 'S' ? 'Sonnen ☀️' : 'Monde 🌙';
+              return {
+                key: `tango_clash_h3_${r}_${c}`,
+                tag: 'Regelverstoß (Dreierreihe)',
+                focus: `Zeile ${r + 1} (Spalten ${c + 1} bis ${c + 3})`,
+                steps: [
+                  { title: 'Regelprüfung', desc: 'Drei gleiche Symbole dürfen niemals unmittelbar aufeinanderfolgen!' },
+                  { title: 'Konflikt', desc: `Hier stehen 3 ${symName} direkt hintereinander.` },
+                  { title: 'Korrektur', desc: 'Ändere das dritte Symbol, um die Kette zu unterbrechen.' }
+                ],
+                reason: `In Zeile ${r + 1} stehen 3 ${symName} direkt nebeneinander (Spalten ${c + 1}, ${c + 2} und ${c + 3}). Drei gleiche Symbole in Folge sind strikt verboten!`,
+                action: `Ändere oder lösche das dritte Symbol bei Spalte ${c + 3}.`,
+                highlight: { r, c: c + 2 },
+                checkFulfilled: () => this.tangoUserGrid[r][c + 2] !== v1
+              };
+            }
+          }
+        }
+
+        // 1.2 Vertical 3-in-a-row clash
+        for (let c = 0; c < size; c++) {
+          for (let r = 0; r < size - 2; r++) {
+            const v1 = this.tangoUserGrid[r][c];
+            const v2 = this.tangoUserGrid[r + 1][c];
+            const v3 = this.tangoUserGrid[r + 2][c];
+            if (v1 && v1 === v2 && v2 === v3) {
+              const symName = v1 === 'S' ? 'Sonnen ☀️' : 'Monde 🌙';
+              return {
+                key: `tango_clash_v3_${r}_${c}`,
+                tag: 'Regelverstoß (Dreierreihe)',
+                focus: `Spalte ${c + 1} (Zeilen ${r + 1} bis ${r + 3})`,
+                steps: [
+                  { title: 'Regelprüfung', desc: 'Drei gleiche Symbole in Folge sind vertikal strikt verboten.' },
+                  { title: 'Konflikt', desc: `In Spalte ${c + 1} stehen 3 ${symName} direkt untereinander.` },
+                  { title: 'Korrektur', desc: 'Passe das dritte Symbol an.' }
+                ],
+                reason: `In Spalte ${c + 1} stehen 3 ${symName} direkt untereinander (Zeilen ${r + 1}, ${r + 2} und ${r + 3}). Drei gleiche Symbole in Folge sind verboten!`,
+                action: `Ändere das Symbol bei Zeile ${r + 3}, Spalte ${c + 1}.`,
+                highlight: { r: r + 2, c },
+                checkFulfilled: () => this.tangoUserGrid[r + 2][c] !== v1
+              };
+            }
+          }
+        }
+
+        // 1.3 Row overfilled (> 3 of same symbol)
+        for (let r = 0; r < size; r++) {
+          let suns = 0, moons = 0;
+          for (let c = 0; c < size; c++) {
+            if (this.tangoUserGrid[r][c] === 'S') suns++;
+            if (this.tangoUserGrid[r][c] === 'M') moons++;
+          }
+          if (suns > 3 || moons > 3) {
+            const excess = suns > 3 ? 'Sonnen ☀️' : 'Monde 🌙';
+            const excessVal = suns > 3 ? 'S' : 'M';
+            let wrongC = -1;
+            for (let c = size - 1; c >= 0; c--) {
+              if (this.tangoUserGrid[r][c] === excessVal) { wrongC = c; break; }
+            }
+            return {
+              key: `tango_clash_row_overfill_${r}`,
+              tag: 'Regelverstoß (Reihenlimit)',
+              focus: `Zeile ${r + 1}`,
+              steps: [
+                { title: 'Balance-Regel', desc: 'Im 6×6-Tango hat jede Zeile exakt 3 Sonnen ☀️ und 3 Monde 🌙.' },
+                { title: 'Überfüllung', desc: `In Zeile ${r + 1} stehen bereits mehr als 3 ${excess}!` },
+                { title: 'Korrektur', desc: 'Entferne oder korrigiere das überzählige Symbol.' }
+              ],
+              reason: `In Zeile ${r + 1} stehen bereits mehr als 3 ${excess}. Jede Zeile darf genau 3 Sonnen und 3 Monde enthalten!`,
+              action: `Korrigiere das überzählige Symbol bei Spalte ${wrongC + 1}.`,
+              highlight: { r, c: wrongC },
+              checkFulfilled: () => this.tangoUserGrid[r][wrongC] !== excessVal
+            };
+          }
+        }
+
+        // 1.4 Column overfilled (> 3 of same symbol)
+        for (let c = 0; c < size; c++) {
+          let suns = 0, moons = 0;
+          let lastSunR = -1, lastMoonR = -1;
+          for (let r = 0; r < size; r++) {
+            if (this.tangoUserGrid[r][c] === 'S') { suns++; lastSunR = r; }
+            if (this.tangoUserGrid[r][c] === 'M') { moons++; lastMoonR = r; }
+          }
+          if (suns > 3 || moons > 3) {
+            const excess = suns > 3 ? 'Sonnen ☀️' : 'Monde 🌙';
+            const wrongR = suns > 3 ? lastSunR : lastMoonR;
+            const excessVal = suns > 3 ? 'S' : 'M';
+            return {
+              key: `tango_clash_col_overfill_${c}`,
+              tag: 'Regelverstoß (Spaltenlimit)',
+              focus: `Spalte ${c + 1}`,
+              steps: [
+                { title: 'Balance-Regel', desc: 'Jede Spalte darf genau 3 Sonnen ☀️ und 3 Monde 🌙 enthalten.' },
+                { title: 'Überfüllung', desc: `In Spalte ${c + 1} stehen bereits mehr als 3 ${excess}.` },
+                { title: 'Korrektur', desc: 'Korrigiere das überzählige Symbol.' }
+              ],
+              reason: `In Spalte ${c + 1} stehen bereits mehr als 3 ${excess}. Jede Spalte darf genau 3 Sonnen und 3 Monde enthalten!`,
+              action: `Korrigiere das Symbol bei Zeile ${wrongR + 1}, Spalte ${c + 1}.`,
+              highlight: { r: wrongR, c },
+              checkFulfilled: () => this.tangoUserGrid[wrongR][c] !== excessVal
+            };
+          }
+        }
+
+        // 1.5 Edge constraint violations
+        if (puzzle.hEdges) {
+          for (const e of puzzle.hEdges) {
+            const v1 = this.tangoUserGrid[e.r][e.c];
+            const v2 = this.tangoUserGrid[e.r][e.c + 1];
+            if (v1 && v2) {
+              if (e.op === '=' && v1 !== v2) {
+                return {
+                  key: `tango_edge_violation_eq_${e.r}_${e.c}`,
+                  tag: 'Regelverstoß (Gleichheit =)',
+                  focus: `Randbedingung (=) bei Zeile ${e.r + 1}, Spalte ${e.c + 1} & ${e.c + 2}`,
+                  steps: [
+                    { title: 'Symbol-Bedeutung', desc: 'Das Gleichheitszeichen (=) erzwingt exakt dieselben Symbole auf beiden Seiten.' },
+                    { title: 'Widerspruch', desc: 'Die beiden Felder tragen aktuell unterschiedliche Symbole.' },
+                    { title: 'Korrektur', desc: 'Passe die Felder an, damit beide übereinstimmen.' }
+                  ],
+                  reason: `Zwischen Spalte ${e.c + 1} und Spalte ${e.c + 2} in Zeile ${e.r + 1} steht ein Gleichheitszeichen (=), aber beide Felder tragen unterschiedliche Symbole!`,
+                  action: `Passe Spalte ${e.c + 2} so an, dass beide Felder übereinstimmen.`,
+                  highlight: { r: e.r, c: e.c + 1 },
+                  checkFulfilled: () => this.tangoUserGrid[e.r][e.c + 1] === v1
+                };
+              }
+              if (e.op === 'x' && v1 === v2) {
+                return {
+                  key: `tango_edge_violation_neq_${e.r}_${e.c}`,
+                  tag: 'Regelverstoß (Ungleichheit ×)',
+                  focus: `Randbedingung (×) bei Zeile ${e.r + 1}, Spalte ${e.c + 1} & ${e.c + 2}`,
+                  steps: [
+                    { title: 'Symbol-Bedeutung', desc: 'Das Unterschiedlich-Zeichen (×) verlangt strikt gegensätzliche Symbole.' },
+                    { title: 'Widerspruch', desc: 'Beide Felder tragen aktuell dasselbe Symbol.' },
+                    { title: 'Korrektur', desc: 'Ändere eines der Symbole zum Gegenteil.' }
+                  ],
+                  reason: `Zwischen Spalte ${e.c + 1} und Spalte ${e.c + 2} in Zeile ${e.r + 1} steht ein Unterschiedlich-Zeichen (×), aber beide Felder tragen dasselbe Symbol!`,
+                  action: `Ändere das Symbol bei Spalte ${e.c + 2} zum Gegenteil.`,
+                  highlight: { r: e.r, c: e.c + 1 },
+                  checkFulfilled: () => this.tangoUserGrid[e.r][e.c + 1] !== v1
+                };
+              }
+            }
+          }
+        }
+
+        // 1.6 Dead-end check against solution
         for (let r = 0; r < size; r++) {
           for (let c = 0; c < size; c++) {
             const cur = this.tangoUserGrid[r][c];
@@ -10539,8 +10878,13 @@ init() {
               const rightSym = sol[r][c] === 'S' ? 'Sonne ☀️' : 'Mond 🌙';
               return {
                 key: `tango_wrong_${r}_${c}`,
-                tag: 'Regelverstoß',
-                reason: `Das Symbol bei Zeile ${r + 1}, Spalte ${c + 1} ist nicht korrekt und führt zu einem direkten Widerspruch mit den Randbedingungen.`,
+                tag: 'Sackgasse erkannt',
+                focus: `Zeile ${r + 1}, Spalte ${c + 1}`,
+                steps: [
+                  { title: 'Sackgassen-Prüfung', desc: 'Dieses Symbol erzeugt im weiteren Spielverlauf einen unlösbaren Konflikt mit den Zeilenlimits oder Nachbar-Randbedingungen.' },
+                  { title: 'Korrektur', desc: `Das Symbol muss zum Gegenteil (${rightSym}) gewechselt werden.` }
+                ],
+                reason: `Das Symbol bei Zeile ${r + 1}, Spalte ${c + 1} führt zu einer Sackgasse, da die Zeile oder benachbarte Einschränkungen sonst nicht mehr regelkonform aufgehen.`,
                 action: `Korrigiere das Feld zu ${rightSym}.`,
                 highlight: { r, c },
                 checkFulfilled: () => this.tangoUserGrid[r][c] === sol[r][c]
@@ -10549,7 +10893,97 @@ init() {
           }
         }
 
-        // 2. Prevent 3-in-a-row horizontally (adjacent identical)
+        // 2. LINE BALANCE DEDUCTION
+        for (let r = 0; r < size; r++) {
+          const sunCols = [], moonCols = [], emptyCols = [];
+          for (let c = 0; c < size; c++) {
+            if (this.tangoUserGrid[r][c] === 'S') sunCols.push(c + 1);
+            else if (this.tangoUserGrid[r][c] === 'M') moonCols.push(c + 1);
+            else emptyCols.push(c);
+          }
+          if (sunCols.length === 3 && emptyCols.length > 0) {
+            const targetC = emptyCols[0];
+            return {
+              key: `tango_rowbal_suns_${r}_${targetC}`,
+              tag: 'Eindeutige Reihen-Deduktion',
+              focus: `Zeile ${r + 1} (Spalten 1–${size})`,
+              steps: [
+                { title: '1. Balance-Regel', desc: 'Jede Zeile im 6×6-Grid muss exakt 3 Sonnen ☀️ und 3 Monde 🌙 enthalten.' },
+                { title: '2. Bestandsaufnahme', desc: `Zähle die Sonnen in Zeile ${r + 1}: Es stehen bereits 3 Sonnen (in Spalten ${sunCols.join(', ')}).` },
+                { title: '3. Kontingent voll', desc: 'Das Sonnen-Kontingent ist zu 100% erschöpft (3 von 3). Jede weitere Sonne wäre verboten!' },
+                { title: '4. Zwingende Füllung', desc: `Alle restlichen offenen Felder (wie Spalte ${targetC + 1}) MÜSSEN daher Monde 🌙 sein!` }
+              ],
+              reason: `In Zeile ${r + 1} stehen bereits alle 3 erlaubten Sonnen ☀️ (in Spalten ${sunCols.join(', ')}). Da jede Zeile genau 3 Sonnen und 3 Monde enthalten muss, MÜSSEN alle restlichen freien Felder Monde 🌙 sein!`,
+              action: `Setze auf Zeile ${r + 1}, Spalte ${targetC + 1} einen Mond 🌙.`,
+              highlight: { r, c: targetC },
+              checkFulfilled: () => this.tangoUserGrid[r][targetC] === 'M'
+            };
+          }
+          if (moonCols.length === 3 && emptyCols.length > 0) {
+            const targetC = emptyCols[0];
+            return {
+              key: `tango_rowbal_moons_${r}_${targetC}`,
+              tag: 'Eindeutige Reihen-Deduktion',
+              focus: `Zeile ${r + 1} (Spalten 1–${size})`,
+              steps: [
+                { title: '1. Balance-Regel', desc: 'Jede Zeile verlangt exakt 3 Sonnen ☀️ und 3 Monde 🌙.' },
+                { title: '2. Inventur', desc: `In Zeile ${r + 1} stehen bereits alle 3 Monde (in Spalten ${moonCols.join(', ')}).` },
+                { title: '3. Kontingent voll', desc: 'Es darf kein vierter Mond in diese Zeile gesetzt werden.' },
+                { title: '4. Zwingende Füllung', desc: `Folglich MÜSSEN alle noch leeren Felder (wie Spalte ${targetC + 1}) Sonnen ☀️ sein!` }
+              ],
+              reason: `In Zeile ${r + 1} stehen bereits alle 3 erlaubten Monde 🌙 (in Spalten ${moonCols.join(', ')}). Da jede Zeile genau 3 Sonnen und 3 Monde enthalten muss, MÜSSEN alle restlichen freien Felder Sonnen ☀️ sein!`,
+              action: `Setze auf Zeile ${r + 1}, Spalte ${targetC + 1} eine Sonne ☀️.`,
+              highlight: { r, c: targetC },
+              checkFulfilled: () => this.tangoUserGrid[r][targetC] === 'S'
+            };
+          }
+        }
+
+        for (let c = 0; c < size; c++) {
+          const sunRows = [], moonRows = [], emptyRows = [];
+          for (let r = 0; r < size; r++) {
+            if (this.tangoUserGrid[r][c] === 'S') sunRows.push(r + 1);
+            else if (this.tangoUserGrid[r][c] === 'M') moonRows.push(r + 1);
+            else emptyRows.push(r);
+          }
+          if (sunRows.length === 3 && emptyRows.length > 0) {
+            const targetR = emptyRows[0];
+            return {
+              key: `tango_colbal_suns_${targetR}_${c}`,
+              tag: 'Eindeutige Spalten-Deduktion',
+              focus: `Spalte ${c + 1} (Zeilen 1–${size})`,
+              steps: [
+                { title: '1. Balance-Regel', desc: 'Jede Spalte verlangt genau 3 Sonnen ☀️ und 3 Monde 🌙.' },
+                { title: '2. Inventur', desc: `In Spalte ${c + 1} stehen bereits alle 3 erlaubten Sonnen (in Zeilen ${sunRows.join(', ')}).` },
+                { title: '3. Zwingende Füllung', desc: `Alle noch leeren Felder (wie Zeile ${targetR + 1}) müssen daher Monde 🌙 sein!` }
+              ],
+              reason: `In Spalte ${c + 1} stehen bereits alle 3 erlaubten Sonnen ☀️ (in Zeilen ${sunRows.join(', ')}). Da jede Spalte genau 3 Sonnen und 3 Monde enthalten muss, MÜSSEN alle restlichen Felder Monde 🌙 sein!`,
+              action: `Setze auf Zeile ${targetR + 1}, Spalte ${c + 1} einen Mond 🌙.`,
+              highlight: { r: targetR, c },
+              checkFulfilled: () => this.tangoUserGrid[targetR][c] === 'M'
+            };
+          }
+          if (moonRows.length === 3 && emptyRows.length > 0) {
+            const targetR = emptyRows[0];
+            return {
+              key: `tango_colbal_moons_${targetR}_${c}`,
+              tag: 'Eindeutige Spalten-Deduktion',
+              focus: `Spalte ${c + 1} (Zeilen 1–${size})`,
+              steps: [
+                { title: '1. Balance-Regel', desc: 'In jeder Spalte stehen exakt 3 Sonnen und 3 Monde.' },
+                { title: '2. Inventur', desc: `Spalte ${c + 1} besitzt bereits alle 3 Monde (in Zeilen ${moonRows.join(', ')}).` },
+                { title: '3. Zwingende Füllung', desc: `Alle verbleibenden Felder (wie Zeile ${targetR + 1}) MÜSSEN Sonnen ☀️ sein!` }
+              ],
+              reason: `In Spalte ${c + 1} stehen bereits alle 3 erlaubten Monde 🌙 (in Zeilen ${moonRows.join(', ')}). Da jede Spalte genau 3 Sonnen und 3 Monde enthalten muss, MÜSSEN alle restlichen Felder Sonnen ☀️ sein!`,
+              action: `Setze auf Zeile ${targetR + 1}, Spalte ${c + 1} eine Sonne ☀️.`,
+              highlight: { r: targetR, c },
+              checkFulfilled: () => this.tangoUserGrid[targetR][c] === 'S'
+            };
+          }
+        }
+
+        // 3. THREE-IN-A-ROW AVOIDANCE
+        // 3.1 Adjacent Pair horizontally
         for (let r = 0; r < size; r++) {
           for (let c = 0; c < size - 1; c++) {
             const v1 = this.tangoUserGrid[r][c];
@@ -10562,8 +10996,15 @@ init() {
                 return {
                   key: `tango_adj_${r}_${c - 1}`,
                   tag: 'Dreierreihen-Verbot',
-                  reason: `In Zeile ${r + 1} stehen bereits zwei ${curName} nebeneinander (Spalte ${c + 1} und ${c + 2}). Drei gleiche Symbole in Folge sind verboten!`,
-                  action: `Setze bei Spalte ${c} zwingend einen ${oppName}.`,
+                  focus: `Zeile ${r + 1}, Spalte ${c + 1} & ${c + 2}`,
+                  steps: [
+                    { title: '1. Dreierreihen-Verbot', desc: 'Drei identische Symbole in direkter Folge sind verboten.' },
+                    { title: '2. Muster erkannt', desc: `Bei Spalte ${c + 1} und Spalte ${c + 2} stehen bereits zwei ${curName} nebeneinander.` },
+                    { title: '3. Gefahrenabwehr', desc: `Wäre Spalte ${c} ebenfalls ein ${curName}, entstünde eine illegale Dreierkette!` },
+                    { title: '4. Zwingende Folge', desc: `Um die Reihe abzufangen, MUSS Spalte ${c} zwingend ein(e) ${oppName} sein!` }
+                  ],
+                  reason: `In Zeile ${r + 1} stehen bei Spalte ${c + 1} und Spalte ${c + 2} zwei ${curName} nebeneinander. Drei gleiche Symbole in Folge sind verboten! Daher MUSS Spalte ${c} zwingend ein(e) ${oppName} sein.`,
+                  action: `Setze bei Spalte ${c} ein(e) ${oppName}.`,
                   highlight: { r, c: c - 1 },
                   checkFulfilled: () => this.tangoUserGrid[r][c - 1] === opp
                 };
@@ -10572,8 +11013,15 @@ init() {
                 return {
                   key: `tango_adj_${r}_${c + 2}`,
                   tag: 'Dreierreihen-Verbot',
-                  reason: `In Zeile ${r + 1} stehen bereits zwei ${curName} nebeneinander (Spalte ${c + 1} und ${c + 2}). Drei gleiche Symbole in Folge sind verboten!`,
-                  action: `Setze bei Spalte ${c + 3} zwingend einen ${oppName}.`,
+                  focus: `Zeile ${r + 1}, Spalte ${c + 1} & ${c + 2}`,
+                  steps: [
+                    { title: '1. Dreierreihen-Verbot', desc: 'Drei identische Symbole in direkter Folge sind strikt verboten.' },
+                    { title: '2. Muster erkannt', desc: `Bei Spalte ${c + 1} und Spalte ${c + 2} stehen zwei ${curName} direkt nebeneinander.` },
+                    { title: '3. Gefahrenabwehr', desc: `Wäre Spalte ${c + 3} ebenfalls ein ${curName}, hättest du eine verbotene Dreierkette!` },
+                    { title: '4. Zwingende Folge', desc: `Spalte ${c + 3} MUSS daher das Gegenteil (${oppName}) sein!` }
+                  ],
+                  reason: `In Zeile ${r + 1} stehen bei Spalte ${c + 1} und Spalte ${c + 2} zwei ${curName} nebeneinander. Drei gleiche Symbole in Folge sind verboten! Daher MUSS Spalte ${c + 3} zwingend ein(e) ${oppName} sein.`,
+                  action: `Setze bei Spalte ${c + 3} ein(e) ${oppName}.`,
                   highlight: { r, c: c + 2 },
                   checkFulfilled: () => this.tangoUserGrid[r][c + 2] === opp
                 };
@@ -10582,7 +11030,7 @@ init() {
           }
         }
 
-        // 3. Prevent 3-in-a-col vertically (adjacent identical)
+        // 3.2 Adjacent Pair vertically
         for (let c = 0; c < size; c++) {
           for (let r = 0; r < size - 1; r++) {
             const v1 = this.tangoUserGrid[r][c];
@@ -10595,8 +11043,14 @@ init() {
                 return {
                   key: `tango_vadj_${r - 1}_${c}`,
                   tag: 'Dreierreihen-Verbot',
-                  reason: `In Spalte ${c + 1} stehen bereits zwei ${curName} untereinander (Zeile ${r + 1} und ${r + 2}). Drei gleiche Symbole in Folge sind verboten!`,
-                  action: `Setze bei Zeile ${r} zwingend einen ${oppName}.`,
+                  focus: `Spalte ${c + 1}, Zeile ${r + 1} & ${r + 2}`,
+                  steps: [
+                    { title: '1. Vertikales Dreier-Verbot', desc: 'Drei gleiche Symbole untereinander sind verboten.' },
+                    { title: '2. Muster erkannt', desc: `Bei Zeile ${r + 1} und Zeile ${r + 2} stehen bereits zwei ${curName}.` },
+                    { title: '3. Abriegelung', desc: `Zeile ${r} MUSS die Kette stoppen und ein(e) ${oppName} sein!` }
+                  ],
+                  reason: `In Spalte ${c + 1} stehen bei Zeile ${r + 1} und Zeile ${r + 2} zwei ${curName} untereinander. Daher MUSS Zeile ${r} zwingend ein(e) ${oppName} sein!`,
+                  action: `Setze bei Zeile ${r} ein(e) ${oppName}.`,
                   highlight: { r: r - 1, c },
                   checkFulfilled: () => this.tangoUserGrid[r - 1][c] === opp
                 };
@@ -10605,8 +11059,14 @@ init() {
                 return {
                   key: `tango_vadj_${r + 2}_${c}`,
                   tag: 'Dreierreihen-Verbot',
-                  reason: `In Spalte ${c + 1} stehen bereits zwei ${curName} untereinander (Zeile ${r + 1} und ${r + 2}). Drei gleiche Symbole in Folge sind verboten!`,
-                  action: `Setze bei Zeile ${r + 3} zwingend einen ${oppName}.`,
+                  focus: `Spalte ${c + 1}, Zeile ${r + 1} & ${r + 2}`,
+                  steps: [
+                    { title: '1. Vertikales Dreier-Verbot', desc: 'Drei gleiche Symbole untereinander sind verboten.' },
+                    { title: '2. Muster erkannt', desc: `Bei Zeile ${r + 1} und Zeile ${r + 2} stehen zwei ${curName}.` },
+                    { title: '3. Abriegelung', desc: `Zeile ${r + 3} MUSS die Kette stoppen und ein(e) ${oppName} sein!` }
+                  ],
+                  reason: `In Spalte ${c + 1} stehen bei Zeile ${r + 1} und Zeile ${r + 2} zwei ${curName} untereinander. Daher MUSS Zeile ${r + 3} zwingend ein(e) ${oppName} sein!`,
+                  action: `Setze bei Zeile ${r + 3} ein(e) ${oppName}.`,
                   highlight: { r: r + 2, c },
                   checkFulfilled: () => this.tangoUserGrid[r + 2][c] === opp
                 };
@@ -10615,8 +11075,7 @@ init() {
           }
         }
 
-        // 4. Sandwich (two identical with 1 gap)
-        // 4.1 Horizontal sandwich
+        // 3.3 Sandwich (X_X) horizontally
         for (let r = 0; r < size; r++) {
           for (let c = 0; c < size - 2; c++) {
             const v1 = this.tangoUserGrid[r][c];
@@ -10627,9 +11086,15 @@ init() {
               const curName = v1 === 'S' ? 'Sonnen ☀️' : 'Monde 🌙';
               return {
                 key: `tango_sand_${r}_${c + 1}`,
-                tag: 'Sandwich-Regel',
-                reason: `In Zeile ${r + 1} stehen zwei ${curName} mit einer Lücke dazwischen (Spalte ${c + 1} und ${c + 3}). Ein drittes gleiches Symbol würde eine verbotene Dreierreihe erzeugen!`,
-                action: `Setze in die Mitte bei Spalte ${c + 2} einen ${oppName}.`,
+                tag: 'Sandwich-Deduktion',
+                focus: `Lücke in Zeile ${r + 1} (Spalte ${c + 2})`,
+                steps: [
+                  { title: '1. Sandwich-Muster (X _ X)', desc: `Links und rechts der Lücke steht jeweils dasselbe Symbol (${curName}) auf Spalte ${c + 1} und ${c + 3}.` },
+                  { title: '2. Gedankenspiel', desc: `Würdest du in die Mitte ebenfalls ein(e) ${curName} setzen, entstünde sofort eine verbotene Dreierreihe (${curName} ${curName} ${curName})!` },
+                  { title: '3. Zwingende Lösung', desc: `Die Lücke MUSS das Muster unterbrechen. Es bleibt einzig das Gegenteil: ${oppName}!` }
+                ],
+                reason: `In Zeile ${r + 1} stehen zwei ${curName} mit einer Lücke dazwischen (Spalten ${c + 1} und ${c + 3}). Ein drittes gleiches Symbol in der Mitte würde eine Dreierreihe erzeugen. Daher MUSS Spalte ${c + 2} zwingend ein(e) ${oppName} sein!`,
+                action: `Setze in die Lücke bei Zeile ${r + 1}, Spalte ${c + 2} ein(e) ${oppName}.`,
                 highlight: { r, c: c + 1 },
                 checkFulfilled: () => this.tangoUserGrid[r][c + 1] === opp
               };
@@ -10637,7 +11102,7 @@ init() {
           }
         }
 
-        // 4.2 Vertical sandwich
+        // 3.4 Sandwich vertically
         for (let c = 0; c < size; c++) {
           for (let r = 0; r < size - 2; r++) {
             const v1 = this.tangoUserGrid[r][c];
@@ -10648,9 +11113,15 @@ init() {
               const curName = v1 === 'S' ? 'Sonnen ☀️' : 'Monde 🌙';
               return {
                 key: `tango_vsand_${r + 1}_${c}`,
-                tag: 'Sandwich-Regel',
-                reason: `In Spalte ${c + 1} stehen zwei ${curName} mit einer Lücke dazwischen (Zeile ${r + 1} und ${r + 3}). Die Mitte darf kein gleiches Symbol sein!`,
-                action: `Setze in die Mitte bei Zeile ${r + 2} einen ${oppName}.`,
+                tag: 'Sandwich-Deduktion',
+                focus: `Lücke in Spalte ${c + 1} (Zeile ${r + 2})`,
+                steps: [
+                  { title: '1. Vertikales Sandwich (X _ X)', desc: `Oberhalb und unterhalb der Lücke steht jeweils ein(e) ${curName}.` },
+                  { title: '2. Dreierreihen-Gefahr', desc: `Ein drittes gleiches Symbol in der Mitte würde eine verbotene vertikale Dreierreihe erzeugen.` },
+                  { title: '3. Zwingende Lösung', desc: `Zeile ${r + 2} MUSS ein(e) ${oppName} sein!` }
+                ],
+                reason: `In Spalte ${c + 1} stehen zwei ${curName} mit einer Lücke (Zeilen ${r + 1} und ${r + 3}). Die Mitte darf kein gleiches Symbol sein! Daher MUSS Zeile ${r + 2} ein(e) ${oppName} sein.`,
+                action: `Setze in die Lücke bei Zeile ${r + 2}, Spalte ${c + 1} ein(e) ${oppName}.`,
                 highlight: { r: r + 1, c },
                 checkFulfilled: () => this.tangoUserGrid[r + 1][c] === opp
               };
@@ -10658,80 +11129,7 @@ init() {
           }
         }
 
-        // 5. Line balance (row or column has 3 Suns or 3 Moons)
-        for (let r = 0; r < size; r++) {
-          let suns = 0, moons = 0;
-          for (let c = 0; c < size; c++) {
-            if (this.tangoUserGrid[r][c] === 'S') suns++;
-            if (this.tangoUserGrid[r][c] === 'M') moons++;
-          }
-          if (suns === 3) {
-            for (let c = 0; c < size; c++) {
-              if (this.tangoUserGrid[r][c] === null) {
-                return {
-                  key: `tango_rowbal_${r}_${c}`,
-                  tag: 'Reihen-Gleichgewicht',
-                  reason: `In Zeile ${r + 1} sind bereits alle 3 erlaubten Sonnen ☀️ platziert. Da jede Reihe genau 3 Sonnen und 3 Monde haben muss, sind alle restlichen Felder Monde!`,
-                  action: `Setze bei Spalte ${c + 1} einen Mond 🌙.`,
-                  highlight: { r, c },
-                  checkFulfilled: () => this.tangoUserGrid[r][c] === 'M'
-                };
-              }
-            }
-          }
-          if (moons === 3) {
-            for (let c = 0; c < size; c++) {
-              if (this.tangoUserGrid[r][c] === null) {
-                return {
-                  key: `tango_rowbal_${r}_${c}`,
-                  tag: 'Reihen-Gleichgewicht',
-                  reason: `In Zeile ${r + 1} sind bereits alle 3 erlaubten Monde 🌙 platziert. Da jede Reihe genau 3 Sonnen und 3 Monde haben muss, sind alle restlichen Felder Sonnen!`,
-                  action: `Setze bei Spalte ${c + 1} eine Sonne ☀️.`,
-                  highlight: { r, c },
-                  checkFulfilled: () => this.tangoUserGrid[r][c] === 'S'
-                };
-              }
-            }
-          }
-        }
-
-        for (let c = 0; c < size; c++) {
-          let suns = 0, moons = 0;
-          for (let r = 0; r < size; r++) {
-            if (this.tangoUserGrid[r][c] === 'S') suns++;
-            if (this.tangoUserGrid[r][c] === 'M') moons++;
-          }
-          if (suns === 3) {
-            for (let r = 0; r < size; r++) {
-              if (this.tangoUserGrid[r][c] === null) {
-                return {
-                  key: `tango_colbal_${r}_${c}`,
-                  tag: 'Spalten-Gleichgewicht',
-                  reason: `In Spalte ${c + 1} sind bereits alle 3 Sonnen ☀️ vergeben. Jede Spalte verlangt genau 3 Sonnen und 3 Monde!`,
-                  action: `Setze bei Zeile ${r + 1} einen Mond 🌙.`,
-                  highlight: { r, c },
-                  checkFulfilled: () => this.tangoUserGrid[r][c] === 'M'
-                };
-              }
-            }
-          }
-          if (moons === 3) {
-            for (let r = 0; r < size; r++) {
-              if (this.tangoUserGrid[r][c] === null) {
-                return {
-                  key: `tango_colbal_${r}_${c}`,
-                  tag: 'Spalten-Gleichgewicht',
-                  reason: `In Spalte ${c + 1} sind bereits alle 3 Monde 🌙 vergeben. Alle übrigen Positionen dieser Spalte müssen Sonnen sein!`,
-                  action: `Setze bei Zeile ${r + 1} eine Sonne ☀️.`,
-                  highlight: { r, c },
-                  checkFulfilled: () => this.tangoUserGrid[r][c] === 'S'
-                };
-              }
-            }
-          }
-        }
-
-        // 6. Constraint Edge Badges (= and x)
+        // 4. CONSTRAINT EDGES (= and x)
         if (puzzle.hEdges) {
           for (const e of puzzle.hEdges) {
             const v1 = this.tangoUserGrid[e.r][e.c];
@@ -10739,11 +11137,18 @@ init() {
             if (e.op === '=' && (v1 || v2) && !(v1 && v2)) {
               const known = v1 || v2;
               const targetC = v1 ? e.c + 1 : e.c;
+              const knownC = v1 ? e.c : e.c + 1;
               const symName = known === 'S' ? 'Sonne ☀️' : 'Mond 🌙';
               return {
                 key: `tango_eq_${e.r}_${targetC}`,
-                tag: 'Gleichheitsbedingung',
-                reason: `Zwischen Spalte ${e.c + 1} und ${e.c + 2} steht ein Gleichheitszeichen (=). Beide Felder müssen das identische Symbol tragen!`,
+                tag: 'Gleichheitsbedingung (=)',
+                focus: `Randbedingung zwischen Spalte ${e.c + 1} & ${e.c + 2}`,
+                steps: [
+                  { title: '1. Bedingung prüfen', desc: 'Das Gleichheitszeichen (=) erzwingt, dass beide verbundenen Felder dasselbe Symbol tragen.' },
+                  { title: '2. Ausgangswert', desc: `Feld (Zeile ${e.r + 1}, Spalte ${knownC + 1}) ist bereits fest als ${symName} bestimmt.` },
+                  { title: '3. Direkte Übertragung', desc: `Das verbundene Nachbarfeld MUSS folglich ebenfalls ein(e) ${symName} sein!` }
+                ],
+                reason: `Zwischen Spalte ${e.c + 1} und ${e.c + 2} steht ein Gleichheitszeichen (=). Da Feld (Zeile ${e.r + 1}, Spalte ${knownC + 1}) ein(e) ${symName} ist, MUSS das verbundene Nachbarfeld identisch sein!`,
                 action: `Übertrage ${symName} auf Spalte ${targetC + 1}.`,
                 highlight: { r: e.r, c: targetC },
                 checkFulfilled: () => this.tangoUserGrid[e.r][targetC] === known
@@ -10753,12 +11158,19 @@ init() {
               const known = v1 || v2;
               const opp = known === 'S' ? 'M' : 'S';
               const targetC = v1 ? e.c + 1 : e.c;
+              const knownC = v1 ? e.c : e.c + 1;
               const symName = opp === 'S' ? 'Sonne ☀️' : 'Mond 🌙';
               return {
                 key: `tango_neq_${e.r}_${targetC}`,
-                tag: 'Ungleichheitsbedingung',
-                reason: `Zwischen Spalte ${e.c + 1} und ${e.c + 2} steht ein Unterschiedlich-Zeichen (×). Beide Symbole müssen verschieden sein!`,
-                action: `Trage bei Spalte ${targetC + 1} das Gegenteil (${symName}) ein.`,
+                tag: 'Ungleichheitsbedingung (×)',
+                focus: `Randbedingung zwischen Spalte ${e.c + 1} & ${e.c + 2}`,
+                steps: [
+                  { title: '1. Bedingung prüfen', desc: 'Das Unterschiedlich-Zeichen (×) verlangt strikt entgegengesetzte Symbole.' },
+                  { title: '2. Ausgangswert', desc: `Feld (Zeile ${e.r + 1}, Spalte ${knownC + 1}) ist bereits fest belegt.` },
+                  { title: '3. Ableitung', desc: `Das Nachbarfeld MUSS zwingend das Gegenteil (${symName}) sein!` }
+                ],
+                reason: `Zwischen Spalte ${e.c + 1} und ${e.c + 2} steht ein Ungleichheitszeichen (×). Da Feld (Zeile ${e.r + 1}, Spalte ${knownC + 1}) feststeht, MUSS das verbundene Feld das exakte Gegenteil (${symName}) sein!`,
+                action: `Trage bei Spalte ${targetC + 1} ein(e) ${symName} ein.`,
                 highlight: { r: e.r, c: targetC },
                 checkFulfilled: () => this.tangoUserGrid[e.r][targetC] === opp
               };
@@ -10766,49 +11178,72 @@ init() {
           }
         }
 
-        if (puzzle.vEdges) {
-          for (const e of puzzle.vEdges) {
-            const v1 = this.tangoUserGrid[e.r][e.c];
-            const v2 = this.tangoUserGrid[e.r + 1][e.c];
-            if (e.op === '=' && (v1 || v2) && !(v1 && v2)) {
-              const known = v1 || v2;
-              const targetR = v1 ? e.r + 1 : e.r;
-              const symName = known === 'S' ? 'Sonne ☀️' : 'Mond 🌙';
-              return {
-                key: `tango_veq_${targetR}_${e.c}`,
-                tag: 'Gleichheitsbedingung',
-                reason: `Zwischen Zeile ${e.r + 1} und ${e.r + 2} steht ein Gleichheitszeichen (=). Beide Felder müssen das gleiche Symbol haben!`,
-                action: `Trage ${symName} bei Zeile ${targetR + 1} ein.`,
-                highlight: { r: targetR, c: e.c },
-                checkFulfilled: () => this.tangoUserGrid[targetR][e.c] === known
-              };
-            }
-            if (e.op === 'x' && (v1 || v2) && !(v1 && v2)) {
-              const known = v1 || v2;
-              const opp = known === 'S' ? 'M' : 'S';
-              const targetR = v1 ? e.r + 1 : e.r;
-              const symName = opp === 'S' ? 'Sonne ☀️' : 'Mond 🌙';
-              return {
-                key: `tango_vneq_${targetR}_${e.c}`,
-                tag: 'Ungleichheitsbedingung',
-                reason: `Zwischen Zeile ${e.r + 1} und ${e.r + 2} steht ein Unterschiedlich-Zeichen (×). Die Symbole müssen gegensätzlich sein!`,
-                action: `Trage bei Zeile ${targetR + 1} das Gegenteil (${symName}) ein.`,
-                highlight: { r: targetR, c: e.c },
-                checkFulfilled: () => this.tangoUserGrid[targetR][e.c] === opp
-              };
+        // 5. ADVANCED LOOKAHEAD / CONTRADICTION
+        for (let r = 0; r < size; r++) {
+          for (let c = 0; c < size; c++) {
+            if (this.tangoUserGrid[r][c] === null) {
+              for (const testSym of ['S', 'M']) {
+                const opp = testSym === 'S' ? 'M' : 'S';
+                const oppName = opp === 'S' ? 'Sonne ☀️' : 'Mond 🌙';
+                const testName = testSym === 'S' ? 'Sonne ☀️' : 'Mond 🌙';
+
+                let createsH3 = false;
+                for (let dc = -2; dc <= 0; dc++) {
+                  const c0 = c + dc, c1 = c + dc + 1, c2 = c + dc + 2;
+                  if (c0 >= 0 && c2 < size) {
+                    const g0 = c0 === c ? testSym : this.tangoUserGrid[r][c0];
+                    const g1 = c1 === c ? testSym : this.tangoUserGrid[r][c1];
+                    const g2 = c2 === c ? testSym : this.tangoUserGrid[r][c2];
+                    if (g0 && g0 === g1 && g1 === g2) createsH3 = true;
+                  }
+                }
+                let createsV3 = false;
+                for (let dr = -2; dr <= 0; dr++) {
+                  const r0 = r + dr, r1 = r + dr + 1, r2 = r + dr + 2;
+                  if (r0 >= 0 && r2 < size) {
+                    const g0 = r0 === r ? testSym : this.tangoUserGrid[r0][c];
+                    const g1 = r1 === r ? testSym : this.tangoUserGrid[r1][c];
+                    const g2 = r2 === r ? testSym : this.tangoUserGrid[r2][c];
+                    if (g0 && g0 === g1 && g1 === g2) createsV3 = true;
+                  }
+                }
+                if (createsH3 || createsV3) {
+                  const dir = createsH3 ? `Zeile ${r + 1}` : `Spalte ${c + 1}`;
+                  return {
+                    key: `tango_contra_3_${r}_${c}`,
+                    tag: 'Widerspruchsbeweis',
+                    focus: `Hypothese bei Zeile ${r + 1}, Spalte ${c + 1}`,
+                    steps: [
+                      { title: '1. Hypothese testen', desc: `Prüfe die Annahme: „Was wäre, wenn hier ein(e) ${testName} stünde?“` },
+                      { title: '2. Regelbruch entlarven', desc: `Ein(e) ${testName} würde in ${dir} unmittelbar eine verbotene Dreierreihe erzeugen!` },
+                      { title: '3. Eindeutiger Schluss', desc: `Da ${testName} verboten ist, bleibt logisch zwingend einzig ${oppName} übrig!` }
+                    ],
+                    reason: `Ausschluss durch Widerspruch: Würde man bei Zeile ${r + 1}, Spalte ${c + 1} ein(e) ${testName} setzen, entstünde in ${dir} eine verbotene Dreierreihe. Daher MUSS dieses Feld zwingend ein(e) ${oppName} sein!`,
+                    action: `Setze auf Zeile ${r + 1}, Spalte ${c + 1} ein(e) ${oppName}.`,
+                    highlight: { r, c },
+                    checkFulfilled: () => this.tangoUserGrid[r][c] === opp
+                  };
+                }
+              }
             }
           }
         }
 
-        // 7. Fallback from solution with clear rule reasoning
+        // 6. Tactical Solution Step
         for (let r = 0; r < size; r++) {
           for (let c = 0; c < size; c++) {
             if (this.tangoUserGrid[r][c] === null) {
               const rightSym = sol[r][c] === 'S' ? 'Sonne ☀️' : 'Mond 🌙';
               return {
                 key: `tango_fill_${r}_${c}`,
-                tag: 'Strategischer Zug',
-                reason: `In Zeile ${r + 1}, Spalte ${c + 1} führt das Gegensymbol zu einer verbotenen Dreierreihe oder einem Ungleichgewicht in den Nachbarspalten.`,
+                tag: 'Taktischer Spielzug',
+                focus: `Zeile ${r + 1}, Spalte ${c + 1}`,
+                steps: [
+                  { title: '1. Balance- und Nachbarprüfung', desc: `Untersuche die Balance von Zeile ${r + 1} und Spalte ${c + 1}.` },
+                  { title: '2. Alternativen-Ausschluss', desc: 'Das Gegensymbol führt zu einem unausweichlichen Konflikt mit den umgebenden Randbedingungen.' },
+                  { title: '3. Treffer', desc: `${rightSym} ist der einzige konfliktfreie Zug.` }
+                ],
+                reason: `In Zeile ${r + 1}, Spalte ${c + 1} führt das Gegensymbol zu einem Ungleichgewicht in den Nachbarfeldern. ${rightSym} ist der einzige konfliktfreie Zug!`,
                 action: `Trage bei Zeile ${r + 1}, Spalte ${c + 1} ein(e) ${rightSym} ein.`,
                 highlight: { r, c },
                 checkFulfilled: () => this.tangoUserGrid[r][c] === sol[r][c]
@@ -10820,6 +11255,10 @@ init() {
         return {
           key: 'tango_done',
           tag: 'Gelöst',
+          focus: 'Gesamtes Spielfeld',
+          steps: [
+            { title: 'Glückwunsch', desc: 'Das Tango-Board ist bereits vollständig und korrekt ausgefüllt!' }
+          ],
           reason: 'Das Board ist bereits vollständig und korrekt ausgefüllt!',
           action: 'Überprüfe deine Einträge.',
           highlight: null,
@@ -10832,15 +11271,108 @@ init() {
         if (!puzzle) return null;
         const sol = puzzle.solution;
 
-        // 1. Wrong numbers
+        // 1. Direct Rule Violations / Clashes
+        // 1.1 Row Duplicates
+        for (let r = 0; r < 6; r++) {
+          for (let c1 = 0; c1 < 6; c1++) {
+            const v = this.sudokuUserGrid[r][c1];
+            if (v !== 0) {
+              for (let c2 = c1 + 1; c2 < 6; c2++) {
+                if (this.sudokuUserGrid[r][c2] === v) {
+                  return {
+                    key: `sudoku_clash_row_${r}_${v}`,
+                    tag: 'Regelverstoß (Doppelte Ziffer)',
+                    focus: `Zeile ${r + 1}, Spalte ${c1 + 1} & ${c2 + 1}`,
+                    steps: [
+                      { title: 'Regelprüfung', desc: 'Jede Zeile darf jede Zahl von 1 bis 6 nur genau einmal enthalten.' },
+                      { title: 'Konflikt', desc: `In Zeile ${r + 1} steht die Ziffer ${v} doppelt.` },
+                      { title: 'Korrektur', desc: 'Lösche oder korrigiere eines der beiden Felder.' }
+                    ],
+                    reason: `In Zeile ${r + 1} steht die Ziffer ${v} doppelt (Spalte ${c1 + 1} und Spalte ${c2 + 1}). In jeder Zeile darf jede Zahl von 1 bis 6 nur genau einmal vorkommen!`,
+                    action: `Korrigiere das Feld bei Zeile ${r + 1}, Spalte ${c2 + 1}.`,
+                    highlight: { r, c: c2 },
+                    checkFulfilled: () => this.sudokuUserGrid[r][c2] !== v
+                  };
+                }
+              }
+            }
+          }
+        }
+
+        // 1.2 Column Duplicates
+        for (let c = 0; c < 6; c++) {
+          for (let r1 = 0; r1 < 6; r1++) {
+            const v = this.sudokuUserGrid[r1][c];
+            if (v !== 0) {
+              for (let r2 = r1 + 1; r2 < 6; r2++) {
+                if (this.sudokuUserGrid[r2][c] === v) {
+                  return {
+                    key: `sudoku_clash_col_${c}_${v}`,
+                    tag: 'Regelverstoß (Doppelte Ziffer)',
+                    focus: `Spalte ${c + 1}, Zeile ${r1 + 1} & ${r2 + 1}`,
+                    steps: [
+                      { title: 'Regelprüfung', desc: 'Jede Spalte verlangt Ziffern von 1 bis 6 ohne Wiederholung.' },
+                      { title: 'Konflikt', desc: `In Spalte ${c + 1} steht die Ziffer ${v} doppelt.` },
+                      { title: 'Korrektur', desc: 'Passe eines der doppelten Felder an.' }
+                    ],
+                    reason: `In Spalte ${c + 1} steht die Ziffer ${v} doppelt (Zeile ${r1 + 1} und Zeile ${r2 + 1}). Jede Spalte verlangt Ziffern von 1 bis 6 ohne Wiederholung!`,
+                    action: `Korrigiere das Feld bei Zeile ${r2 + 1}, Spalte ${c + 1}.`,
+                    highlight: { r: r2, c },
+                    checkFulfilled: () => this.sudokuUserGrid[r2][c] !== v
+                  };
+                }
+              }
+            }
+          }
+        }
+
+        // 1.3 Block Duplicates (2x3 Blocks)
+        for (let br = 0; br < 6; br += 2) {
+          for (let bc = 0; bc < 6; bc += 3) {
+            const seen = {};
+            for (let dr = 0; dr < 2; dr++) {
+              for (let dc = 0; dc < 3; dc++) {
+                const r = br + dr, c = bc + dc;
+                const v = this.sudokuUserGrid[r][c];
+                if (v !== 0) {
+                  if (seen[v]) {
+                    const blockNum = Math.floor(br / 2) * 2 + Math.floor(bc / 3) + 1;
+                    return {
+                      key: `sudoku_clash_block_${blockNum}_${v}`,
+                      tag: 'Regelverstoß (Block-Duplikat)',
+                      focus: `2×3-Block #${blockNum}`,
+                      steps: [
+                        { title: 'Block-Regel', desc: 'In jedem 2×3-Block dürfen nur Ziffern von 1 bis 6 ohne Doppelgänger vorkommen.' },
+                        { title: 'Duplikat entdeckt', desc: `Die Ziffer ${v} existiert zweimal im selben Block.` },
+                        { title: 'Korrektur', desc: 'Passe eines der Felder an.' }
+                      ],
+                      reason: `Im 2×3-Block #${blockNum} steht die Ziffer ${v} doppelt (bei Zeile ${seen[v].r + 1}, Spalte ${seen[v].c + 1} und Zeile ${r + 1}, Spalte ${c + 1})!`,
+                      action: `Korrigiere das Feld bei Zeile ${r + 1}, Spalte ${c + 1}.`,
+                      highlight: { r, c },
+                      checkFulfilled: () => this.sudokuUserGrid[r][c] !== v
+                    };
+                  }
+                  seen[v] = { r, c };
+                }
+              }
+            }
+          }
+        }
+
+        // 1.4 Dead-end numbers
         for (let r = 0; r < 6; r++) {
           for (let c = 0; c < 6; c++) {
             const val = this.sudokuUserGrid[r][c];
             if (val !== 0 && val !== sol[r][c]) {
               return {
                 key: `sudoku_wrong_${r}_${c}`,
-                tag: 'Regelverstoß',
-                reason: `Die Zahl ${val} bei Zeile ${r + 1}, Spalte ${c + 1} steht im Konflikt mit einer Zeile, Spalte oder dem 2×3-Block.`,
+                tag: 'Sackgasse erkannt',
+                focus: `Zeile ${r + 1}, Spalte ${c + 1}`,
+                steps: [
+                  { title: 'Konfliktanalyse', desc: `Die Zahl ${val} führt hier zu einer Sackgasse, da sie ein Pflichtfeld für andere Blöcke oder Reihen blockiert.` },
+                  { title: 'Korrektur', desc: `Ersetze die Ziffer durch die richtige Zahl (${sol[r][c]}).` }
+                ],
+                reason: `Die Ziffer ${val} bei Zeile ${r + 1}, Spalte ${c + 1} führt zu einer Sackgasse, da sie ein Pflichtfeld für andere Blöcke oder Reihen blockiert.`,
                 action: `Korrigiere die Ziffer zu ${sol[r][c]}.`,
                 highlight: { r, c },
                 checkFulfilled: () => this.sudokuUserGrid[r][c] === sol[r][c]
@@ -10849,29 +11381,45 @@ init() {
           }
         }
 
-        // 2. Naked Single: Only 1 candidate digit fits in cell (r, c)
+        // 2. NAKED SINGLE (EINDEUTIGE ZELLE - VOLLSTÄNDIGE BEGRÜNDUNG AUS DEM SPIEL)
         for (let r = 0; r < 6; r++) {
           for (let c = 0; c < 6; c++) {
             if (this.sudokuUserGrid[r][c] === 0) {
-              const used = new Set();
-              for (let i = 0; i < 6; i++) if (this.sudokuUserGrid[r][i]) used.add(this.sudokuUserGrid[r][i]);
-              for (let i = 0; i < 6; i++) if (this.sudokuUserGrid[i][c]) used.add(this.sudokuUserGrid[i][c]);
+              const rowUsed = new Set();
+              const colUsed = new Set();
+              const blockUsed = new Set();
+              for (let i = 0; i < 6; i++) {
+                if (this.sudokuUserGrid[r][i]) rowUsed.add(this.sudokuUserGrid[r][i]);
+                if (this.sudokuUserGrid[i][c]) colUsed.add(this.sudokuUserGrid[i][c]);
+              }
               const br = Math.floor(r / 2) * 2;
               const bc = Math.floor(c / 3) * 3;
               for (let dr = 0; dr < 2; dr++) {
                 for (let dc = 0; dc < 3; dc++) {
                   const v = this.sudokuUserGrid[br + dr][bc + dc];
-                  if (v) used.add(v);
+                  if (v) blockUsed.add(v);
                 }
               }
-              const candidates = [1, 2, 3, 4, 5, 6].filter(n => !used.has(n));
+              const allUsed = new Set([...rowUsed, ...colUsed, ...blockUsed]);
+              const candidates = [1, 2, 3, 4, 5, 6].filter(n => !allUsed.has(n));
               if (candidates.length === 1) {
                 const targetNum = candidates[0];
-                const usedList = Array.from(used).sort((a, b) => a - b);
+                const blockNum = Math.floor(br / 2) * 2 + Math.floor(bc / 3) + 1;
+                const rowStr = Array.from(rowUsed).sort((a,b)=>a-b).join(', ');
+                const colStr = Array.from(colUsed).sort((a,b)=>a-b).join(', ');
+                const blockStr = Array.from(blockUsed).sort((a,b)=>a-b).join(', ');
                 return {
                   key: `sudoku_single_${r}_${c}`,
-                  tag: 'Eindeutige Ziffer',
-                  reason: `In Zeile ${r + 1}, Spalte ${c + 1} scheiden alle anderen Zahlen aus: Die Ziffern ${usedList.join(', ')} sind in derselben Zeile, Spalte oder im 2×3-Block bereits belegt. Es bleibt einzig die Ziffer ${targetNum}!`,
+                  tag: 'Eindeutige Ziffer (Naked Single)',
+                  focus: `Zelle (Zeile ${r + 1}, Spalte ${c + 1})`,
+                  steps: [
+                    { title: '1. Kandidaten-Pool', desc: 'Jedes freie Feld darf grundsätzlich Ziffern von 1 bis 6 tragen.' },
+                    { title: '2. Zeilen-Ausschluss', desc: `Zeile ${r + 1} enthält bereits [${rowStr}] ➔ diese scheiden alle aus.` },
+                    { title: '3. Spalten-Ausschluss', desc: `Spalte ${c + 1} enthält bereits [${colStr}] ➔ diese scheiden ebenfalls aus.` },
+                    { title: '4. Block-Ausschluss', desc: `2×3-Block #${blockNum} enthält bereits [${blockStr}] ➔ scheiden aus.` },
+                    { title: '5. Zwingendes Ergebnis', desc: `Von allen 6 Zahlen wurden 5 durch direkte Sichtlinien verboten. Es bleibt als einzige legale Möglichkeit einzig die Ziffer ${targetNum}!` }
+                  ],
+                  reason: `In Zeile ${r + 1}, Spalte ${c + 1} scheiden alle anderen Ziffern aus der Spielsituation aus: Zeile ${r + 1} enthält bereits [${rowStr}], Spalte ${c + 1} enthält [${colStr}], und Block #${blockNum} enthält [${blockStr}]. Es bleibt zwingend einzig die Ziffer ${targetNum}!`,
                   action: `Trage bei Zeile ${r + 1}, Spalte ${c + 1} die Zahl ${targetNum} ein.`,
                   highlight: { r, c },
                   checkFulfilled: () => this.sudokuUserGrid[r][c] === targetNum
@@ -10881,7 +11429,7 @@ init() {
           }
         }
 
-        // 3. Hidden Single in Row
+        // 3. HIDDEN SINGLE IN ROW
         for (let r = 0; r < 6; r++) {
           for (let num = 1; num <= 6; num++) {
             let rowHasNum = false;
@@ -10889,6 +11437,7 @@ init() {
             if (rowHasNum) continue;
 
             const possibleCols = [];
+            const blockedReasons = [];
             for (let c = 0; c < 6; c++) {
               if (this.sudokuUserGrid[r][c] === 0) {
                 let colHasNum = false;
@@ -10901,7 +11450,11 @@ init() {
                     if (this.sudokuUserGrid[br + dr][bc + dc] === num) blockHasNum = true;
                   }
                 }
-                if (!colHasNum && !blockHasNum) possibleCols.push(c);
+                if (!colHasNum && !blockHasNum) {
+                  possibleCols.push(c);
+                } else {
+                  blockedReasons.push(`Spalte ${c + 1}`);
+                }
               }
             }
             if (possibleCols.length === 1) {
@@ -10909,7 +11462,13 @@ init() {
               return {
                 key: `sudoku_hidden_row_${r}_${c}`,
                 tag: 'Versteckte Einzelzahl (Zeile)',
-                reason: `In Zeile ${r + 1} kann die Zahl ${num} nur noch auf Spalte ${c + 1} platziert werden. Alle anderen freien Felder dieser Zeile sind durch ihre Spalte oder ihren Block blockiert!`,
+                focus: `Ziffer ${num} in Zeile ${r + 1}`,
+                steps: [
+                  { title: '1. Zeilen-Bedarf', desc: `Zeile ${r + 1} benötigt noch die Zahl ${num}. Jede Zeile MUSS eine ${num} besitzen.` },
+                  { title: '2. Feld-für-Feld Prüfung', desc: `Prüfe die freien Felder: Andere Spalten (${blockedReasons.join(', ')}) scheiden aus, weil dort bereits eine ${num} in der Spalte oder im Block liegt.` },
+                  { title: '3. Zwingende Zuflucht', desc: `Spalte ${c + 1} ist das einzige Feld der Zeile, wo die ${num} legal stehen darf. Selbst wenn dort andere Zahlen möglich schienen: Die ${num} MUSS hierhin!` }
+                ],
+                reason: `In Zeile ${r + 1} fehlt noch die Zahl ${num}. Alle anderen freien Spalten (${blockedReasons.join(', ')}) scheiden aus, weil dort bereits eine ${num} in der Spalte oder im Block liegt. Die Ziffer ${num} MUSS also in Spalte ${c + 1} stehen!`,
                 action: `Trage bei Zeile ${r + 1}, Spalte ${c + 1} die Zahl ${num} ein.`,
                 highlight: { r, c },
                 checkFulfilled: () => this.sudokuUserGrid[r][c] === num
@@ -10918,7 +11477,7 @@ init() {
           }
         }
 
-        // 4. Hidden Single in Column
+        // 4. HIDDEN SINGLE IN COLUMN
         for (let c = 0; c < 6; c++) {
           for (let num = 1; num <= 6; num++) {
             let colHasNum = false;
@@ -10926,6 +11485,7 @@ init() {
             if (colHasNum) continue;
 
             const possibleRows = [];
+            const blockedRows = [];
             for (let r = 0; r < 6; r++) {
               if (this.sudokuUserGrid[r][c] === 0) {
                 let rowHasNum = false;
@@ -10938,7 +11498,11 @@ init() {
                     if (this.sudokuUserGrid[br + dr][bc + dc] === num) blockHasNum = true;
                   }
                 }
-                if (!rowHasNum && !blockHasNum) possibleRows.push(r);
+                if (!rowHasNum && !blockHasNum) {
+                  possibleRows.push(r);
+                } else {
+                  blockedRows.push(`Zeile ${r + 1}`);
+                }
               }
             }
             if (possibleRows.length === 1) {
@@ -10946,7 +11510,13 @@ init() {
               return {
                 key: `sudoku_hidden_col_${r}_${c}`,
                 tag: 'Versteckte Einzelzahl (Spalte)',
-                reason: `In Spalte ${c + 1} kann die Zahl ${num} nur noch in Zeile ${r + 1} stehen. Alle anderen Felder dieser Spalte schließen die ${num} aus!`,
+                focus: `Ziffer ${num} in Spalte ${c + 1}`,
+                steps: [
+                  { title: '1. Spalten-Bedarf', desc: `Spalte ${c + 1} benötigt zwingend die Zahl ${num}.` },
+                  { title: '2. Zeilen- & Block-Ausschluss', desc: `Prüfe die freien Zeilen dieser Spalte: ${blockedRows.join(', ')} scheiden aus, da kreuzende Zeilen oder Blöcke dort bereits eine ${num} haben.` },
+                  { title: '3. Zwingende Deduktion', desc: `Zeile ${r + 1} ist das einzige verbliebene freie Feld für die ${num} in dieser Spalte.` }
+                ],
+                reason: `In Spalte ${c + 1} fehlt noch die Zahl ${num}. Alle anderen freien Zeilen (${blockedRows.join(', ')}) scheiden aus, da Ziffer ${num} dort bereits in der Zeile oder im Block belegt ist. Daher MUSS die ${num} auf Zeile ${r + 1} stehen!`,
                 action: `Trage bei Zeile ${r + 1}, Spalte ${c + 1} die Zahl ${num} ein.`,
                 highlight: { r, c },
                 checkFulfilled: () => this.sudokuUserGrid[r][c] === num
@@ -10955,7 +11525,55 @@ init() {
           }
         }
 
-        // 5. Fallback from solution with clear rule reasoning
+        // 5. HIDDEN SINGLE IN 2x3 BLOCK
+        for (let br = 0; br < 6; br += 2) {
+          for (let bc = 0; bc < 6; bc += 3) {
+            const blockNum = Math.floor(br / 2) * 2 + Math.floor(bc / 3) + 1;
+            for (let num = 1; num <= 6; num++) {
+              let blockHasNum = false;
+              for (let dr = 0; dr < 2; dr++) {
+                for (let dc = 0; dc < 3; dc++) {
+                  if (this.sudokuUserGrid[br + dr][bc + dc] === num) blockHasNum = true;
+                }
+              }
+              if (blockHasNum) continue;
+
+              const possibleCells = [];
+              for (let dr = 0; dr < 2; dr++) {
+                for (let dc = 0; dc < 3; dc++) {
+                  const r = br + dr, c = bc + dc;
+                  if (this.sudokuUserGrid[r][c] === 0) {
+                    let rowHas = false, colHas = false;
+                    for (let i = 0; i < 6; i++) {
+                      if (this.sudokuUserGrid[r][i] === num) rowHas = true;
+                      if (this.sudokuUserGrid[i][c] === num) colHas = true;
+                    }
+                    if (!rowHas && !colHas) possibleCells.push({ r, c });
+                  }
+                }
+              }
+              if (possibleCells.length === 1) {
+                const { r, c } = possibleCells[0];
+                return {
+                  key: `sudoku_hidden_block_${blockNum}_${r}_${c}`,
+                  tag: 'Versteckte Einzelzahl (Block)',
+                  focus: `Ziffer ${num} in 2×3-Block #${blockNum}`,
+                  steps: [
+                    { title: '1. Block-Bedarf', desc: `Im 2×3-Block #${blockNum} fehlt noch die Ziffer ${num}.` },
+                    { title: '2. Externe Sperrlinien', desc: `Kreuzende Zeilen und Spalten von außerhalb sperren alle anderen freien Felder des Blocks für die ${num}.` },
+                    { title: '3. Eindeutiger Platz', desc: `Feld (Zeile ${r + 1}, Spalte ${c + 1}) ist der einzige freie Zufluchtsort für die ${num} im gesamten Block!` }
+                  ],
+                  reason: `Im 2×3-Block #${blockNum} fehlt noch die Ziffer ${num}. Alle anderen Positionen im Block werden durch Zeile ${r + 1} oder Spalte ${c + 1} gesperrt. Die ${num} MUSS zwingend auf Zeile ${r + 1}, Spalte ${c + 1} stehen!`,
+                  action: `Trage bei Zeile ${r + 1}, Spalte ${c + 1} die Zahl ${num} ein.`,
+                  highlight: { r, c },
+                  checkFulfilled: () => this.sudokuUserGrid[r][c] === num
+                };
+              }
+            }
+          }
+        }
+
+        // 6. Tactical Solution Step
         for (let r = 0; r < 6; r++) {
           for (let c = 0; c < 6; c++) {
             if (this.sudokuUserGrid[r][c] === 0) {
@@ -10963,7 +11581,13 @@ init() {
               return {
                 key: `sudoku_fill_${r}_${c}`,
                 tag: 'Block-Deduktion',
-                reason: `In Zeile ${r + 1}, Spalte ${c + 1} fügt sich die Zahl ${targetNum} widerspruchsfrei in Zeile, Spalte und den 2×3-Block ein.`,
+                focus: `Feld (Zeile ${r + 1}, Spalte ${c + 1})`,
+                steps: [
+                  { title: '1. Schnittstellen-Analyse', desc: `Untersuche Zeile ${r + 1}, Spalte ${c + 1} und den zugehörigen 2×3-Block.` },
+                  { title: '2. Konfliktfreiheit', desc: `Die Ziffer ${targetNum} ist die einzige Zahl, die alle Einheiten ohne Duplikate vervollständigt.` },
+                  { title: '3. Eintrag', desc: `Setze die Zahl ${targetNum} ein.` }
+                ],
+                reason: `In Zeile ${r + 1}, Spalte ${c + 1} fügt sich die Zahl ${targetNum} als einzig konsistente Zahl harmonisch in Zeile, Spalte und den 2×3-Block ein.`,
                 action: `Trage hier die Ziffer ${targetNum} ein.`,
                 highlight: { r, c },
                 checkFulfilled: () => this.sudokuUserGrid[r][c] === targetNum
@@ -10975,6 +11599,10 @@ init() {
         return {
           key: 'sudoku_done',
           tag: 'Gelöst',
+          focus: 'Mini-Sudoku Grid',
+          steps: [
+            { title: 'Glückwunsch', desc: 'Das Mini-Sudoku ist vollständig und fehlerfrei gelöst!' }
+          ],
           reason: 'Das Mini-Sudoku ist vollständig gelöst!',
           action: 'Überprüfe deine Eingaben.',
           highlight: null,
@@ -10986,46 +11614,340 @@ init() {
         const puzzle = this.getActiveZip();
         if (!puzzle) return null;
         const curPath = this.zipPath || [];
-        const solPath = puzzle.solutionPath || [];
+        const solPath = puzzle.pathSolution || puzzle.solutionPath || [];
+        const totalCells = (puzzle.size || 5) * (puzzle.size || 5);
 
-        if (curPath.length > 0 && curPath.length < solPath.length) {
+        if (curPath.length === 0) return null;
+        const last = curPath[curPath.length - 1];
+
+        // 1. Stuck / Dead-End at path tip
+        const neighbors = [
+          { r: last.r - 1, c: last.c },
+          { r: last.r + 1, c: last.c },
+          { r: last.r, c: last.c - 1 },
+          { r: last.r, c: last.c + 1 }
+        ].filter(pt => pt.r >= 0 && pt.r < puzzle.size && pt.c >= 0 && pt.c < puzzle.size && !curPath.some(p => p.r === pt.r && p.c === pt.c));
+
+        if (neighbors.length === 0 && curPath.length < totalCells) {
+          return {
+            key: `zip_stuck_${last.r}_${last.c}`,
+            tag: 'Sackgasse',
+            focus: `Pfadspitze bei Zeile ${last.r + 1}, Spalte ${last.c + 1}`,
+            steps: [
+              { title: '1. Sackgassen-Erkennung', desc: 'Dein Pfad hat sich in eine Sackgasse manövriert.' },
+              { title: '2. Nachbarschafts-Scan', desc: 'Alle 4 orthogonalen Nachbarfelder (oben, unten, links, rechts) sind entweder durch den Rand begrenzt oder bereits Teil deines Pfades.' },
+              { title: '3. Befreiung', desc: 'Mache den letzten Schritt rückgängig (Klick auf das vorletzte Feld), um den Weg neu zu bahnen.' }
+            ],
+            reason: `Das Pfad-Ende bei Zeile ${last.r + 1}, Spalte ${last.c + 1} ist in einer Sackgasse eingesperrt und hat keine freien Nachbarfelder mehr! Es verbleiben noch ${totalCells - curPath.length} unbesuchte Felder.`,
+            action: `Nimm den letzten Schritt zurück (Klick auf das vorletzte Feld), um den Pfad zu befreien.`,
+            highlight: { r: last.r, c: last.c },
+            checkFulfilled: () => (this.zipPath || []).length < curPath.length
+          };
+        }
+
+        // 2. Trapped unvisited cells on the board (Isolation)
+        for (let r = 0; r < puzzle.size; r++) {
+          for (let c = 0; c < puzzle.size; c++) {
+            const isVisited = curPath.some(p => p.r === r && p.c === c);
+            if (!isVisited) {
+              const freeNeighs = [
+                { r: r - 1, c },
+                { r: r + 1, c },
+                { r, c: c - 1 },
+                { r, c: c + 1 }
+              ].filter(pt => pt.r >= 0 && pt.r < puzzle.size && pt.c >= 0 && pt.c < puzzle.size && !curPath.some(p => p.r === pt.r && p.c === pt.c));
+
+              const touchesTip = freeNeighs.some(pt => pt.r === last.r && pt.c === last.c);
+
+              if (freeNeighs.length === 0) {
+                return {
+                  key: `zip_isolated_${r}_${c}`,
+                  tag: 'Feld isoliert',
+                  focus: `Isoliertes Feld (Zeile ${r + 1}, Spalte ${c + 1})`,
+                  steps: [
+                    { title: '1. Insel-Erkennung', desc: 'Dieses Feld hat 0 freie Nachbarn mehr!' },
+                    { title: '2. Spielziel', desc: `Der Zip-Pfad muss ausnahmslos alle ${totalCells} Felder lückenlos abdecken.` },
+                    { title: '3. Korrektur', desc: 'Mache vorherige Schritte rückgängig, damit dieses Feld wieder angebunden werden kann.' }
+                  ],
+                  reason: `Das unbesuchte Feld bei Zeile ${r + 1}, Spalte ${c + 1} ist vollständig von freien Nachbarn abgeschnitten! Der Pfad muss alle ${totalCells} Felder lückenlos abdecken.`,
+                  action: `Mache vorherige Schritte rückgängig, um dieses Feld wieder erreichbar zu machen.`,
+                  highlight: { r, c },
+                  checkFulfilled: () => (this.zipPath || []).length < curPath.length
+                };
+              }
+
+              // Intermediate cell with only 1 neighbor must be entered immediately
+              const isEndPoint = puzzle.checkpoints[`${r},${c}`]?.num === Object.keys(puzzle.checkpoints).length;
+              if (freeNeighs.length === 1 && touchesTip && !isEndPoint) {
+                return {
+                  key: `zip_impending_isolation_${r}_${c}`,
+                  tag: 'Drohende Isolation',
+                  focus: `Engpass-Feld (Zeile ${r + 1}, Spalte ${c + 1})`,
+                  steps: [
+                    { title: '1. Topologie-Check', desc: 'Jedes unbesuchte Zwischenfeld benötigt mindestens zwei freie Nachbarn (einen zum Betreten, einen zum Verlassen).' },
+                    { title: '2. Drohende Isolation', desc: `Feld (${r + 1}, ${c + 1}) ist fast komplett von Wänden und bestehendem Pfad umzingelt. Es hat nur noch EINEN EINZIGEN freien Nachbarn – und das ist dein aktuelles Pfad-Ende!` },
+                    { title: '3. Zwingender Zug', desc: 'Wenn du jetzt irgendwo anders hinziehst, verliert dieses Feld seinen letzten Ausgang für immer und wird isoliert. Das Spiel wäre sofort unlösbar!' },
+                    { title: '4. Notwendige Rettung', desc: 'Der Pfad MUSS dieses Feld jetzt sofort ansteuern!' }
+                  ],
+                  reason: `Das Feld bei Zeile ${r + 1}, Spalte ${c + 1} hat nur noch einen einzigen freien Nachbarn (dein aktuelles Pfad-Ende). Da jedes Feld betreten und wieder verlassen werden muss, MUSS der Pfad dieses Feld jetzt ansteuern, bevor es endgültig isoliert wird!`,
+                  action: `Bewege den Pfad direkt auf Zeile ${r + 1}, Spalte ${c + 1}.`,
+                  highlight: { r, c },
+                  checkFulfilled: () => (this.zipPath || []).some(p => p.r === r && p.c === c)
+                };
+              }
+            }
+          }
+        }
+
+        // 3. Forced single step from tip
+        if (neighbors.length === 1) {
+          const onlyNext = neighbors[0];
+          return {
+            key: `zip_forced_${onlyNext.r}_${onlyNext.c}`,
+            tag: 'Eindeutiger Pfad-Schritt',
+            focus: `Pfad-Ende (Zeile ${last.r + 1}, Spalte ${last.c + 1})`,
+            steps: [
+              { title: '1. Richtungsprüfung', desc: 'Prüfe alle 4 Richtungen von deinem Pfad-Ende aus.' },
+              { title: '2. Blockaden', desc: '3 von 4 Richtungen sind durch den Spielfeldrand oder bereits besuchte Felder versperrt.' },
+              { title: '3. Einziger Ausweg', desc: `Es existiert buchstäblich nur eine legale Kante: nach Zeile ${onlyNext.r + 1}, Spalte ${onlyNext.c + 1}.` }
+            ],
+            reason: `Vom aktuellen Pfad-Ende bei Zeile ${last.r + 1}, Spalte ${last.c + 1} ist nur noch ein einziger Ausweg frei! Alle anderen Richtungen sind durch den Rand oder den bestehenden Pfad blockiert.`,
+            action: `Ziehe den Pfad weiter auf Zeile ${onlyNext.r + 1}, Spalte ${onlyNext.c + 1}.`,
+            highlight: { r: onlyNext.r, c: onlyNext.c },
+            checkFulfilled: () => (this.zipPath || []).some(p => p.r === onlyNext.r && p.c === onlyNext.c)
+          };
+        }
+
+        // 4. Tactical Step towards next checkpoint / solution
+        if (curPath.length < solPath.length) {
           const nextTarget = solPath[curPath.length];
           if (nextTarget) {
             return {
               key: `zip_next_${nextTarget.r}_${nextTarget.c}`,
-              reason: `Pfadführung: Das nächste Feld setzt den Pfad lückenlos zum nächsten Wegpunkt fort.`,
+              tag: 'Taktische Pfadführung',
+              focus: `Pfadführung zum nächsten Checkpoint`,
+              steps: [
+                { title: '1. Wegpunkt-Navigation', desc: 'Die nummerierten Wegpunkte müssen in streng aufsteigender Folge angelaufen werden.' },
+                { title: '2. Flächenabdeckung', desc: 'Der Pfad muss Randbereiche mitnehmen, damit keine unbesuchbaren Taschen entstehen.' },
+                { title: '3. Idealer Schritt', desc: `Ein Zug nach (Zeile ${nextTarget.r + 1}, Spalte ${nextTarget.c + 1}) sichert den optimalen Verlauf.` }
+              ],
+              reason: `Pfad-Optimierung: Ein Zug nach Zeile ${nextTarget.r + 1}, Spalte ${nextTarget.c + 1} vermeidet spätere Sackgassen und hält alle nachfolgenden Wegpunkte erreichbar.`,
               action: `Bewege den Pfad auf Zeile ${nextTarget.r + 1}, Spalte ${nextTarget.c + 1}.`,
               highlight: { r: nextTarget.r, c: nextTarget.c },
               checkFulfilled: () => (this.zipPath || []).some(p => p.r === nextTarget.r && p.c === nextTarget.c)
             };
           }
         }
-      }
 
-      if (game === 'pinpoint') {
         return {
-          key: 'pinpoint_general',
-          reason: 'Achte auf die gemeinsamen Merkmale aller bisher aufgedeckten Begriffe.',
-          action: 'Decke bei Bedarf den nächsten Hinweis auf oder rate die Überkategorie!',
+          key: 'zip_done',
+          tag: 'Gelöst',
+          focus: 'Gesamter Pfad',
+          steps: [
+            { title: 'Glückwunsch', desc: 'Der Pfad ist vollständig und verbindet alle 25 Felder lückenlos!' }
+          ],
+          reason: 'Der Pfad ist vollständig und verbindet alle 25 Felder!',
+          action: 'Überprüfe deine Wegpunkte.',
           highlight: null,
-          checkFulfilled: () => this.pinpointIsSolved
+          checkFulfilled: () => true
         };
       }
 
       if (game === 'crossclimb') {
+        const challenge = this.getActiveCrossclimb();
+        if (!challenge) return null;
+
+        // Step 1: Guessing middle rungs
+        if (this.crossclimbStep === 1) {
+          for (let i = 0; i < this.crossclimbRungs.length; i++) {
+            const rung = this.crossclimbRungs[i];
+            const curWord = (rung.currentWord || '').trim().toUpperCase();
+            if (curWord && curWord !== rung.targetWord) {
+              return {
+                key: `crossclimb_wrong_rung_${i}`,
+                tag: 'Wortprüfung',
+                focus: `Sprosse #${i + 1} – Hinweis „${rung.clue}“`,
+                steps: [
+                  { title: '1. Wortabgleich', desc: `Das eingegebene Wort „${curWord}“ stimmt noch nicht mit der gesuchten Bedeutung überein.` },
+                  { title: '2. Anfangsbuchstabe', desc: `Das richtige Wort beginnt mit dem Buchstaben „${rung.targetWord[0]}“.` },
+                  { title: '3. Länge', desc: 'Das gesuchte Wort hat genau 4 Buchstaben.' }
+                ],
+                reason: `Das Wort „${curWord}“ auf Sprosse #${i + 1} passt noch nicht zum Hinweis „${rung.clue}“.`,
+                action: `Tipp: Das gesuchte 4-Buchstaben-Wort beginnt mit „${rung.targetWord[0]}“!`,
+                highlight: { rungIndex: i },
+                checkFulfilled: () => ((this.crossclimbRungs[i]?.currentWord || '').trim().toUpperCase() === rung.targetWord)
+              };
+            }
+          }
+          for (let i = 0; i < this.crossclimbRungs.length; i++) {
+            const rung = this.crossclimbRungs[i];
+            const curWord = (rung.currentWord || '').trim().toUpperCase();
+            if (curWord !== rung.targetWord) {
+              return {
+                key: `crossclimb_clue_rung_${i}`,
+                tag: 'Sprossen-Hinweis',
+                focus: `Sprosse #${i + 1} – Hinweis „${rung.clue}“`,
+                steps: [
+                  { title: '1. Hinweis-Bedeutung', desc: `„${rung.clue}“ beschreibt den gesuchten Begriff.` },
+                  { title: '2. Wortstruktur', desc: 'Gesucht wird ein deutsches Wort mit exakt 4 Buchstaben.' },
+                  { title: '3. Anfangsbuchstabe & Muster', desc: `Das Wort beginnt mit „${rung.targetWord[0]}“: Muster ist „${rung.targetWord[0]} _ _ _“.` }
+                ],
+                reason: `Hinweis für Sprosse #${i + 1}: „${rung.clue}“. Das gesuchte Wort hat 4 Buchstaben.`,
+                action: `Der Anfangsbuchstabe lautet „${rung.targetWord[0]}“ (Lösung: ${rung.targetWord[0]} _ _ _).`,
+                highlight: { rungIndex: i },
+                checkFulfilled: () => ((this.crossclimbRungs[i]?.currentWord || '').trim().toUpperCase() === rung.targetWord)
+              };
+            }
+          }
+        }
+
+        // Step 2: Sorting rungs into the ladder
+        if (this.crossclimbStep === 2) {
+          const rungs = this.crossclimbRungs;
+          for (let i = 0; i < rungs.length - 1; i++) {
+            const w1 = rungs[i].targetWord;
+            const w2 = rungs[i + 1].targetWord;
+            const diff = this.crossclimbWordDiff(w1, w2);
+            if (diff !== 1) {
+              for (let j = 0; j < rungs.length; j++) {
+                if (j !== i && this.crossclimbWordDiff(w1, rungs[j].targetWord) === 1) {
+                  const partnerWord = rungs[j].targetWord;
+                  return {
+                    key: `crossclimb_chain_${i}_${j}`,
+                    tag: 'Wortleiter-Kette',
+                    focus: `Sprosse „${w1}“ vs. Nachbarsprosse`,
+                    steps: [
+                      { title: '1. Wortleiter-Kettenregel', desc: 'Zwei aufeinanderfolgende Sprossen dürfen sich immer nur in GENAU EINEM Buchstaben unterscheiden (Differenz = 1).' },
+                      { title: '2. Bruch in der Kette', desc: `In der aktuellen Reihenfolge unterscheiden sich „${w1}“ und „${w2}“ an ${diff} Stellen -> sie können unmöglich Nachbarn sein!` },
+                      { title: '3. Passender Partner', desc: `Vergleiche „${w1}“ mit den anderen Sprossen: Bei „${partnerWord}“ ist exakt nur 1 Buchstabe verschieden, die anderen 3 Buchstaben stimmen an denselben Positionen überein!` },
+                      { title: '4. Zwingende Verbindung', desc: `Diese beiden Wörter müssen direkt aneinandergekoppelt werden.` }
+                    ],
+                    reason: `In der aktuellen Reihenfolge unterscheiden sich „${w1}“ und „${w2}“ um mehr als einen Buchstaben. Das Wort „${w1}“ unterscheidet sich stattdessen um genau 1 Buchstaben von „${partnerWord}“!`,
+                    action: `Verschiebe die Sprosse mit „${partnerWord}“ neben „${w1}“.`,
+                    highlight: { rungIndex: j },
+                    checkFulfilled: () => this.crossclimbStep >= 3
+                  };
+                }
+              }
+            }
+          }
+        }
+
+        // Step 3: Decke and Boden
+        if (this.crossclimbStep === 3) {
+          const deckeCur = (this.crossclimbDecke.currentWord || '').trim().toUpperCase();
+          const deckeTarget = this.crossclimbDecke.targetWord;
+          const bodenCur = (this.crossclimbBoden.currentWord || '').trim().toUpperCase();
+          const bodenTarget = this.crossclimbBoden.targetWord;
+          const topRung = this.crossclimbRungs[0].targetWord;
+
+          if (deckeCur !== deckeTarget) {
+            return {
+              key: 'crossclimb_decke',
+              tag: 'Decken-Deduktion',
+              focus: `Deckenwort & oberste Sprosse „${topRung}“`,
+              steps: [
+                { title: '1. Leiter-Verankerung', desc: `Das Deckenwort muss sich um genau 1 Buchstaben von der obersten Leitersprosse „${topRung}“ unterscheiden.` },
+                { title: '2. Hinweis prüfen', desc: `Hinweis für das Deckenwort: „${this.crossclimbDecke.clue}“.` },
+                { title: '3. Buchstaben-Tausch', desc: `Ersetze den passenden Buchstaben in „${topRung}“, um das Deckenwort zu bilden.` }
+              ],
+              reason: `Das Decken-Wort („${this.crossclimbDecke.clue}“) muss sich vom obersten Leiterwort „${topRung}“ um genau einen Buchstaben unterscheiden!`,
+              action: `Tipp: Das Decken-Wort lautet „${deckeTarget}“ (Beginnt mit „${deckeTarget[0]}“).`,
+              highlight: null,
+              checkFulfilled: () => (this.crossclimbDecke.currentWord || '').trim().toUpperCase() === deckeTarget
+            };
+          }
+          if (bodenCur !== bodenTarget) {
+            const botRung = this.crossclimbRungs[this.crossclimbRungs.length - 1].targetWord;
+            return {
+              key: 'crossclimb_boden',
+              tag: 'Boden-Deduktion',
+              focus: `Bodenwort & unterste Sprosse „${botRung}“`,
+              steps: [
+                { title: '1. Leiter-Verankerung', desc: `Das Bodenwort unterscheidet sich um genau 1 Buchstaben vom untersten Leiterwort „${botRung}“.` },
+                { title: '2. Hinweis prüfen', desc: `Hinweis für das Bodenwort: „${this.crossclimbBoden.clue}“.` },
+                { title: '3. Buchstaben-Tausch', desc: `Ersetze den passenden Buchstaben, um das Bodenwort zu bilden.` }
+              ],
+              reason: `Das Boden-Wort („${this.crossclimbBoden.clue}“) unterscheidet sich um genau einen Buchstaben vom untersten Leiterwort „${botRung}“.`,
+              action: `Tipp: Das Boden-Wort lautet „${bodenTarget}“ (Beginnt mit „${bodenTarget[0]}“).`,
+              highlight: null,
+              checkFulfilled: () => (this.crossclimbBoden.currentWord || '').trim().toUpperCase() === bodenTarget
+            };
+          }
+        }
+
         return {
-          key: 'crossclimb_general',
-          reason: 'Jede Sprosse der Leiter unterscheidet sich von der vorherigen durch genau einen Buchstaben.',
-          action: 'Finde das Wort, das durch Tausch eines Buchstabens zur nächsten Stufe passt.',
+          key: 'crossclimb_done',
+          tag: 'Gelöst',
+          focus: 'Wortleiter',
+          steps: [
+            { title: 'Glückwunsch', desc: 'Die Leiter ist komplett geordnet und gelöst!' }
+          ],
+          reason: 'Die Leiter ist komplett geordnet und gelöst!',
+          action: 'Klicke auf Nächste Leiter.',
           highlight: null,
-          checkFulfilled: () => this.crossclimbIsSolved
+          checkFulfilled: () => true
         };
       }
 
+      if (game === 'pinpoint') {
+        const challenge = this.getActivePinpointChallenge();
+        if (!challenge) return null;
+        const revealed = (challenge.clues || []).slice(0, this.pinpointRevealedClues || 1);
+        const remainingClues = 5 - (this.pinpointRevealedClues || 1);
+
+        if (this.pinpointIsSolved) {
+          return {
+            key: 'pinpoint_done',
+            tag: 'Gelöst',
+            focus: 'Gesamtes Rätsel',
+            steps: [
+              { title: 'Glückwunsch', desc: 'Das Pinpoint-Rätsel ist bereits gelöst!' }
+            ],
+            reason: 'Das Pinpoint-Rätsel ist bereits gelöst!',
+            action: 'Spiele das nächste Rätsel!',
+            highlight: null,
+            checkFulfilled: () => true
+          };
+        }
+
+        if (remainingClues > 0 && this.pinpointRevealedClues < 4) {
+          return {
+            key: `pinpoint_clue_${this.pinpointRevealedClues}`,
+            tag: 'Kategorie-Eingrenzung',
+            focus: `Bisherige Begriffe: [${revealed.join(', ')}]`,
+            steps: [
+              { title: '1. Gemeinsame Schnittmenge', desc: `Frage dich: Welche Eigenschaft, Branche oder Bedeutung teilen alle bisherigen Wörter [${revealed.join(', ')}]?` },
+              { title: '2. Ausschluss falscher Kategorien', desc: 'Überlege, welche zu engen oder zu weiten Begriffe durch diese Kombination ausgeschlossen werden.' },
+              { title: '3. Strategie', desc: 'Falls der Oberbegriff noch unklar ist, decke den nächsten Hinweis auf, um das Feld weiter einzukreisen.' }
+            ],
+            reason: `Bisher aufgedeckte Hinweise: [${revealed.join(', ')}]. Alle diese Begriffe gehören zur selben übergeordneten Kategorie.`,
+            action: `Decke bei Bedarf den nächsten Hinweis auf, um das Themenfeld weiter einzukreisen!`,
+            highlight: null,
+            checkFulfilled: () => this.pinpointRevealedClues > revealed.length || this.pinpointIsSolved
+          };
+        }
+
+        const cat = challenge.category || challenge.keywords[0];
+        return {
+          key: 'pinpoint_category_hint',
+          tag: 'Kategorie-Lösungstipp',
+          focus: `Alle aufgedeckten Begriffe: [${revealed.join(', ')}]`,
+          steps: [
+            { title: '1. Vollständige Synthese', desc: 'Alle aufgedeckten Begriffe sind konkrete Beispiele für dieselbe übergeordnete Kategorie.' },
+            { title: '2. Wortstruktur', desc: `Der gesuchte Oberbegriff hat ${cat.length} Buchstaben.` },
+            { title: '3. Anfangsbuchstabe', desc: `Das Lösungswort beginnt mit „${cat[0].toUpperCase()}“.` }
+          ],
+          reason: `Alle bisherigen Begriffe [${revealed.join(', ')}] sind typische Vertreter oder Synonyme für diesen Oberbegriff.`,
+          action: `Die gesuchte Kategorie beginnt mit „${cat[0].toUpperCase()}“ und hat ${cat.length} Buchstaben.`,
+          highlight: null,
+          checkFulfilled: () => this.pinpointIsSolved
+        };
+      }
       return null;
     }
 
-    bindEvents() {
+        bindEvents() {
 
             // LinkedIn Games Tab Switcher
 

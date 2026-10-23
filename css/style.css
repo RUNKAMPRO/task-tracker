@@ -8138,6 +8138,14 @@ body:not(.orbit-os-active) .suite-app-view:not(.active) {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  flex-wrap: wrap;
+}
+
+.hint-tag-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .hint-tag {
@@ -8150,6 +8158,25 @@ body:not(.orbit-os-active) .suite-app-view:not(.active) {
 
 .game-active-hint-card.fulfilled .hint-tag {
   color: #4ade80;
+}
+
+.hint-focus-badge {
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.16);
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.hint-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .hint-status-badge {
@@ -8171,6 +8198,80 @@ body:not(.orbit-os-active) .suite-app-view:not(.active) {
   border-color: rgba(34, 197, 94, 0.45);
 }
 
+.hint-thought-process {
+  margin: 6px 0;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hint-process-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fde68a;
+  letter-spacing: 0.02em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 6px;
+}
+
+.hint-steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hint-step-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: #cbd5e1;
+}
+
+.step-badge {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  border-radius: 50%;
+  background: rgba(245, 158, 11, 0.25);
+  color: #fbbf24;
+  font-weight: 700;
+  font-size: 0.72rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.game-active-hint-card.fulfilled .step-badge {
+  background: rgba(34, 197, 94, 0.25);
+  color: #86efac;
+  border-color: rgba(34, 197, 94, 0.5);
+}
+
+.step-text {
+  flex: 1;
+}
+
+.step-title {
+  font-weight: 700;
+  color: #f8fafc;
+  margin-right: 4px;
+}
+
+.step-desc {
+  color: #cbd5e1;
+}
+
 .hint-reasoning {
   font-size: 0.88rem;
   color: #cbd5e1;
@@ -8183,7 +8284,9 @@ body:not(.orbit-os-active) .suite-app-view:not(.active) {
   color: #ffffff;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .hint-close-btn {
